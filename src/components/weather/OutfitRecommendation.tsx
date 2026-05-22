@@ -2,7 +2,14 @@ import React from "react";
 import { motion } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
-import type { OutfitRecommendation as OutfitRec } from "@/types";
+import type { FootwearKind, OutfitRecommendation as OutfitRec } from "@/types";
+
+const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
+  flip_flops: { label: "Flip flops", emoji: "🩴", color: "#1E40AF", bg: "#EFF6FF" },
+  sneakers: { label: "Sneakers", emoji: "👟", color: "#374151", bg: "#F3F4F6" },
+  snow_boots: { label: "Snow boots", emoji: "🥾", color: "#166534", bg: "#F0FDF4" },
+  rain_boots: { label: "Rain boots", emoji: "🌧️", color: "#1D4ED8", bg: "#EFF6FF" },
+};
 
 interface Props {
   recommendation: OutfitRec;
@@ -18,7 +25,7 @@ const URGENCY_COLORS = {
 };
 
 export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onRecalibrate }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, flipFlops, commuteAlert } = recommendation;
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, footwear, commuteAlert } = recommendation;
 
   const displayFeelsLike =
     tempUnit === "C"
@@ -59,7 +66,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
             sunglasses={sunglasses}
             scarf={scarf}
             beanie={beanie}
-            flipFlops={flipFlops}
+            footwear={footwear}
             colorScheme="light"
           />
 
@@ -69,9 +76,16 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           </p>
 
           {/* Accessories pills */}
-          {(umbrella || sunglasses || scarf || beanie || flipFlops) && (
+          {(umbrella || sunglasses || scarf || beanie || footwear) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-              {flipFlops && <AccessoryPill label="Flip flops" emoji="🩴" color="#1E40AF" bg="#EFF6FF" />}
+              {footwear && (
+                <AccessoryPill
+                  label={FOOTWEAR_PILLS[footwear].label}
+                  emoji={FOOTWEAR_PILLS[footwear].emoji}
+                  color={FOOTWEAR_PILLS[footwear].color}
+                  bg={FOOTWEAR_PILLS[footwear].bg}
+                />
+              )}
               {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
               {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />}
               {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}

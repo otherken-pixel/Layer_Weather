@@ -2,13 +2,59 @@ import type {
   UserCalibration,
   OutfitRecommendation,
   OutfitType,
+  FootwearKind,
   AvatarCondition,
   HourlyForecast,
   CommuteAlert,
 } from "@/types";
 
-/** Flip-flops are only shown at or above this feels-like temperature (°F) */
+/** Flip-flops at or above this feels-like (°F); sneakers below when dry */
 export const FLIP_FLOPS_MIN_TEMP_F = 85;
+
+/** Below this feels-like → snow boots (when not rainy) */
+export const SNOW_BOOTS_BELOW_TEMP_F = 50;
+
+export function resolveFootwear(opts: {
+  effectiveFeelsLike: number;
+  isRainy: boolean;
+  isSnowy: boolean;
+  outfit: OutfitType;
+}): FootwearKind {
+  const { effectiveFeelsLike, isRainy, isSnowy, outfit } = opts;
+
+  if (isRainy || outfit === "rain_light" || outfit === "rain_heavy") {
+    return "rain_boots";
+  }
+
+  if (
+    isSnowy ||
+    effectiveFeelsLike < SNOW_BOOTS_BELOW_TEMP_F ||
+    outfit === "heavy_coat" ||
+    outfit === "heavy_jacket"
+  ) {
+    return "snow_boots";
+  }
+
+  if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
+    return "flip_flops";
+  }
+
+  return "sneakers";
+}
+
+/** Onboarding / swipe cards — infer rain & snow from outfit + temp */
+export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
+  const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
+  const isSnowy =
+    outfit === "heavy_coat" ||
+    (outfit === "heavy_jacket" && temp < SNOW_BOOTS_BELOW_TEMP_F);
+  return resolveFootwear({
+    effectiveFeelsLike: temp,
+    isRainy: isRainOutfit,
+    isSnowy,
+    outfit,
+  });
+}
 
 // ── Default calibration (used before onboarding) ──────────────────────────────
 export const DEFAULT_CALIBRATION: UserCalibration = {
@@ -111,12 +157,12 @@ export function getOutfitRecommendation(opts: {
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
   const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie = effectiveFeelsLike < 30 || isSnowy;
-  const flipFlops =
-    effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F &&
-    !isRainy &&
-    !isSnowy &&
-    outfit !== "heavy_coat" &&
-    outfit !== "heavy_jacket";
+  const footwear = resolveFootwear({
+    effectiveFeelsLike,
+    isRainy,
+    isSnowy,
+    outfit,
+  });
 
   const avatarCondition = getAvatarCondition(
     weatherCode,
@@ -149,7 +195,7 @@ export function getOutfitRecommendation(opts: {
     sunglasses,
     scarf,
     beanie,
-    flipFlops,
+    footwear,
     avatarCondition,
     commuteAlert,
   };
@@ -347,7 +393,19 @@ export function generatePackingList(
   const hotDays = dailyForecasts.filter((d) => d.feelsLikeMax >= calibration.shorts_min_temp).length;
   const rainDays = dailyForecasts.filter((d) => d.precipProb > 50).length;
 
-  const flipFlopDays = dailyForecasts.filter((d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F).length;
+  const flipFlopDays = dailyForecasts.filter(
+    (d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F && d.precipProb <= 50 && d.condition !== "snow",
+  ).length;
+  const sneakerDays = dailyForecasts.filter(
+    (d) =>
+      d.feelsLikeMax < FLIP_FLOPS_MIN_TEMP_F &&
+      d.feelsLikeMin >= SNOW_BOOTS_BELOW_TEMP_F &&
+      d.precipProb <= 50 &&
+      d.condition !== "snow",
+  ).length;
+  const snowBootDays = dailyForecasts.filter(
+    (d) => d.condition === "snow" || d.feelsLikeMin < SNOW_BOOTS_BELOW_TEMP_F,
+  ).length;
 
   if (hotDays > 0) {
     items.push({ category: "tops", name: "T-shirts", quantity: hotDays + 1, reason: `${hotDays} warm days expected` });
@@ -363,20 +421,42 @@ export function generatePackingList(
     });
   }
 
+  if (sneakerDays > 0) {
+    items.push({
+      category: "footwear",
+      name: "Sneakers",
+      quantity: 1,
+      reason: `${sneakerDays} mild day${sneakerDays > 1 ? "s" : ""} (${SNOW_BOOTS_BELOW_TEMP_F}–${FLIP_FLOPS_MIN_TEMP_F - 1}°F, dry)`,
+    });
+  }
+
+  if (snowBootDays > 0) {
+    items.push({
+      category: "footwear",
+      name: "Snow boots",
+      quantity: 1,
+      reason: `${snowBootDays} cold or snowy day${snowBootDays > 1 ? "s" : ""}`,
+    });
+  }
+
   if (coldDays > 0) {
     items.push({ category: "outerwear", name: "Warm jacket", quantity: 1, reason: `Lows around ${Math.min(...dailyForecasts.map((d) => d.feelsLikeMin))}°F` });
   }
 
   if (rainDays > 0) {
     items.push({ category: "outerwear", name: "Rain jacket", quantity: 1, reason: `${rainDays} rainy day${rainDays > 1 ? "s" : ""}` });
+    items.push({
+      category: "footwear",
+      name: "Rain boots",
+      quantity: 1,
+      reason: `${rainDays} wet day${rainDays > 1 ? "s" : ""}`,
+    });
     if (calibration.rain_tolerance === "low") {
       items.push({ category: "accessories", name: "Compact umbrella", quantity: 1 });
     }
   }
 
   items.push({ category: "bottoms", name: "Pants / Jeans", quantity: Math.min(days, 3) });
-  items.push({ category: "footwear", name: "Comfortable walking shoes", quantity: 1 });
-  if (rainDays > 0) items.push({ category: "footwear", name: "Waterproof shoes", quantity: 1 });
 
   return items;
 }

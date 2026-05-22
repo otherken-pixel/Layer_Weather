@@ -8,7 +8,7 @@ import { ThermalSlider } from "@/components/onboarding/ThermalSlider";
 import { Button } from "@/components/ui/Button";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { upsertCalibration, upsertProfile } from "@/lib/supabase";
-import { computeCalibrationFromSwipes, FLIP_FLOPS_MIN_TEMP_F } from "@/lib/outfit-logic";
+import { computeCalibrationFromSwipes, resolveFootwearForScenario } from "@/lib/outfit-logic";
 import { geocodeCity } from "@/lib/location-search";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity, SwipeDirection, UserCalibration } from "@/types";
@@ -202,7 +202,7 @@ export default function Onboarding() {
                     sunglasses={false}
                     scarf={false}
                     beanie={false}
-                    flipFlops={false}
+                    footwear={resolveFootwearForScenario(64, "light_jacket")}
                     colorScheme="dark"
                   />
                 </div>
@@ -296,7 +296,7 @@ export default function Onboarding() {
                     sunglasses={true}
                     scarf={false}
                     beanie={false}
-                    flipFlops
+                    footwear={resolveFootwearForScenario(85, "shorts_tshirt")}
                     colorScheme="dark"
                   />
                 </div>

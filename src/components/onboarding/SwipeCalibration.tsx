@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
-import { FLIP_FLOPS_MIN_TEMP_F } from "@/lib/outfit-logic";
+import { resolveFootwearForScenario } from "@/lib/outfit-logic";
 import type { CalibrationScenario, SwipeDirection, OutfitType } from "@/types";
 
 const SWIPE_THRESHOLD = 80;
@@ -131,7 +131,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
                 sunglasses={nextScenario.sunglasses ?? false}
                 scarf={nextScenario.scarf ?? false}
                 beanie={nextScenario.beanie ?? false}
-                flipFlops={nextScenario.temp >= FLIP_FLOPS_MIN_TEMP_F}
+                footwear={resolveFootwearForScenario(nextScenario.temp, nextScenario.outfit)}
                 compact
               />
             </div>
@@ -205,7 +205,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
               sunglasses={scenario.sunglasses ?? false}
               scarf={scenario.scarf ?? false}
               beanie={scenario.beanie ?? false}
-              flipFlops={scenario.temp >= FLIP_FLOPS_MIN_TEMP_F}
+              footwear={resolveFootwearForScenario(scenario.temp, scenario.outfit)}
             />
           </div>
 
