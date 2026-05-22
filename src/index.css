@@ -78,6 +78,106 @@
 }
 
 /* ── Weather animations ──────────────────────────────────────────── */
+
+@keyframes wx-rain-fall {
+  0%   { transform: translateY(0);     opacity: 0; }
+  6%   { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(560px); opacity: 0; }
+}
+
+@keyframes wx-snow-drift {
+  0%   { transform: translateY(0) translateX(0);    opacity: 0; }
+  7%   { opacity: 0.85; }
+  50%  { transform: translateY(280px) translateX(16px); }
+  90%  { opacity: 0.85; }
+  100% { transform: translateY(560px) translateX(0); opacity: 0; }
+}
+
+@keyframes wx-sun-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 28px rgba(255,215,50,0.65), 0 0 58px rgba(255,170,0,0.35);
+  }
+  50% {
+    transform: scale(1.07);
+    box-shadow: 0 0 48px rgba(255,215,50,0.92), 0 0 96px rgba(255,170,0,0.55);
+  }
+}
+
+@keyframes wx-sun-rays-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes wx-moon-glow {
+  0%, 100% { box-shadow: 0 0 22px rgba(255,230,100,0.35), inset -6px -3px 0 rgba(0,0,0,0.12); }
+  50%       { box-shadow: 0 0 40px rgba(255,230,100,0.62), inset -6px -3px 0 rgba(0,0,0,0.12); }
+}
+
+@keyframes wx-star-twinkle {
+  0%, 100% { opacity: 0.08; transform: scale(0.7); }
+  50%       { opacity: 1;    transform: scale(1.3); }
+}
+
+@keyframes wx-cloud-drift {
+  from { transform: translateX(110vw); }
+  to   { transform: translateX(-320px); }
+}
+
+@keyframes wx-fog-drift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(33.33%); }
+}
+
+.wx-rain-drop {
+  position: absolute;
+  width: 2px;
+  border-radius: 1px;
+  background: #90CAF9;
+  animation: wx-rain-fall linear infinite;
+  will-change: transform, opacity;
+}
+
+.wx-snowflake {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  animation: wx-snow-drift ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.wx-sun-pulse {
+  animation: wx-sun-pulse 3.5s ease-in-out infinite;
+  box-shadow: 0 0 28px rgba(255,215,50,0.65), 0 0 58px rgba(255,170,0,0.35);
+  will-change: transform, box-shadow;
+}
+
+.wx-sun-rays-rotate {
+  animation: wx-sun-rays-rotate 14s linear infinite;
+  will-change: transform;
+}
+
+.wx-moon-glow {
+  animation: wx-moon-glow 4s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+.wx-star-twinkle {
+  animation: wx-star-twinkle ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+.wx-cloud-drift {
+  animation: wx-cloud-drift linear infinite;
+  will-change: transform;
+}
+
+.wx-fog-drift {
+  animation: wx-fog-drift linear infinite;
+  will-change: transform;
+}
+
 @keyframes raindrop-fall {
   0% {
     transform: translateY(0);
