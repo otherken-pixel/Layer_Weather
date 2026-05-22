@@ -1,5 +1,6 @@
 import React from "react";
 import type { CurrentWeather } from "@/types";
+import { getHairForecast } from "@/lib/hair-forecast";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -30,7 +31,7 @@ interface Props {
 }
 
 export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
-  const feelsLike = toUnit(weather.feelsLike, tempUnit);
+  const hairForecast = getHairForecast(weather);
 
   return (
     <div
@@ -50,14 +51,14 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
         Current Conditions
       </p>
 
-      {/* Feels-like row with unit toggle */}
+      {/* Hair forecast row with unit toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <div>
-          <div style={{ fontSize: 48, fontWeight: 700, color: "#111827", letterSpacing: "-2px", lineHeight: 1 }}>
-            {feelsLike}°
+        <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: "#111827", lineHeight: 1.15 }}>
+            {hairForecast.shortTitle}
           </div>
           <div style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
-            Feels like · {comfortLabel(weather.feelsLike)}
+            {hairForecast.actionableAdvice}
           </div>
         </div>
 
