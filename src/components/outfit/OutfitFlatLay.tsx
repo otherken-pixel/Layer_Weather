@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import type { OutfitType } from "@/types";
+import type { FootwearKind, OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
 import LongSleeve from "./svg/LongSleeve";
 import Pants from "./svg/Pants";
@@ -12,7 +12,10 @@ import Umbrella from "./svg/Umbrella";
 import Sunglasses from "./svg/Sunglasses";
 import Scarf from "./svg/Scarf";
 import Beanie from "./svg/Beanie";
+import FlipFlops from "./svg/FlipFlops";
 import Sneakers from "./svg/Sneakers";
+import SnowBoots from "./svg/SnowBoots";
+import RainBoots from "./svg/RainBoots";
 
 interface Props {
   outfit: OutfitType;
@@ -21,8 +24,7 @@ interface Props {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
-  /** Show flip-flops accessory (≥ 85°F feels-like only) */
-  flipFlops?: boolean;
+  footwear?: FootwearKind | null;
   colorScheme?: "dark" | "light";
   compact?: boolean;
 }
@@ -35,13 +37,26 @@ const ITEM_ANIM = {
 
 const STAGGER = 0.06;
 
+function FootwearIcon({ kind, className }: { kind: FootwearKind; className: string }) {
+  switch (kind) {
+    case "flip_flops":
+      return <FlipFlops className={className} />;
+    case "sneakers":
+      return <Sneakers className={className} />;
+    case "snow_boots":
+      return <SnowBoots className={className} />;
+    case "rain_boots":
+      return <RainBoots className={className} />;
+  }
+}
+
 export default function OutfitFlatLay({
   outfit,
   umbrella,
   sunglasses,
   scarf,
   beanie,
-  flipFlops = false,
+  footwear = null,
   colorScheme = "light",
   compact = false,
 }: Props) {
@@ -78,38 +93,41 @@ export default function OutfitFlatLay({
       ? wrap(<Shorts className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize)
       : wrap(<Pants className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize);
 
-  const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
-
   const accessories: React.ReactNode[] = [];
+  let delay = 2;
 
-  if (isRainOutfit) {
+  if (footwear) {
     accessories.push(
-      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, 2 * STAGGER, accessorySize)
+      wrap(
+        <FootwearIcon kind={footwear} className={`w-full h-full ${iconClass}`} />,
+        delay * STAGGER,
+        accessorySize,
+      ),
     );
-  } else if (flipFlops) {
-    accessories.push(
-      wrap(<Sneakers className={`w-full h-full ${iconClass}`} />, 2 * STAGGER, accessorySize)
-    );
+    delay += 1;
   }
 
-  if (!isRainOutfit && umbrella) {
+  if (umbrella) {
     accessories.push(
-      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, 3 * STAGGER, accessorySize)
+      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
     );
+    delay += 1;
   }
   if (sunglasses) {
     accessories.push(
-      wrap(<Sunglasses className={`w-full h-full ${iconClass}`} />, 4 * STAGGER, accessorySize)
+      wrap(<Sunglasses className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
     );
+    delay += 1;
   }
   if (scarf) {
     accessories.push(
-      wrap(<Scarf className={`w-full h-full ${iconClass}`} />, 5 * STAGGER, accessorySize)
+      wrap(<Scarf className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
     );
+    delay += 1;
   }
   if (beanie) {
     accessories.push(
-      wrap(<Beanie className={`w-full h-full ${iconClass}`} />, 6 * STAGGER, accessorySize)
+      wrap(<Beanie className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
     );
   }
 
