@@ -18,11 +18,11 @@ type Step = "welcome" | "swipe" | "thermal" | "location" | "done";
 const STEPS: Step[] = ["welcome", "swipe", "thermal", "location", "done"];
 
 const GRADIENTS: Record<Step, string> = {
-  welcome:  "linear-gradient(135deg,#6C63FF,#43B0F1)",
-  swipe:    "linear-gradient(135deg,#FF6584,#6C63FF)",
-  thermal:  "linear-gradient(135deg,#FA709A,#6C63FF)",
-  location: "linear-gradient(135deg,#0F2027,#203A43)",
-  done:     "linear-gradient(135deg,#56ab2f,#a8e063)",
+  welcome:  "linear-gradient(160deg,#2E2550,#4A3F6B)",
+  swipe:    "linear-gradient(160deg,#2E3F58,#4A5E78)",
+  thermal:  "linear-gradient(160deg,#4A5E78,#5B9BD5)",
+  location: "linear-gradient(160deg,#3A8EE6,#5B9BD5)",
+  done:     "linear-gradient(160deg,#2D6A4F,#52B788)",
 };
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {

@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store";
 import { fetchWeatherData } from "@/lib/weather";
 import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
@@ -8,6 +6,10 @@ import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 interface GeoResult { name: string; latitude: number; longitude: number; country: string; admin1?: string; }
 
 const CATEGORIES = ["outerwear", "tops", "bottoms", "footwear", "accessories"] as const;
+const CATEGORY_EMOJI: Record<string, string> = {
+  outerwear: "🧥", tops: "👕", bottoms: "👖", footwear: "👟", accessories: "🧣",
+};
+const ACCENT = "#7C3AED";
 
 export default function Packing() {
   const { calibration } = useAppStore();
@@ -49,91 +51,165 @@ export default function Packing() {
   }
 
   return (
-    <div className="min-h-full px-5 py-6 pt-safe flex flex-col gap-4" style={{ background: "linear-gradient(to bottom,#1a1a2e,#203A43)" }}>
-      <div>
-        <h1 className="text-3xl font-black text-white" style={{ letterSpacing: "-0.5px" }}>Travel Packing</h1>
-        <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>Weather-smart packing lists for any trip</p>
+    <div style={{ minHeight: "100%", background: "#F2F2F7", display: "flex", flexDirection: "column" }}>
+
+      {/* ── Header ── */}
+      <div style={{
+        background: "#F2F2F7",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)",
+        paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
+      }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, color: "#111827", letterSpacing: "-0.03em", margin: 0 }}>
+          Travel Packing
+        </h1>
+        <p style={{ fontSize: 14, color: "#9CA3AF", marginTop: 4 }}>Weather-smart packing lists for any trip</p>
       </div>
 
-      <Card>
-        <div className="flex flex-col gap-3">
-          <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.6)" }}>Destination</label>
-          <div className="flex gap-2">
+      {/* ── Content ── */}
+      <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 12 }}>
+
+        {/* Search card */}
+        <div style={{ background: "#fff", borderRadius: 24, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+
+          <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+            Destination
+          </p>
+
+          <div style={{ display: "flex", gap: 8 }}>
             <input
               value={destination}
-              onChange={e => { setDestination(e.target.value); setSelected(null); setGeoResults([]); setNoResults(false); }}
-              onKeyDown={e => e.key === "Enter" && search()}
+              onChange={(e) => { setDestination(e.target.value); setSelected(null); setGeoResults([]); setNoResults(false); }}
+              onKeyDown={(e) => e.key === "Enter" && search()}
               placeholder="Paris, Tokyo, New York…"
-              className="flex-1 rounded-xl px-4 py-3 text-base text-white outline-none border"
-              style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.15)" }}
+              style={{
+                flex: 1, background: "#F3F4F6", border: "1.5px solid #E5E7EB",
+                borderRadius: 14, padding: "12px 14px", fontSize: 15, color: "#111827",
+                outline: "none",
+              }}
             />
-            <button onClick={search} disabled={searching}
-              className="w-12 h-12 rounded-xl flex items-center justify-center bg-brand text-white text-lg flex-shrink-0">
+            <button
+              onClick={search}
+              disabled={searching}
+              style={{
+                width: 48, height: 48, borderRadius: 14, background: ACCENT,
+                border: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18, cursor: searching ? "not-allowed" : "pointer", flexShrink: 0,
+                opacity: searching ? 0.7 : 1,
+              }}
+            >
               {searching ? "⏳" : "🔍"}
             </button>
           </div>
 
+          {/* Geo results */}
           {geoResults.length > 0 && !selected && (
-            <div className="flex flex-col divide-y" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column" }}>
               {geoResults.map((r, i) => (
-                <button key={i} onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
-                  className="flex items-center gap-2 py-2.5 text-sm text-white text-left">
-                  <span>📍</span> {r.name}{r.admin1 ? `, ${r.admin1}` : ""}, {r.country}
+                <button
+                  key={i}
+                  onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 4px",
+                    background: "none", border: "none", borderBottom: i < geoResults.length - 1 ? "1px solid #F3F4F6" : "none",
+                    cursor: "pointer", textAlign: "left", fontSize: 14, color: "#111827",
+                  }}
+                >
+                  <span>📍</span>
+                  <span>{r.name}{r.admin1 ? `, ${r.admin1}` : ""}, {r.country}</span>
                 </button>
               ))}
             </div>
           )}
 
           {noResults && !selected && (
-            <p className="text-sm text-center py-1" style={{ color: "rgba(255,255,255,0.45)" }}>No destinations found — try a different spelling.</p>
+            <p style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 8, paddingBottom: 4 }}>
+              No destinations found — try a different spelling.
+            </p>
           )}
 
-          <label className="text-xs font-bold uppercase tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>Trip length (days)</label>
-          <input type="number" min={1} max={14} value={days} onChange={e => setDays(e.target.value)}
-            className="w-24 rounded-xl px-4 py-3 text-base text-white outline-none border"
-            style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.15)" }}
-          />
+          {/* Trip length */}
+          <div style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+              Trip length (days)
+            </p>
+            <input
+              type="number" min={1} max={14}
+              value={days}
+              onChange={(e) => setDays(e.target.value)}
+              style={{
+                width: 80, background: "#F3F4F6", border: "1.5px solid #E5E7EB",
+                borderRadius: 12, padding: "10px 14px", fontSize: 15, fontWeight: 700,
+                color: "#111827", outline: "none", textAlign: "center",
+              }}
+            />
+          </div>
         </div>
-      </Card>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+        {/* Error */}
+        {error && (
+          <p style={{ fontSize: 13, color: "#EF4444", paddingLeft: 4 }}>{error}</p>
+        )}
 
-      <Button
-        label={selected ? `Generate list for ${selected.name}` : "Select a destination first"}
-        onPress={generate}
-        disabled={!selected}
-        loading={loading}
-        variant="primary"
-        size="lg"
-        fullWidth
-      />
+        {/* Generate button */}
+        <button
+          onClick={generate}
+          disabled={!selected || loading}
+          style={{
+            background: selected ? ACCENT : "#E5E7EB",
+            color: selected ? "white" : "#9CA3AF",
+            border: "none", borderRadius: 16, padding: "16px 0",
+            fontSize: 16, fontWeight: 700, width: "100%",
+            cursor: selected && !loading ? "pointer" : "not-allowed",
+            transition: "background 0.2s",
+          }}
+        >
+          {loading ? "⟳ Fetching weather…" : selected ? `Pack for ${selected.name}` : "Select a destination first"}
+        </button>
 
-      {items.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-bold text-white">{selected?.name} · {days} days</h2>
-          {CATEGORIES.map((cat) => {
-            const catItems = items.filter(i => i.category === cat);
-            if (!catItems.length) return null;
-            return (
-              <Card key={cat}>
-                <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.55)" }}>{cat}</p>
-                <div className="flex flex-col gap-2.5">
-                  {catItems.map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold text-brand-light flex-shrink-0" style={{ background: "rgba(108,99,255,0.15)" }}>{item.quantity}×</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        {item.reason && <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.5)" }}>{item.reason}</p>}
+        {/* Packing list */}
+        {items.length > 0 && (
+          <>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8, paddingLeft: 4, marginTop: 4 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: 0 }}>{selected?.name}</h2>
+              <span style={{ fontSize: 14, color: "#9CA3AF" }}>{days} days</span>
+            </div>
+
+            {CATEGORIES.map((cat) => {
+              const catItems = items.filter((i) => i.category === cat);
+              if (!catItems.length) return null;
+              return (
+                <div key={cat} style={{ background: "#fff", borderRadius: 24, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                    <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[cat]}</span>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
+                      {cat}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {catItems.map((item, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{
+                          minWidth: 36, height: 36, borderRadius: 12,
+                          background: "#EDE9FE", color: ACCENT,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 12, fontWeight: 800,
+                        }}>
+                          {item.quantity}×
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 }}>{item.name}</p>
+                          {item.reason && <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>{item.reason}</p>}
+                        </div>
+                        <span style={{ fontSize: 16, color: "#D1D5DB" }}>✓</span>
                       </div>
-                      <span style={{ color: "rgba(255,255,255,0.3)" }}>✓</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </>
+        )}
+      </div>
     </div>
   );
 }
