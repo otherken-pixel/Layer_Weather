@@ -12,11 +12,11 @@ interface ScenarioWithAccessories extends CalibrationScenario {
 }
 
 const SCENARIOS: ScenarioWithAccessories[] = [
-  { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F — sunny afternoon", sunglasses: true },
+  { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F — sunny afternoon",  sunglasses: true },
   { id: "warm", temp: 74, outfit: "pants_tshirt",  description: "74°F — comfortable day" },
   { id: "mild", temp: 64, outfit: "light_jacket",  description: "64°F — breezy morning" },
   { id: "cool", temp: 52, outfit: "heavy_jacket",  description: "52°F — grey afternoon" },
-  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day", beanie: true, scarf: true },
+  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day",  beanie: true, scarf: true },
 ];
 
 function isRainOutfit(outfit: OutfitType) {
@@ -101,20 +101,23 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
       {/* Card stack */}
       <div
         className="relative flex items-center justify-center"
-        style={{ width: "100%", maxWidth: 340, height: 340 }}
+        style={{ width: "100%", maxWidth: 340, height: 420 }}
       >
-        {/* Background card (next scenario) */}
+        {/* Background card (next scenario peek) */}
         {nextScenario && (
           <div
-            className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-3 p-5"
+            className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center p-5"
             style={{
               background: "rgba(15,25,45,0.70)",
               border: "1px solid rgba(255,255,255,0.10)",
               transform: "scale(0.93) translateY(14px)",
-              opacity: 0.7,
+              opacity: 0.6,
             }}
           >
-            <div style={{ opacity: 0.5 }}>
+            <div
+              className="rounded-2xl flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.08)", padding: 16, opacity: 0.5 }}
+            >
               <OutfitFlatLay
                 outfit={nextScenario.outfit}
                 rainGear={isRainOutfit(nextScenario.outfit)}
@@ -122,7 +125,6 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
                 sunglasses={nextScenario.sunglasses ?? false}
                 scarf={nextScenario.scarf ?? false}
                 beanie={nextScenario.beanie ?? false}
-                colorScheme="dark"
                 compact
               />
             </div>
@@ -141,9 +143,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             scale: cardScale,
             opacity: cardOpacity,
             width: "100%",
-            height: 320,
+            height: 400,
             position: "absolute",
-            background: "rgba(15,25,45,0.92)",
+            background: "rgba(15,25,45,0.95)",
             borderColor: "rgba(255,255,255,0.12)",
             boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
           }}
@@ -153,44 +155,47 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             else animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
           }}
           onTap={() => handleSwipe("center")}
-          className="rounded-3xl border flex flex-col items-center justify-center gap-4 p-5 swipe-card"
+          className="rounded-3xl border flex flex-col items-center justify-between p-5 swipe-card"
         >
-          {/* Swipe direction labels */}
-          <motion.div
-            style={{ opacity: leftOpacity, background: "rgba(59,130,246,0.2)", border: "1px solid rgba(147,197,253,0.5)" }}
-            className="absolute top-4 left-4 px-3 py-2 rounded-xl"
-          >
-            <span className="text-sm font-bold text-white">🥶 Too Cold</span>
-          </motion.div>
-          <motion.div
-            style={{ opacity: rightOpacity, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(252,165,165,0.5)" }}
-            className="absolute top-4 right-4 px-3 py-2 rounded-xl"
-          >
-            <span className="text-sm font-bold text-white">🔥 Too Warm</span>
-          </motion.div>
-
-          {/* Center "just right" hint — faint, always visible */}
-          <div
-            className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-2 rounded-xl"
-            style={{ background: "rgba(52,199,89,0.12)", border: "1px solid rgba(134,239,172,0.25)", opacity: 0.5 }}
-          >
-            <span className="text-sm font-bold text-white">✅ Just Right</span>
+          {/* Swipe direction labels — animate on drag */}
+          <div className="relative w-full flex justify-between items-start" style={{ minHeight: 40 }}>
+            <motion.div
+              style={{ opacity: leftOpacity, background: "rgba(59,130,246,0.2)", border: "1px solid rgba(147,197,253,0.5)" }}
+              className="px-3 py-2 rounded-xl"
+            >
+              <span className="text-sm font-bold text-white">🥶 Too Cold</span>
+            </motion.div>
+            <motion.div
+              style={{ opacity: rightOpacity, background: "rgba(239,68,68,0.2)", border: "1px solid rgba(252,165,165,0.5)" }}
+              className="px-3 py-2 rounded-xl"
+            >
+              <span className="text-sm font-bold text-white">🔥 Too Warm</span>
+            </motion.div>
           </div>
 
-          {/* Flat Lay outfit display */}
-          <OutfitFlatLay
-            outfit={scenario.outfit}
-            rainGear={isRainOutfit(scenario.outfit)}
-            umbrella={false}
-            sunglasses={scenario.sunglasses ?? false}
-            scarf={scenario.scarf ?? false}
-            beanie={scenario.beanie ?? false}
-            colorScheme="dark"
-            compact
-          />
+          {/* Icon area — white card so colored icons pop */}
+          <div
+            className="w-full rounded-2xl flex items-center justify-center"
+            style={{
+              background: "#F0F2F6",
+              padding: "16px 12px",
+              flex: 1,
+              marginTop: 8,
+              marginBottom: 8,
+            }}
+          >
+            <OutfitFlatLay
+              outfit={scenario.outfit}
+              rainGear={isRainOutfit(scenario.outfit)}
+              umbrella={false}
+              sunglasses={scenario.sunglasses ?? false}
+              scarf={scenario.scarf ?? false}
+              beanie={scenario.beanie ?? false}
+            />
+          </div>
 
           {/* Temperature + description */}
-          <div className="text-center">
+          <div className="text-center w-full" style={{ minHeight: 56 }}>
             <p className="text-4xl font-black text-white" style={{ letterSpacing: "-0.04em" }}>
               {scenario.temp}°
             </p>
