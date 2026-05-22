@@ -115,14 +115,22 @@ export default function OutfitFlatLay({
       </motion.div>
     );
 
-  // Accessories — always render sneakers, inject others dynamically
-  const accessories = [
-    <motion.div key="shoes" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
-      <Sneakers stroke={strokeColor} size={accSz} />
-    </motion.div>,
-  ];
+  const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
 
-  if (umbrella) {
+  // Rain outfits lead with umbrella; all others lead with sneakers
+  const accessories = isRainOutfit
+    ? [
+        <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
+          <Umbrella stroke={strokeColor} size={accSz} rainActive />
+        </motion.div>,
+      ]
+    : [
+        <motion.div key="shoes" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
+          <Sneakers stroke={strokeColor} size={accSz} />
+        </motion.div>,
+      ];
+
+  if (!isRainOutfit && umbrella) {
     accessories.push(
       <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 3 * STAGGER }}>
         <Umbrella stroke={strokeColor} size={accSz} rainActive />
