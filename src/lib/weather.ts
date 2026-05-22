@@ -20,15 +20,6 @@ function wmoToCondition(code: number): WeatherCondition {
   return "thunderstorm";
 }
 
-// ── Unit conversion ───────────────────────────────────────────────────────────
-function celsiusToFahrenheit(c: number): number {
-  return Math.round((c * 9) / 5 + 32);
-}
-
-function kmhToMph(kmh: number): number {
-  return Math.round(kmh * 0.621371);
-}
-
 // ── Open-Meteo fetch ──────────────────────────────────────────────────────────
 export async function fetchWeatherData(
   latitude: number,
@@ -101,7 +92,6 @@ function parseOpenMeteoResponse(json: Record<string, unknown>): WeatherData {
   };
 
   const now = new Date();
-  const currentHour = now.getHours();
 
   const hourlyTimes = hourly.time as string[];
   const hourlyData: HourlyForecast[] = hourlyTimes
