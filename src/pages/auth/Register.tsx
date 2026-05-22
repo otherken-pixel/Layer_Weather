@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/Button";
 import { signUpWithEmail } from "@/lib/supabase";
@@ -11,6 +11,17 @@ export default function Register() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+    timerRef.current = setInterval(() => setCountdown(c => c - 1), 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [countdown]);
 
   async function handleRegister() {
     if (!name.trim() || !email.trim() || !password) { setError("Please fill in all fields."); return; }
@@ -19,7 +30,13 @@ export default function Register() {
     try {
       await signUpWithEmail(email.trim(), password, name.trim());
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Sign up failed.");
+      const msg = e instanceof Error ? e.message : "Sign up failed.";
+      const match = msg.match(/after (\d+) second/);
+      if (match) {
+        setCountdown(parseInt(match[1]));
+      } else {
+        setError(msg);
+      }
     } finally { setLoading(false); }
   }
 
@@ -38,10 +55,23 @@ export default function Register() {
             right={<button onClick={() => setShowPw(v => !v)} className="text-white/60 text-sm">{showPw ? "Hide" : "Show"}</button>} />
         </div>
         {error && <p className="text-red-300 text-sm">{error}</p>}
+        {countdown > 0 && (
+          <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.7)" }}>
+            Retrying in <span className="font-bold text-white">{countdown}s</span>…
+          </p>
+        )}
         <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.45)" }}>
           By creating an account you agree to our Terms of Service and Privacy Policy.
         </p>
-        <Button label="Create Account" onPress={handleRegister} loading={loading} variant="secondary" size="lg" fullWidth />
+        <Button
+          label={countdown > 0 ? `Wait ${countdown}s…` : "Create Account"}
+          onPress={handleRegister}
+          loading={loading}
+          disabled={countdown > 0}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        />
         <button onClick={() => navigate("/login")} className="text-center text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
           Already have an account? <span className="text-white font-bold">Sign in</span>
         </button>
