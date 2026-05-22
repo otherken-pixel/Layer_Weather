@@ -9,6 +9,7 @@ export function useAuth() {
   const { userId, profile, setUserId, setProfile, setCalibration, setIsOnboarded, reset } =
     useAppStore();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
@@ -26,7 +27,7 @@ export function useAuth() {
     });
 
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadUser(id: string) {
     setUserId(id);

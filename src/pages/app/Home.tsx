@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
 import { getWeatherGradient } from "@/constants/colors";
+import { useCalendarContext } from "@/hooks/useCalendarContext";
+import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -29,8 +31,10 @@ function greeting() {
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
   const { profile } = useAppStore();
+  const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh(); }, []);
 
   const [g0, g1] = weather
@@ -85,6 +89,20 @@ export default function Home() {
       {weather && outfit && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
           <OutfitRecommendationCard recommendation={outfit} tempUnit={tempUnit} feelsLike={weather.current.feelsLike} />
+
+          {/* Calendar style hint */}
+          {styleHint && eventType !== "default" && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+              style={{ background: "rgba(108,99,255,0.15)", border: "1px solid rgba(108,99,255,0.35)" }}
+            >
+              <span className="text-lg">{EVENT_TYPE_LABELS[eventType].emoji}</span>
+              <p className="text-sm text-white flex-1">{styleHint}</p>
+            </motion.div>
+          )}
+
           <WeatherWidget weather={weather.current} tempUnit={tempUnit} />
           <HourlyStrip hourly={weather.hourly.slice(0, 12)} convertTemp={convertTemp} />
           <SignificantChanges hourly={weather.hourly.slice(0, 12)} currentFeelsLike={weather.current.feelsLike} />

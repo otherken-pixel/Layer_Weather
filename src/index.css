@@ -1,12 +1,17 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: #1a1a2e;
   }
 
   * {
@@ -15,24 +20,99 @@
   }
 
   /* Safe area support for notch/home indicator */
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Remove number input spinners */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent overscroll bounce showing white */
+  body {
+    overscroll-behavior: none;
+  }
 }
 
-/* ── Avatar animations ───────────────────────────────────────────── */
+/* ── Glass morphism card ─────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ── Text backdrop for contrast on gradients ─────────────────────── */
+.text-backdrop {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 8px 16px;
+}
+
+/* ── Weather animations ──────────────────────────────────────────── */
 @keyframes raindrop-fall {
-  0%   { transform: translateY(0);     opacity: 0; }
-  8%   {                               opacity: 0.65; }
-  88%  {                               opacity: 0.65; }
-  100% { transform: translateY(280px); opacity: 0; }
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.65;
+  }
+  88% {
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(280px);
+    opacity: 0;
+  }
 }
 
 @keyframes snowflake-drift {
-  0%   { transform: translateY(0)     translateX(0);   opacity: 0; }
-  8%   {                                               opacity: 0.8; }
-  50%  { transform: translateY(140px) translateX(14px); }
-  88%  {                                               opacity: 0.8; }
-  100% { transform: translateY(280px) translateX(0);   opacity: 0; }
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(140px) translateX(14px);
+  }
+  88% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(280px) translateX(0);
+    opacity: 0;
+  }
 }
 
 .raindrop {
@@ -40,11 +120,96 @@
   width: 2px;
   height: 10px;
   border-radius: 1px;
-  background: #90CAF9;
+  background: #90caf9;
   animation: raindrop-fall 1.4s linear infinite;
 }
 
 .snowflake {
   position: absolute;
   animation: snowflake-drift 3s ease-in-out infinite;
+}
+
+/* ── Skeleton shimmer ────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+/* ── Swipe card drag cursor ──────────────────────────────────────── */
+.swipe-card {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+}
+
+.swipe-card:active {
+  cursor: grabbing;
+}
+
+/* ── Range input styling ─────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #6c63ff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #6c63ff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
+}
+
+/* ── Time input styling ──────────────────────────────────────────── */
+input[type="time"] {
+  color-scheme: dark;
+}
+
+/* ── Horizontal scroll (forecast strip) ─────────────────────────── */
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-snap-item {
+  scroll-snap-align: start;
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

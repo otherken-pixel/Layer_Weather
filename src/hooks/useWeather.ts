@@ -72,7 +72,10 @@ export function useWeather() {
     } finally {
       setIsLoadingWeather(false);
     }
-  }, [isStale, weather, calibration, profile]);
+  // Zustand setters are stable references; location/userId changes are intentionally
+  // handled via the isStale/force guard rather than re-creating the callback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStale, weather, calibration, profile, userId, location]);
 
   return { weather, outfit, location, isLoadingWeather, weatherError, isStale, refresh };
 }

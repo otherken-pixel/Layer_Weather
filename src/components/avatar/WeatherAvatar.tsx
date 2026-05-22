@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion, useMotionValue, animate } from "framer-motion";
 import { useEffect } from "react";
 import type { OutfitType, AvatarCondition } from "@/types";
 import { OutfitColors, DEFAULT_SKIN } from "@/constants/colors";
