@@ -3,13 +3,20 @@ import { Outlet } from "react-router-dom";
 import { TabBar } from "./TabBar";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
+const TAB_BAR_HEIGHT = 56;
+
 export default function AppLayout() {
-  // Register push notifications once user is authenticated
   usePushNotifications();
 
   return (
-    <div className="flex flex-col h-full">
-      <main className="flex-1 overflow-y-auto" style={{ paddingBottom: "80px" }}>
+    <div className="flex flex-col h-full overflow-hidden">
+      <main
+        className="flex-1 overflow-y-auto overscroll-none"
+        style={{
+          paddingBottom: `calc(${TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
         <Outlet />
       </main>
       <TabBar />

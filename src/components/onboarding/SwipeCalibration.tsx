@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
+import { FLIP_FLOPS_MIN_TEMP_F } from "@/lib/outfit-logic";
 import type { CalibrationScenario, SwipeDirection, OutfitType } from "@/types";
 
 const SWIPE_THRESHOLD = 80;
@@ -125,6 +126,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
                 sunglasses={nextScenario.sunglasses ?? false}
                 scarf={nextScenario.scarf ?? false}
                 beanie={nextScenario.beanie ?? false}
+                flipFlops={nextScenario.temp >= FLIP_FLOPS_MIN_TEMP_F}
                 compact
               />
             </div>
@@ -152,9 +154,14 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
           onDragEnd={(_, info) => {
             if (info.offset.x > SWIPE_THRESHOLD) handleSwipe("right");
             else if (info.offset.x < -SWIPE_THRESHOLD) handleSwipe("left");
-            else animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
+            else if (Math.abs(info.offset.x) < 8 && Math.abs(info.velocity.x) < 120) {
+              handleSwipe("center");
+            } else {
+              animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
+            }
           }}
-          onTap={() => handleSwipe("center")}
+          aria-live="polite"
+          aria-label={`${scenario.temp} degrees, ${scenario.description}`}
           className="rounded-3xl border flex flex-col items-center justify-between p-5 swipe-card"
         >
           {/* Swipe direction labels — animate on drag */}
@@ -191,6 +198,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
               sunglasses={scenario.sunglasses ?? false}
               scarf={scenario.scarf ?? false}
               beanie={scenario.beanie ?? false}
+              flipFlops={scenario.temp >= FLIP_FLOPS_MIN_TEMP_F}
             />
           </div>
 
@@ -209,22 +217,25 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
       {/* Button row */}
       <div className="flex gap-2 w-full">
         <button
+          type="button"
           onClick={() => handleSwipe("left")}
-          className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
+          className="flex-1 min-h-[44px] py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
           style={{ background: "rgba(59,130,246,0.2)", border: "1px solid rgba(147,197,253,0.4)" }}
         >
           🥶 Too Cold
         </button>
         <button
+          type="button"
           onClick={() => handleSwipe("center")}
-          className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
+          className="flex-1 min-h-[44px] py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
           style={{ background: "rgba(52,199,89,0.18)", border: "1px solid rgba(134,239,172,0.45)" }}
         >
           ✅ Just Right
         </button>
         <button
+          type="button"
           onClick={() => handleSwipe("right")}
-          className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
+          className="flex-1 min-h-[44px] py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
           style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(252,165,165,0.4)" }}
         >
           🔥 Too Warm

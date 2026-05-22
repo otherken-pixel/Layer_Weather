@@ -39,7 +39,7 @@ export function ThermalSlider({ value, onChange }: ThermalSliderProps) {
       </div>
 
       {/* Slider */}
-      <div className="flex items-center gap-3 w-full px-2 mt-4">
+      <div className="flex items-center gap-3 w-full px-2 mt-4 min-h-[44px]">
         <span className="text-2xl">🥶</span>
         <input
           type="range"

@@ -50,8 +50,16 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center" style={{ background: "#1a1a2e" }}>
-        <div className="text-4xl animate-pulse">☀️</div>
+      <div
+        className="flex h-full flex-col items-center justify-center gap-6 px-8"
+        style={{ background: "#1a1a2e" }}
+      >
+        <div className="w-16 h-16 rounded-2xl skeleton" />
+        <div className="flex flex-col items-center gap-2 w-full max-w-[200px]">
+          <div className="h-4 w-full rounded skeleton" />
+          <div className="h-3 w-2/3 rounded skeleton" />
+        </div>
+        <p className="text-sm text-white/70">Loading your account…</p>
       </div>
     );
   }

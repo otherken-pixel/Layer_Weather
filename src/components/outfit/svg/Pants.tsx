@@ -1,16 +1,19 @@
+import { OutfitIcon } from "./OutfitIcon";
+
 interface Props {
-  size?: number;
   className?: string;
 }
 
-export default function Pants({ size = 100, className }: Props) {
+export default function Pants({ className }: Props) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Pants">
-      <rect x="30" y="20" width="40" height="10" fill="#255BAE" />
-      <polygon points="30,30 48,30 48,80 32,80" fill="#3375E0" />
-      <polygon points="52,30 70,30 68,80 52,80" fill="#3375E0" />
-      <polygon points="32,30 38,30 38,45 32,40" fill="#255BAE" />
-      <polygon points="68,30 62,30 62,45 68,40" fill="#255BAE" />
-    </svg>
+    <OutfitIcon label="Pants" className={className}>
+      <path d="M30 20h40v10H30z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
+      <path
+        d="M30 30l18 0v50l-16 0 2-50M52 30h18l-2 50H52V30"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinejoin="round"
+      />
+    </OutfitIcon>
   );
 }

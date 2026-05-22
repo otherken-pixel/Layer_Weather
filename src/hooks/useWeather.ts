@@ -9,6 +9,17 @@ import { saveWidgetSnapshot } from "@/lib/widget";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
+function mapWeatherError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : "Could not load weather data.";
+  if (/denied|permission/i.test(msg)) {
+    return "Location access is required for local weather. Enable it in your device Settings.";
+  }
+  if (/timeout/i.test(msg)) {
+    return "Location timed out. Check your signal and try again.";
+  }
+  return msg;
+}
+
 export function useWeather() {
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
@@ -28,20 +39,35 @@ export function useWeather() {
       let latitude: number;
       let longitude: number;
 
-      if (location?.latitude && location?.longitude) {
-        // Use coords cached during onboarding
+      const cached = useAppStore.getState().location;
+      const profileCoords =
+        profile?.last_latitude != null && profile?.last_longitude != null
+          ? { latitude: profile.last_latitude, longitude: profile.last_longitude }
+          : null;
+
+      if (location?.latitude != null && location?.longitude != null) {
         ({ latitude, longitude } = location);
+      } else if (cached?.latitude != null && cached?.longitude != null) {
+        ({ latitude, longitude } = cached);
+      } else if (profileCoords) {
+        ({ latitude, longitude } = profileCoords);
       } else if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm !== "granted") {
-          setWeatherError("Location permission denied. Enable it in Settings.");
+          setWeatherError(
+            "Location permission denied. Enable location in Settings, or complete onboarding to set your area."
+          );
           return;
         }
         const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
         ({ latitude, longitude } = pos.coords);
       } else {
-        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
-        ({ latitude, longitude } = pos.coords);
+        try {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+          ({ latitude, longitude } = pos.coords);
+        } catch (geoErr) {
+          throw new Error(mapWeatherError(geoErr));
+        }
       }
 
       const city = await reverseGeocode(latitude, longitude);
@@ -70,12 +96,10 @@ export function useWeather() {
       setOutfit(rec);
       saveWidgetSnapshot(data, rec).catch(() => {});
     } catch (err) {
-      setWeatherError(err instanceof Error ? err.message : "Could not load weather data.");
+      setWeatherError(mapWeatherError(err));
     } finally {
       setIsLoadingWeather(false);
     }
-  // Zustand setters are stable references; location/userId changes are intentionally
-  // handled via the isStale/force guard rather than re-creating the callback.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStale, weather, calibration, profile, userId, location]);
 

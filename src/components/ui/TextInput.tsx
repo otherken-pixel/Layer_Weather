@@ -45,7 +45,7 @@ export default function TextInput({ label, error, hint, className = "", id, ...p
         </p>
       )}
       {hint && !error && (
-        <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <p className="text-xs text-white/70">
           {hint}
         </p>
       )}

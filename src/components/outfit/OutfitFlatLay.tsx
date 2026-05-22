@@ -21,9 +21,9 @@ interface Props {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
-  /** No longer affects rendering — icons carry their own colors. Kept for call-site compatibility. */
+  /** Show flip-flops accessory (≥ 85°F feels-like only) */
+  flipFlops?: boolean;
   colorScheme?: "dark" | "light";
-  /** Compact mode for use in small cards (e.g. onboarding swipe cards) */
   compact?: boolean;
 }
 
@@ -41,111 +41,87 @@ export default function OutfitFlatLay({
   sunglasses,
   scarf,
   beanie,
+  flipFlops = false,
+  colorScheme = "light",
   compact = false,
 }: Props) {
-  const sz = compact ? 72 : 100;
-  const accSz = compact ? 52 : 72;
+  const iconClass = colorScheme === "dark" ? "text-white/90" : "text-neutral-800";
+  const garmentSize = compact ? "min(72px, 22vw)" : "min(100px, 28vw)";
+  const accessorySize = compact ? "min(52px, 16vw)" : "min(72px, 20vw)";
+
+  const wrap = (node: React.ReactNode, delay: number, size: string) => (
+    <motion.div {...ITEM_ANIM} transition={{ delay }} style={{ width: size, height: size }}>
+      {node}
+    </motion.div>
+  );
 
   const topGarment = (() => {
     switch (outfit) {
       case "shorts_tshirt":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
-            <TShirt size={sz} />
-          </motion.div>
-        );
+        return wrap(<TShirt className={`w-full h-full ${iconClass}`} />, 0 * STAGGER, garmentSize);
       case "pants_tshirt":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
-            <LongSleeve size={sz} />
-          </motion.div>
-        );
+        return wrap(<LongSleeve className={`w-full h-full ${iconClass}`} />, 0 * STAGGER, garmentSize);
       case "light_jacket":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <Jacket size={sz} />
-          </motion.div>
-        );
+        return wrap(<Jacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
       case "heavy_jacket":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <HeavyJacket size={sz} />
-          </motion.div>
-        );
+        return wrap(<HeavyJacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
       case "heavy_coat":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <HeavyCoat size={sz} />
-          </motion.div>
-        );
+        return wrap(<HeavyCoat className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
       case "rain_light":
       case "rain_heavy":
-        return (
-          <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <RainJacket size={sz} />
-          </motion.div>
-        );
+        return wrap(<RainJacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
     }
   })();
 
   const bottomGarment =
-    outfit === "shorts_tshirt" ? (
-      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Shorts size={sz} />
-      </motion.div>
-    ) : (
-      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Pants size={sz} />
-      </motion.div>
-    );
+    outfit === "shorts_tshirt"
+      ? wrap(<Shorts className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize)
+      : wrap(<Pants className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize);
 
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
 
-  // Rain outfits lead with umbrella; all others lead with flip flops
-  const accessories = isRainOutfit
-    ? [
-        <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
-          <Umbrella size={accSz} />
-        </motion.div>,
-      ]
-    : [
-        <motion.div key="shoes" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
-          <Sneakers size={accSz} />
-        </motion.div>,
-      ];
+  const accessories: React.ReactNode[] = [];
+
+  if (isRainOutfit) {
+    accessories.push(
+      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, 2 * STAGGER, accessorySize)
+    );
+  } else if (flipFlops) {
+    accessories.push(
+      wrap(<Sneakers className={`w-full h-full ${iconClass}`} />, 2 * STAGGER, accessorySize)
+    );
+  }
 
   if (!isRainOutfit && umbrella) {
     accessories.push(
-      <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 3 * STAGGER }}>
-        <Umbrella size={accSz} />
-      </motion.div>
+      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, 3 * STAGGER, accessorySize)
     );
   }
   if (sunglasses) {
     accessories.push(
-      <motion.div key="sunglasses" {...ITEM_ANIM} transition={{ delay: 4 * STAGGER }}>
-        <Sunglasses size={accSz} />
-      </motion.div>
+      wrap(<Sunglasses className={`w-full h-full ${iconClass}`} />, 4 * STAGGER, accessorySize)
     );
   }
   if (scarf) {
     accessories.push(
-      <motion.div key="scarf" {...ITEM_ANIM} transition={{ delay: 5 * STAGGER }}>
-        <Scarf size={accSz} />
-      </motion.div>
+      wrap(<Scarf className={`w-full h-full ${iconClass}`} />, 5 * STAGGER, accessorySize)
     );
   }
   if (beanie) {
     accessories.push(
-      <motion.div key="beanie" {...ITEM_ANIM} transition={{ delay: 6 * STAGGER }}>
-        <Beanie size={accSz} />
-      </motion.div>
+      wrap(<Beanie className={`w-full h-full ${iconClass}`} />, 6 * STAGGER, accessorySize)
     );
   }
 
+  const collapseBottomRow = accessories.length <= 1;
+  const bottomOnly = accessories.length === 0;
+
   return (
-    <div className="flex flex-col gap-3">
-      {/* Top zone – full width */}
+    <motion.div
+      layout
+      className="flex flex-col gap-3 w-full max-w-[320px] mx-auto overflow-hidden"
+      aria-label="Outfit flat lay"
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={outfit}
@@ -159,20 +135,35 @@ export default function OutfitFlatLay({
         </motion.div>
       </AnimatePresence>
 
-      {/* Bottom zone – two column */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Bottom garment */}
+      {bottomOnly ? (
         <AnimatePresence mode="wait">
-          <motion.div key={`btm-${outfit}`} className="flex justify-center items-center">
+          <motion.div key={`btm-only-${outfit}`} className="flex justify-center items-center">
             {bottomGarment}
           </motion.div>
         </AnimatePresence>
+      ) : (
+        <motion.div
+          layout
+          className={collapseBottomRow ? "flex justify-center items-center gap-6" : "grid grid-cols-2 gap-3"}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div key={`btm-${outfit}`} className="flex justify-center items-center">
+              {bottomGarment}
+            </motion.div>
+          </AnimatePresence>
 
-        {/* Accessories grid */}
-        <div className="flex flex-wrap gap-2 justify-center items-start content-start">
-          <AnimatePresence>{accessories}</AnimatePresence>
-        </div>
-      </div>
-    </div>
+          <motion.div
+            layout
+            className={
+              collapseBottomRow
+                ? "flex justify-center items-center"
+                : "flex flex-wrap gap-2 justify-center items-start content-start"
+            }
+          >
+            <AnimatePresence>{accessories}</AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import type { CurrentWeather, DailyForecast } from "@/types";
-import { CONDITION_LABEL } from "@/constants/colors";
+import { CONDITION_LABEL, isLightBackground } from "@/constants/colors";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -22,6 +22,11 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
   const temp = toUnit(weather.temp, tempUnit);
   const hiTemp = today ? toUnit(today.tempMax, tempUnit) : null;
   const loTemp = today ? toUnit(today.tempMin, tempUnit) : null;
+  const lightBg = isLightBackground(weather.condition, weather.isDay);
+  const primaryText = lightBg ? "#111827" : "#FFFFFF";
+  const secondaryText = lightBg ? "rgba(17,24,39,0.85)" : "rgba(255,255,255,0.9)";
+  const mutedText = lightBg ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.7)";
+  const locationLabel = weather.location || "Your Location";
 
   return (
     <div
@@ -29,32 +34,48 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
         position: "relative",
         zIndex: 1,
         paddingTop: "calc(env(safe-area-inset-top, 0px) + 44px)",
-        paddingBottom: "16px",
-        paddingLeft: "24px",
-        paddingRight: "24px",
+        paddingBottom: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "2px",
+        gap: 2,
+        maxWidth: "100%",
       }}
     >
-      {/* Location + refresh */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <span style={{
-          fontSize: "13px", fontWeight: 500,
-          color: "rgba(255,255,255,0.85)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-        }}>
-          {weather.location || "Your Location"}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          maxWidth: "100%",
+          width: "100%",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          className="truncate max-w-[calc(100%-52px)]"
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: secondaryText,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+          }}
+          title={locationLabel}
+        >
+          {locationLabel}
         </span>
         <button
+          type="button"
           onClick={onRefresh}
+          className="flex-shrink-0 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full"
           style={{
-            background: "rgba(255,255,255,0.2)", border: "none",
-            borderRadius: "50%", width: 26, height: 26,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", fontSize: "12px",
+            background: lightBg ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.2)",
+            border: "none",
+            cursor: "pointer",
+            fontSize: 16,
           }}
           aria-label="Refresh weather"
         >
@@ -62,31 +83,38 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
         </button>
       </div>
 
-      {/* Icon + Temperature */}
-      <div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "10px" }}>
-        <span style={{ fontSize: "72px", lineHeight: 1, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
+        <span
+          style={{
+            fontSize: "clamp(48px, 18vw, 72px)",
+            lineHeight: 1,
+            filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))",
+          }}
+        >
           {CONDITION_EMOJI[weather.condition] ?? "🌤️"}
         </span>
-        <span style={{
-          fontSize: "96px", fontWeight: 700,
-          color: "white", lineHeight: 1,
-          letterSpacing: "-4px",
-          textShadow: "0 2px 16px rgba(0,0,0,0.15)",
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-        }}>
+        <span
+          style={{
+            fontSize: "clamp(64px, 24vw, 96px)",
+            fontWeight: 700,
+            color: primaryText,
+            lineHeight: 1,
+            letterSpacing: "-0.04em",
+            textShadow: lightBg ? "none" : "0 2px 16px rgba(0,0,0,0.15)",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
+          }}
+        >
           {temp}°
         </span>
       </div>
 
-      {/* Condition label */}
-      <span style={{ fontSize: "17px", fontWeight: 400, color: "rgba(255,255,255,0.9)", letterSpacing: "0.02em", marginTop: "4px" }}>
+      <span style={{ fontSize: 17, fontWeight: 400, color: secondaryText, letterSpacing: "0.02em", marginTop: 4 }}>
         {CONDITION_LABEL[weather.condition]}
       </span>
 
-      {/* Hi / Lo */}
       {hiTemp !== null && loTemp !== null && (
-        <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.65)", fontWeight: 400, marginTop: "2px" }}>
-          H: {hiTemp}°  ·  L: {loTemp}°
+        <span style={{ fontSize: 13, color: mutedText, fontWeight: 400, marginTop: 2 }}>
+          H: {hiTemp}° · L: {loTemp}°
         </span>
       )}
     </div>
