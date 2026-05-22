@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=375, maximum-scale=1" />
+<title>WearToday — CARROT Style Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    background: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 32px 16px;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  /* ── Phone Shell ── */
+  .phone {
+    width: 375px;
+    height: 812px;
+    border-radius: 48px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.35), 0 0 0 2px #1a1a1a, inset 0 0 0 1px #333;
+    background: #000;
+    flex-shrink: 0;
+  }
+
+  .phone-label {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Scroll container inside the phone ── */
+  .screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    position: relative;
+    background: #3A8EE6;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    pointer-events: none;
+  }
+
+  /* ── Sky Section (fixed visual, scrolls away) ── */
+  .sky {
+    width: 100%;
+    padding: 48px 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: inherit;
+  }
+
+  .location {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .weather-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .weather-icon {
+    font-size: 72px;
+    line-height: 1;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+  }
+
+  .temperature {
+    font-size: 96px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+    letter-spacing: -4px;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.15);
+  }
+
+  .temp-unit {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: 0;
+    vertical-align: super;
+    margin-top: 10px;
+    display: inline-block;
+  }
+
+  .condition-label {
+    font-size: 17px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.9);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .hi-lo {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  /* ── Vector Landscape ── */
+  .landscape {
+    width: 100%;
+    margin-top: 28px;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  /* ── Cards scroll area ── */
+  .cards {
+    background: transparent;
+    padding: 0 14px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: -32px;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── Base Card ── */
+  .card {
+    background: #ffffff;
+    border-radius: 28px;
+    padding: 20px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9CA3AF;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  /* ── Feels Like + Toggle ── */
+  .feels-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .feels-temp {
+    font-size: 48px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  .feels-sub {
+    font-size: 13px;
+    color: #6B7280;
+    margin-top: 3px;
+  }
+
+  .unit-toggle {
+    display: flex;
+    background: #F3F4F6;
+    border-radius: 999px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .unit-btn {
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .unit-btn.active {
+    background: #7C3AED;
+    color: white;
+  }
+
+  .unit-btn.inactive {
+    background: transparent;
+    color: #9CA3AF;
+  }
+
+  /* ── Stats Grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-cell {
+    background: #F9FAFB;
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1;
+  }
+
+  .stat-unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6B7280;
+    margin-left: 2px;
+  }
+
+  .stat-bar {
+    height: 4px;
+    background: #E5E7EB;
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .stat-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  /* ── Outfit Card ── */
+  .outfit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .outfit-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #EDE9FE;
+    color: #7C3AED;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+
+  .outfit-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+
+  .outfit-desc {
+    font-size: 13px;
+    color: #6B7280;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+
+  .outfit-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .outfit-item {
+    background: #F9FAFB;
+    border-radius: 16px;
+    padding: 14px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .outfit-item-icon {
+    font-size: 28px;
+  }
+
+  .outfit-item-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Commute Alert ── */
+  .alert-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #FEF3C7;
+    border-radius: 14px;
+    padding: 10px 14px;
+  }
+
+  .alert-icon { font-size: 16px; }
+
+  .alert-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: #92400E;
+    line-height: 1.4;
+  }
+
+  /* ── Hourly Forecast ── */
+  .hourly-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    margin: 0 -20px;
+    padding: 0 20px 2px;
+  }
+
+  .hourly-scroll::-webkit-scrollbar { display: none; }
+
+  .hour-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 52px;
+    background: #F9FAFB;
+    border-radius: 16px;
+    padding: 10px 6px;
+    flex-shrink: 0;
+  }
+
+  .hour-chip.now {
+    background: #7C3AED;
+  }
+
+  .hour-time {
+    font-size: 10px;
+    font-weight: 600;
+    color: #9CA3AF;
+    text-transform: uppercase;
+  }
+
+  .hour-chip.now .hour-time { color: rgba(255,255,255,0.8); }
+
+  .hour-icon { font-size: 18px; }
+
+  .hour-temp {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .hour-chip.now .hour-temp { color: white; }
+
+  .hour-rain {
+    font-size: 10px;
+    color: #6B7280;
+    font-weight: 500;
+  }
+
+  .hour-chip.now .hour-rain { color: rgba(255,255,255,0.7); }
+
+  /* ── 7-Day Forecast ── */
+  .day-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #F3F4F6;
+  }
+
+  .day-row:last-child { border-bottom: none; }
+
+  .day-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    width: 42px;
+  }
+
+  .day-icon { font-size: 20px; }
+
+  .day-precip {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3B82F6;
+    width: 32px;
+    text-align: right;
+  }
+
+  .day-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .day-lo {
+    font-size: 14px;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+
+  .day-bar-track {
+    width: 60px;
+    height: 5px;
+    background: #E5E7EB;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .day-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #3B82F6, #F97316);
+  }
+
+  .day-hi {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 700;
+  }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    position: sticky;
+    bottom: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #F3F4F6;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 20px;
+    z-index: 200;
+  }
+
+  .tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #9CA3AF;
+  }
+
+  .tab-item.active { color: #7C3AED; }
+  .tab-icon { font-size: 22px; }
+
+  /* ─────── Phone 2: Rainy ─────── */
+  .rain-sky { background: #4A5E78; }
+  .rain-sky .screen { background: #4A5E78; }
+
+  /* ─────── Layout Labels ─────── */
+  .section-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     PHONE 1 — Clear / Sunny Day
+═══════════════════════════════════════════════════════ -->
+<div class="section-wrap">
+  <p class="phone-label">Clear Day</p>
+  <div class="phone">
+    <div class="screen">
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>●●●●  WiFi  🔋</span>
+      </div>
+
+      <!-- Sky Header -->
+      <div class="sky">
+        <div class="location">San Francisco, CA</div>
+        <div class="weather-main">
+          <span class="weather-icon">☀️</span>
+          <span class="temperature">72<span class="temp-unit">°</span></span>
+        </div>
+        <div class="condition-label">Clear Sky</div>
+        <div class="hi-lo">H:78°  L:58°</div>
+      </div>
+
+      <!-- Vector Landscape SVG -->
+      <svg class="landscape" viewBox="0 0 375 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <!-- Sky fill behind hills -->
+        <rect width="375" height="130" fill="#3A8EE6"/>
+
+        <!-- Hill 1 — far back, lighter -->
+        <path d="M0,90 C40,60 80,50 120,55 C160,60 190,75 230,68 C270,61 310,48 375,58 L375,130 L0,130 Z"
+              fill="#52B788" opacity="0.55"/>
+
+        <!-- Hill 2 — mid -->
+        <path d="M0,100 C30,80 70,70 110,78 C150,86 180,75 220,80 C260,85 300,70 375,78 L375,130 L0,130 Z"
+              fill="#40916C" opacity="0.80"/>
+
+        <!-- Hill 3 — front -->
+        <path d="M0,112 C50,95 90,88 130,95 C170,102 200,92 240,97 C280,102 330,88 375,94 L375,130 L0,130 Z"
+              fill="#2D6A4F"/>
+
+        <!-- Pine Trees on front hill -->
+        <!-- Tree 1 -->
+        <g transform="translate(30, 78)">
+          <polygon points="10,0 20,18 0,18" fill="#1B4332"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2D6A4F"/>
+          <rect x="8" y="30" width="4" height="8" fill="#1B2A22"/>
+        </g>
+        <!-- Tree 2 -->
+        <g transform="translate(60, 72)">
+          <polygon points="8,0 16,14 0,14" fill="#1B4332"/>
+          <polygon points="8,8 18,24 -2,24" fill="#2D6A4F"/>
+          <rect x="6" y="24" width="4" height="6" fill="#1B2A22"/>
+        </g>
+        <!-- Tree 3 -->
+        <g transform="translate(200, 74)">
+          <polygon points="10,0 20,18 0,18" fill="#1B4332"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2D6A4F"/>
+          <rect x="8" y="30" width="4" height="8" fill="#1B2A22"/>
+        </g>
+        <!-- Tree 4 -->
+        <g transform="translate(235, 68)">
+          <polygon points="9,0 18,16 0,16" fill="#1B4332"/>
+          <polygon points="9,9 20,26 -2,26" fill="#2D6A4F"/>
+          <rect x="7" y="26" width="4" height="7" fill="#1B2A22"/>
+        </g>
+        <!-- Tree 5 -->
+        <g transform="translate(310, 76)">
+          <polygon points="10,0 20,18 0,18" fill="#1B4332"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2D6A4F"/>
+          <rect x="8" y="30" width="4" height="8" fill="#1B2A22"/>
+        </g>
+        <!-- Tree 6 -->
+        <g transform="translate(340, 70)">
+          <polygon points="8,0 16,14 0,14" fill="#1B4332"/>
+          <polygon points="8,8 18,24 -2,24" fill="#2D6A4F"/>
+          <rect x="6" y="24" width="4" height="6" fill="#1B2A22"/>
+        </g>
+      </svg>
+
+      <!-- Scrollable Cards -->
+      <div class="cards">
+
+        <!-- Card 1: Current Conditions -->
+        <div class="card">
+          <div class="card-title">Current Conditions</div>
+          <div class="feels-row">
+            <div>
+              <div class="feels-temp">69°</div>
+              <div class="feels-sub">Feels like · Comfortable</div>
+            </div>
+            <div class="unit-toggle">
+              <button class="unit-btn active">°F</button>
+              <button class="unit-btn inactive">°C</button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <div class="stat-label">Humidity</div>
+              <div class="stat-value">48<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:48%;background:#3B82F6;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Wind</div>
+              <div class="stat-value">12<span class="stat-unit">mph</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:30%;background:#10B981;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Rain Chance</div>
+              <div class="stat-value">5<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:5%;background:#6366F1;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">UV Index</div>
+              <div class="stat-value">7<span class="stat-unit"> hi</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:70%;background:#F59E0B;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Outfit -->
+        <div class="card">
+          <div class="outfit-header">
+            <div>
+              <div class="outfit-title">Light & Easy</div>
+              <div class="outfit-desc">Perfect weather for a t-shirt and light pants. Sunglasses are a smart call today.</div>
+            </div>
+            <div class="outfit-badge">Today</div>
+          </div>
+          <div class="outfit-grid">
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👕</span>
+              <span class="outfit-item-label">T-Shirt</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👖</span>
+              <span class="outfit-item-label">Pants</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👟</span>
+              <span class="outfit-item-label">Sneakers</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🕶️</span>
+              <span class="outfit-item-label">Sunglasses</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧴</span>
+              <span class="outfit-item-label">Sunscreen</span>
+            </div>
+          </div>
+          <div class="alert-pill">
+            <span class="alert-icon">🌅</span>
+            <span class="alert-text">Evening commute drops to 61° — bring a light layer.</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Hourly -->
+        <div class="card">
+          <div class="card-title">Hourly Forecast</div>
+          <div class="hourly-scroll">
+            <div class="hour-chip now">
+              <span class="hour-time">Now</span>
+              <span class="hour-icon">☀️</span>
+              <span class="hour-temp">72°</span>
+              <span class="hour-rain">5%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">1 PM</span>
+              <span class="hour-icon">☀️</span>
+              <span class="hour-temp">75°</span>
+              <span class="hour-rain">4%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">2 PM</span>
+              <span class="hour-icon">⛅</span>
+              <span class="hour-temp">76°</span>
+              <span class="hour-rain">8%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">3 PM</span>
+              <span class="hour-icon">⛅</span>
+              <span class="hour-temp">74°</span>
+              <span class="hour-rain">10%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">4 PM</span>
+              <span class="hour-icon">🌤️</span>
+              <span class="hour-temp">71°</span>
+              <span class="hour-rain">6%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">5 PM</span>
+              <span class="hour-icon">🌤️</span>
+              <span class="hour-temp">68°</span>
+              <span class="hour-rain">5%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">6 PM</span>
+              <span class="hour-icon">🌇</span>
+              <span class="hour-temp">65°</span>
+              <span class="hour-rain">3%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: 7-Day -->
+        <div class="card">
+          <div class="card-title">7-Day Forecast</div>
+          <div class="day-row">
+            <span class="day-name">Today</span>
+            <span class="day-icon">☀️</span>
+            <span class="day-precip">5%</span>
+            <div class="day-range">
+              <span class="day-lo">58°</span>
+              <div class="day-bar-track"><div class="day-bar-fill" style="width:75%;"></div></div>
+              <span class="day-hi">78°</span>
+            </div>
+          </div>
+          <div class="day-row">
+            <span class="day-name">Fri</span>
+            <span class="day-icon">⛅</span>
+            <span class="day-precip">18%</span>
+            <div class="day-range">
+              <span class="day-lo">56°</span>
+              <div class="day-bar-track"><div class="day-bar-fill" style="width:65%;"></div></div>
+              <span class="day-hi">74°</span>
+            </div>
+          </div>
+          <div class="day-row">
+            <span class="day-name">Sat</span>
+            <span class="day-icon">🌧️</span>
+            <span class="day-precip" style="color:#6366F1;">72%</span>
+            <div class="day-range">
+              <span class="day-lo">52°</span>
+              <div class="day-bar-track"><div class="day-bar-fill" style="width:45%;"></div></div>
+              <span class="day-hi">63°</span>
+            </div>
+          </div>
+          <div class="day-row">
+            <span class="day-name">Sun</span>
+            <span class="day-icon">🌦️</span>
+            <span class="day-precip">35%</span>
+            <div class="day-range">
+              <span class="day-lo">54°</span>
+              <div class="day-bar-track"><div class="day-bar-fill" style="width:55%;"></div></div>
+              <span class="day-hi">68°</span>
+            </div>
+          </div>
+          <div class="day-row">
+            <span class="day-name">Mon</span>
+            <span class="day-icon">☀️</span>
+            <span class="day-precip">4%</span>
+            <div class="day-range">
+              <span class="day-lo">57°</span>
+              <div class="day-bar-track"><div class="day-bar-fill" style="width:80%;"></div></div>
+              <span class="day-hi">76°</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /cards -->
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <span class="tab-icon">🏠</span>
+          <span>Today</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">📅</span>
+          <span>Forecast</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">🧳</span>
+          <span>Packing</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">⚙️</span>
+          <span>Settings</span>
+        </div>
+      </div>
+
+    </div><!-- /screen -->
+  </div><!-- /phone -->
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PHONE 2 — Rainy Day
+═══════════════════════════════════════════════════════ -->
+<div class="section-wrap">
+  <p class="phone-label">Rainy Day</p>
+  <div class="phone">
+    <div class="screen" style="background:#4A5E78;">
+
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>●●●●  WiFi  🔋</span>
+      </div>
+
+      <div class="sky">
+        <div class="location">San Francisco, CA</div>
+        <div class="weather-main">
+          <span class="weather-icon">🌧️</span>
+          <span class="temperature">55<span class="temp-unit">°</span></span>
+        </div>
+        <div class="condition-label">Heavy Rain</div>
+        <div class="hi-lo">H:60°  L:49°</div>
+      </div>
+
+      <svg class="landscape" viewBox="0 0 375 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <rect width="375" height="130" fill="#4A5E78"/>
+        <path d="M0,85 C50,55 100,45 150,52 C200,59 240,72 290,62 C320,56 350,48 375,54 L375,130 L0,130 Z"
+              fill="#4A6741" opacity="0.5"/>
+        <path d="M0,98 C40,78 85,68 125,76 C165,84 200,72 240,78 C275,83 315,70 375,76 L375,130 L0,130 Z"
+              fill="#3A5535" opacity="0.8"/>
+        <path d="M0,110 C55,92 95,86 135,93 C175,100 210,88 250,95 C290,102 335,88 375,94 L375,130 L0,130 Z"
+              fill="#2A3E26"/>
+        <!-- Rainy trees (darker) -->
+        <g transform="translate(25, 80)">
+          <polygon points="10,0 20,18 0,18" fill="#1a2e18"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2A3E26"/>
+          <rect x="8" y="30" width="4" height="8" fill="#111f10"/>
+        </g>
+        <g transform="translate(58, 74)">
+          <polygon points="8,0 16,14 0,14" fill="#1a2e18"/>
+          <polygon points="8,8 18,24 -2,24" fill="#2A3E26"/>
+          <rect x="6" y="24" width="4" height="6" fill="#111f10"/>
+        </g>
+        <g transform="translate(195, 76)">
+          <polygon points="10,0 20,18 0,18" fill="#1a2e18"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2A3E26"/>
+          <rect x="8" y="30" width="4" height="8" fill="#111f10"/>
+        </g>
+        <g transform="translate(310, 78)">
+          <polygon points="10,0 20,18 0,18" fill="#1a2e18"/>
+          <polygon points="10,10 22,30 -2,30" fill="#2A3E26"/>
+          <rect x="8" y="30" width="4" height="8" fill="#111f10"/>
+        </g>
+        <g transform="translate(342, 72)">
+          <polygon points="8,0 16,14 0,14" fill="#1a2e18"/>
+          <polygon points="8,8 18,24 -2,24" fill="#2A3E26"/>
+          <rect x="6" y="24" width="4" height="6" fill="#111f10"/>
+        </g>
+      </svg>
+
+      <div class="cards">
+
+        <!-- Conditions Card -->
+        <div class="card">
+          <div class="card-title">Current Conditions</div>
+          <div class="feels-row">
+            <div>
+              <div class="feels-temp">51°</div>
+              <div class="feels-sub">Feels like · Cold & damp</div>
+            </div>
+            <div class="unit-toggle">
+              <button class="unit-btn active">°F</button>
+              <button class="unit-btn inactive">°C</button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <div class="stat-label">Humidity</div>
+              <div class="stat-value">88<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:88%;background:#3B82F6;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Wind</div>
+              <div class="stat-value">22<span class="stat-unit">mph</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:55%;background:#10B981;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Rain Chance</div>
+              <div class="stat-value">90<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:90%;background:#6366F1;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">UV Index</div>
+              <div class="stat-value">1<span class="stat-unit"> lo</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:10%;background:#F59E0B;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Outfit Card -->
+        <div class="card">
+          <div class="outfit-header">
+            <div>
+              <div class="outfit-title">Bundle Up</div>
+              <div class="outfit-desc">Heavy rain all day. Rain jacket is essential — skip the umbrella, it's too windy.</div>
+            </div>
+            <div class="outfit-badge" style="background:#E0F2FE;color:#0369A1;">Today</div>
+          </div>
+          <div class="outfit-grid">
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧥</span>
+              <span class="outfit-item-label">Rain Jacket</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👖</span>
+              <span class="outfit-item-label">Pants</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👟</span>
+              <span class="outfit-item-label">Sneakers</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧣</span>
+              <span class="outfit-item-label">Scarf</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧢</span>
+              <span class="outfit-item-label">Beanie</span>
+            </div>
+          </div>
+          <div class="alert-pill" style="background:#FEE2E2;">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text" style="color:#991B1B;">Morning commute: 49° with gusty winds. Layer up.</span>
+          </div>
+        </div>
+
+        <!-- Hourly -->
+        <div class="card">
+          <div class="card-title">Hourly Forecast</div>
+          <div class="hourly-scroll">
+            <div class="hour-chip now" style="background:#4A5E78;">
+              <span class="hour-time">Now</span>
+              <span class="hour-icon">🌧️</span>
+              <span class="hour-temp">55°</span>
+              <span class="hour-rain">90%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">1 PM</span>
+              <span class="hour-icon">🌧️</span>
+              <span class="hour-temp">54°</span>
+              <span class="hour-rain">88%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">2 PM</span>
+              <span class="hour-icon">🌧️</span>
+              <span class="hour-temp">53°</span>
+              <span class="hour-rain">85%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">3 PM</span>
+              <span class="hour-icon">🌦️</span>
+              <span class="hour-temp">54°</span>
+              <span class="hour-rain">60%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">4 PM</span>
+              <span class="hour-icon">🌦️</span>
+              <span class="hour-temp">55°</span>
+              <span class="hour-rain">45%</span>
+            </div>
+            <div class="hour-chip">
+              <span class="hour-time">5 PM</span>
+              <span class="hour-icon">⛅</span>
+              <span class="hour-temp">53°</span>
+              <span class="hour-rain">20%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <span class="tab-icon">🏠</span>
+          <span>Today</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">📅</span>
+          <span>Forecast</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">🧳</span>
+          <span>Packing</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">⚙️</span>
+          <span>Settings</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     PHONE 3 — Thunderstorm / Night
+═══════════════════════════════════════════════════════ -->
+<div class="section-wrap">
+  <p class="phone-label">Thunderstorm / Night</p>
+  <div class="phone">
+    <div class="screen" style="background:#2E2550;">
+
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>●●●●  WiFi  🔋</span>
+      </div>
+
+      <div class="sky">
+        <div class="location">San Francisco, CA</div>
+        <div class="weather-main">
+          <span class="weather-icon">⛈️</span>
+          <span class="temperature">48<span class="temp-unit">°</span></span>
+        </div>
+        <div class="condition-label">Thunderstorm</div>
+        <div class="hi-lo">H:56°  L:44°</div>
+      </div>
+
+      <svg class="landscape" viewBox="0 0 375 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <rect width="375" height="130" fill="#2E2550"/>
+        <path d="M0,88 C45,58 95,48 145,55 C195,62 235,74 285,64 C320,57 348,50 375,56 L375,130 L0,130 Z"
+              fill="#1F3A2B" opacity="0.55"/>
+        <path d="M0,100 C38,80 82,70 122,78 C162,86 198,74 238,80 C278,85 318,72 375,78 L375,130 L0,130 Z"
+              fill="#162B20" opacity="0.9"/>
+        <path d="M0,112 C52,94 92,87 132,95 C172,103 208,90 248,97 C288,104 332,90 375,96 L375,130 L0,130 Z"
+              fill="#0D1F16"/>
+        <!-- Dark night trees -->
+        <g transform="translate(22, 82)">
+          <polygon points="10,0 20,18 0,18" fill="#080f0a"/>
+          <polygon points="10,10 22,30 -2,30" fill="#0D1F16"/>
+          <rect x="8" y="30" width="4" height="8" fill="#060c08"/>
+        </g>
+        <g transform="translate(55, 76)">
+          <polygon points="8,0 16,14 0,14" fill="#080f0a"/>
+          <polygon points="8,8 18,24 -2,24" fill="#0D1F16"/>
+          <rect x="6" y="24" width="4" height="6" fill="#060c08"/>
+        </g>
+        <g transform="translate(190, 78)">
+          <polygon points="10,0 20,18 0,18" fill="#080f0a"/>
+          <polygon points="10,10 22,30 -2,30" fill="#0D1F16"/>
+          <rect x="8" y="30" width="4" height="8" fill="#060c08"/>
+        </g>
+        <g transform="translate(308, 80)">
+          <polygon points="10,0 20,18 0,18" fill="#080f0a"/>
+          <polygon points="10,10 22,30 -2,30" fill="#0D1F16"/>
+          <rect x="8" y="30" width="4" height="8" fill="#060c08"/>
+        </g>
+        <g transform="translate(340, 73)">
+          <polygon points="8,0 16,14 0,14" fill="#080f0a"/>
+          <polygon points="8,8 18,24 -2,24" fill="#0D1F16"/>
+          <rect x="6" y="24" width="4" height="6" fill="#060c08"/>
+        </g>
+      </svg>
+
+      <div class="cards">
+
+        <div class="card">
+          <div class="card-title">Current Conditions</div>
+          <div class="feels-row">
+            <div>
+              <div class="feels-temp">42°</div>
+              <div class="feels-sub">Feels like · Dangerously cold</div>
+            </div>
+            <div class="unit-toggle">
+              <button class="unit-btn active">°F</button>
+              <button class="unit-btn inactive">°C</button>
+            </div>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-cell">
+              <div class="stat-label">Humidity</div>
+              <div class="stat-value">95<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:95%;background:#3B82F6;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Wind</div>
+              <div class="stat-value">38<span class="stat-unit">mph</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:80%;background:#EF4444;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">Rain Chance</div>
+              <div class="stat-value">98<span class="stat-unit">%</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:98%;background:#6366F1;"></div></div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-label">UV Index</div>
+              <div class="stat-value">0<span class="stat-unit"> lo</span></div>
+              <div class="stat-bar"><div class="stat-fill" style="width:2%;background:#F59E0B;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="outfit-header">
+            <div>
+              <div class="outfit-title">Full Defense</div>
+              <div class="outfit-desc">Severe storm tonight. Stay inside if possible — heavy coat, rain gear if you must go out.</div>
+            </div>
+            <div class="outfit-badge" style="background:#FCE7F3;color:#9D174D;">Tonight</div>
+          </div>
+          <div class="outfit-grid">
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧥</span>
+              <span class="outfit-item-label">Heavy Coat</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🌂</span>
+              <span class="outfit-item-label">Umbrella</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">👖</span>
+              <span class="outfit-item-label">Pants</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧣</span>
+              <span class="outfit-item-label">Scarf</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧤</span>
+              <span class="outfit-item-label">Gloves</span>
+            </div>
+            <div class="outfit-item">
+              <span class="outfit-item-icon">🧢</span>
+              <span class="outfit-item-label">Beanie</span>
+            </div>
+          </div>
+          <div class="alert-pill" style="background:#FEE2E2;">
+            <span class="alert-icon">⚡</span>
+            <span class="alert-text" style="color:#991B1B;">Lightning risk until 2 AM. Avoid open areas.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <span class="tab-icon">🏠</span>
+          <span>Today</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">📅</span>
+          <span>Forecast</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">🧳</span>
+          <span>Packing</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">⚙️</span>
+          <span>Settings</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
