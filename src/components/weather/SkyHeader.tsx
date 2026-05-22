@@ -26,6 +26,8 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
   return (
     <div
       style={{
+        position: "relative",
+        zIndex: 1,
         paddingTop: "calc(env(safe-area-inset-top, 0px) + 44px)",
         paddingBottom: "16px",
         paddingLeft: "24px",

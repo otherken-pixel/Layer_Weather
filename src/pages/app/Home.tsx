@@ -4,6 +4,7 @@ import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendat
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { SkyHeader } from "@/components/weather/SkyHeader";
 import { VectorLandscape } from "@/components/weather/VectorLandscape";
+import { WeatherAnimationLayer } from "@/components/weather/WeatherAnimationLayer";
 import { SevenDayCard } from "@/components/weather/SevenDayCard";
 import { NowcastCard } from "@/components/weather/NowcastCard";
 import { useWeather } from "@/hooks/useWeather";
@@ -70,14 +71,20 @@ export default function Home() {
       {weather && outfit && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
 
-          <SkyHeader
-            weather={weather.current}
-            today={weather.daily[0] ?? null}
-            tempUnit={tempUnit}
-            onRefresh={() => refresh(true)}
-          />
-
-          <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
+          {/* Sky section — animation layer sits behind text, over landscape */}
+          <div style={{ position: "relative", overflow: "hidden" }}>
+            <SkyHeader
+              weather={weather.current}
+              today={weather.daily[0] ?? null}
+              tempUnit={tempUnit}
+              onRefresh={() => refresh(true)}
+            />
+            <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
+            <WeatherAnimationLayer
+              condition={weather.current.condition}
+              isDay={weather.current.isDay}
+            />
+          </div>
 
           {/* Cards area — overlaps landscape */}
           <div style={{
