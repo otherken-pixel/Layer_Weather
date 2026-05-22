@@ -130,6 +130,13 @@ export default function Home() {
               <SevenDayCard daily={weather.daily} tempUnit={tempUnit} />
             )}
 
+            {/* Dev-only: data source badge */}
+            {import.meta.env.DEV && weather._source && (
+              <p style={{ textAlign: "center", fontSize: 11, color: "#9CA3AF", paddingBottom: 4 }}>
+                source: {weather._source}
+              </p>
+            )}
+
           </div>
         </motion.div>
       )}

@@ -90,11 +90,21 @@ async function fetchFromEdgeFunction(
   longitude: number,
 ): Promise<WeatherData> {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // countryCode is required by WeatherKit for forecastNextHour in many regions.
+  // Intl.Locale is widely supported; fall back to "US" if unavailable.
+  let countryCode = "US";
+  try {
+    const locale = new Intl.Locale(navigator.language);
+    if (locale.region) countryCode = locale.region;
+  } catch { /* keep default */ }
+
   const { data, error } = await supabase.functions.invoke("weather", {
-    body: { lat: latitude, lon: longitude, timezone },
+    body: { lat: latitude, lon: longitude, timezone, countryCode },
   });
   if (error) throw new Error(error.message);
-  return parseEdgeResponse(data as Record<string, unknown>);
+  const parsed = parseEdgeResponse(data as Record<string, unknown>);
+  parsed._source = ((data as Record<string, unknown>)._source as "weatherkit" | "open-meteo") ?? "weatherkit";
+  return parsed;
 }
 
 // ── Fallback: Open-Meteo (used when edge function is unavailable) ─────────────
@@ -178,7 +188,7 @@ async function fetchFromOpenMeteo(
     sunset: new Date((daily.sunset as string[])[i]),
   }));
 
-  return { current, hourly: hourlyData, daily: dailyData, nextHourPrecip: null };
+  return { current, hourly: hourlyData, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
