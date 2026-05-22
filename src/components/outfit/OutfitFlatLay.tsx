@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
+import LongSleeve from "./svg/LongSleeve";
 import Pants from "./svg/Pants";
 import Shorts from "./svg/Shorts";
 import Jacket from "./svg/Jacket";
@@ -55,10 +56,15 @@ export default function OutfitFlatLay({
   const topGarment = (() => {
     switch (outfit) {
       case "shorts_tshirt":
-      case "pants_tshirt":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
             <TShirt stroke={strokeColor} size={sz} />
+          </motion.div>
+        );
+      case "pants_tshirt":
+        return (
+          <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
+            <LongSleeve stroke={strokeColor} size={sz} />
           </motion.div>
         );
       case "light_jacket":
@@ -69,7 +75,7 @@ export default function OutfitFlatLay({
             transition={{ delay: 0 }}
           >
             <div style={{ gridArea: "1/1", opacity: 0.4 }}>
-              <TShirt stroke={strokeColor} size={sz} />
+              <LongSleeve stroke={strokeColor} size={sz} />
             </div>
             <div style={{ gridArea: "1/1" }}>
               <Jacket stroke={strokeColor} size={sz} />
