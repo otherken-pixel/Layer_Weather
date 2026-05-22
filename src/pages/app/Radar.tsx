@@ -44,12 +44,18 @@ function RadarOverlay({ url }: { url: string }) {
       map.removeLayer(layerRef.current);
       layerRef.current = null;
     }
+    // errorTileUrl: transparent 1×1 PNG — silently hides tiles the server can't serve
+    // maxNativeZoom: caps tile requests at zoom 8 and scales up beyond that
     layerRef.current = L.tileLayer(url, {
       opacity: 0.65,
       zIndex: 200,
+      tileSize: 256,
       minZoom: 1,
       maxZoom: 10,
+      maxNativeZoom: 8,
       crossOrigin: "",
+      errorTileUrl:
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     }).addTo(map);
     return () => {
       if (layerRef.current) {
@@ -105,7 +111,7 @@ export default function Radar() {
   const currentFrame = allFrames[frameIdx];
   const tileUrl =
     manifest && currentFrame
-      ? `${manifest.host}${currentFrame.path}/512/{z}/{x}/{y}/2/1_1.png`
+      ? `${manifest.host}${currentFrame.path}/256/{z}/{x}/{y}/2/1_1.png`
       : null;
 
   const nowEpoch = Math.floor(Date.now() / 1000);
