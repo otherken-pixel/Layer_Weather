@@ -6,7 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { SwipeCalibration } from "@/components/onboarding/SwipeCalibration";
 import { ThermalSlider } from "@/components/onboarding/ThermalSlider";
 import { Button } from "@/components/ui/Button";
-import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
+import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { upsertCalibration, upsertProfile } from "@/lib/supabase";
 import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
 import { useAppStore } from "@/store";
@@ -147,10 +147,26 @@ export default function Onboarding() {
         >
           {step === "welcome" && (
             <>
-              <WeatherAvatar outfit="light_jacket" condition="sunny" size={220} />
+              <div className="flex flex-col items-center gap-3">
+                <span style={{ fontSize: 56 }}>🌤️</span>
+                <div
+                  className="rounded-3xl p-5"
+                  style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
+                >
+                  <OutfitFlatLay
+                    outfit="light_jacket"
+                    rainGear={false}
+                    umbrella={false}
+                    sunglasses={false}
+                    scarf={false}
+                    beanie={false}
+                    colorScheme="dark"
+                  />
+                </div>
+              </div>
               <div className="text-center">
                 <h1 className="text-4xl font-black text-white leading-tight">Let's calibrate{"\n"}your WearToday</h1>
-                <p className="text-base mt-3 max-w-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
+                <p className="text-base mt-3 max-w-[260px] mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
                   Answer a few quick questions so we can nail your outfit recommendations. Takes 60 seconds.
                 </p>
               </div>
@@ -199,10 +215,26 @@ export default function Onboarding() {
 
           {step === "done" && (
             <div className="flex flex-col items-center text-center gap-6 max-w-xs">
-              <WeatherAvatar outfit="shorts_tshirt" condition="sunny" sunglasses size={220} />
+              <div className="flex flex-col items-center gap-3">
+                <span style={{ fontSize: 56 }}>☀️</span>
+                <div
+                  className="rounded-3xl p-5"
+                  style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
+                >
+                  <OutfitFlatLay
+                    outfit="shorts_tshirt"
+                    rainGear={false}
+                    umbrella={false}
+                    sunglasses={true}
+                    scarf={false}
+                    beanie={false}
+                    colorScheme="dark"
+                  />
+                </div>
+              </div>
               <div>
                 <h1 className="text-4xl font-black text-white">You're all set! ☀️</h1>
-                <p className="text-base mt-3 leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
+                <p className="text-base mt-3 max-w-[240px] mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
                   WearToday is calibrated to your personal temperature comfort. Let's see what to wear.
                 </p>
               </div>
