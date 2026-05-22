@@ -4,7 +4,7 @@ export interface Profile {
   id: string;
   email: string;
   display_name: string | null;
-  avatar_style: string;
+  theme_preference: string | null;
   temp_unit: "F" | "C";
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"
@@ -24,8 +24,7 @@ export interface UserCalibration {
   light_jacket_max_temp: number; // default 65°F
   heavy_coat_max_temp: number;   // default 45°F
   rain_tolerance: "low" | "moderate" | "high";
-  humidity_sensitivity: boolean;
-  updated_at: string;
+  humidity_sensitivity?: boolean; // not in DB schema; default true in logic
 }
 
 export type ThermalSensitivity = -2 | -1 | 0 | 1 | 2;
@@ -50,8 +49,9 @@ export interface CurrentWeather {
   windSpeed: number;      // mph
   windDirection: number;  // degrees
   precipProb: number;     // percentage 0-100
+  uvIndex: number;
   condition: WeatherCondition;
-  weatherCode: number;    // WMO code
+  weatherCode: number;    // WMO code (or approximated from WeatherKit condition)
   isDay: boolean;
   location: string;
   updatedAt: Date;
@@ -81,10 +81,16 @@ export interface DailyForecast {
   sunset: Date;
 }
 
+export interface NextHourPrecip {
+  startTime: Date;
+  minutes: { precipIntensity: number; precipProbability: number }[];
+}
+
 export interface WeatherData {
   current: CurrentWeather;
   hourly: HourlyForecast[];
   daily: DailyForecast[];
+  nextHourPrecip: NextHourPrecip | null;
 }
 
 // ── Outfits ───────────────────────────────────────────────────────────────────
