@@ -1,41 +1,21 @@
 interface Props {
-  stroke?: string;
   size?: number;
   className?: string;
 }
 
-export default function HeavyCoat({ stroke = "currentColor", size = 100, className }: Props) {
+export default function HeavyCoat({ size = 100, className }: Props) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-label="Heavy coat"
-    >
-      {/* Long coat body + wide sleeves */}
-      <path
-        d="M18,24 L4,14 Q0,28 6,38 L20,32 L20,94 Q20,98 25,98 L75,98 Q80,98 80,94 L80,32 L94,38 Q100,28 96,14 L82,24 L72,10 Q62,4 50,6 Q38,4 28,10 Z"
-        stroke={stroke}
-        strokeWidth="2.5"
-      />
-      {/* Left lapel - wide collar/lapel */}
-      <path d="M34,10 L40,38 L50,34" stroke={stroke} strokeWidth="2" />
-      {/* Right lapel */}
-      <path d="M66,10 L60,38 L50,34" stroke={stroke} strokeWidth="2" />
-      {/* Button placket */}
-      <line x1="50" y1="34" x2="50" y2="98" stroke={stroke} strokeWidth="1.5" />
-      {/* Buttons */}
-      <circle cx="50" cy="46" r="2.5" stroke={stroke} strokeWidth="1.5" />
-      <circle cx="50" cy="58" r="2.5" stroke={stroke} strokeWidth="1.5" />
-      <circle cx="50" cy="70" r="2.5" stroke={stroke} strokeWidth="1.5" />
-      <circle cx="50" cy="82" r="2.5" stroke={stroke} strokeWidth="1.5" />
-      {/* Pocket lines */}
-      <path d="M28,62 L38,62 L38,74 Q38,76 36,76 L30,76 Q28,76 28,74 Z" stroke={stroke} strokeWidth="1.5" />
-      <path d="M72,62 L62,62 L62,74 Q62,76 64,76 L70,76 Q72,76 72,74 Z" stroke={stroke} strokeWidth="1.5" />
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Winter coat">
+      <path d="M 38 25 C 28 25 22 28 12 46 L 20 55 C 28 45 33 40 35 34 Z" fill="#77AAF1" />
+      <path d="M 12 46 L 9 50 C 14 56 18 57 22 54 L 20 51 Z" fill="#F1E678" />
+      <path d="M 62 25 C 72 25 78 28 88 46 L 80 55 C 72 45 67 40 65 34 Z" fill="#77AAF1" />
+      <path d="M 88 46 L 91 50 C 86 56 82 57 78 54 L 80 51 Z" fill="#F1E678" />
+      <path d="M 28 35 C 27 45 30 60 28 75 L 72 75 C 70 60 73 45 72 35 C 72 30 65 25 60 25 L 40 25 C 35 25 28 30 28 35 Z" fill="#77AAF1" />
+      <path d="M 28 42 Q 50 48 72 42 L 72 46 Q 50 52 28 46 Z" fill="#5B86C4" />
+      <path d="M 28 57 Q 50 63 72 57 L 72 61 Q 50 67 28 61 Z" fill="#5B86C4" />
+      <path d="M 28 71 Q 50 76 72 71 L 72 75 L 28 75 Z" fill="#F1E678" />
+      <rect x="38" y="15" width="24" height="10" rx="4" fill="#5B86C4" />
+      <rect x="48" y="25" width="4" height="48" rx="1" fill="#5B86C4" />
     </svg>
   );
 }

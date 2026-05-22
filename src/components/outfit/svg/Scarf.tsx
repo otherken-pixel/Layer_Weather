@@ -1,49 +1,26 @@
 interface Props {
-  stroke?: string;
   size?: number;
   className?: string;
 }
 
-export default function Scarf({ stroke = "currentColor", size = 100, className }: Props) {
+export default function Scarf({ size = 100, className }: Props) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-label="Scarf"
-    >
-      {/* Main loop/knot area */}
-      <path
-        d="M26,44 Q24,24 50,20 Q76,24 74,44 Q74,60 50,62 Q26,60 26,44 Z"
-        stroke={stroke}
-        strokeWidth="2.5"
-      />
-      {/* Dangling left end */}
-      <path
-        d="M34,58 Q28,70 30,82 Q32,90 38,90 L44,90 Q48,90 48,86 L46,68"
-        stroke={stroke}
-        strokeWidth="2.5"
-      />
-      {/* Dangling right end */}
-      <path
-        d="M66,58 Q72,70 70,82 Q68,90 62,90 L56,90 Q52,90 52,86 L54,68"
-        stroke={stroke}
-        strokeWidth="2.5"
-      />
-      {/* Fringe lines on left end */}
-      <line x1="37" y1="88" x2="37" y2="95" stroke={stroke} strokeWidth="1.5" />
-      <line x1="41" y1="89" x2="41" y2="96" stroke={stroke} strokeWidth="1.5" />
-      <line x1="45" y1="89" x2="45" y2="96" stroke={stroke} strokeWidth="1.5" />
-      {/* Fringe lines on right end */}
-      <line x1="55" y1="89" x2="55" y2="96" stroke={stroke} strokeWidth="1.5" />
-      <line x1="59" y1="89" x2="59" y2="96" stroke={stroke} strokeWidth="1.5" />
-      <line x1="63" y1="88" x2="63" y2="95" stroke={stroke} strokeWidth="1.5" />
-      {/* Texture lines on the loop */}
-      <path d="M36,36 Q50,30 64,36" stroke={stroke} strokeWidth="1" opacity="0.5" />
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Scarf">
+      <rect x="52" y="45" width="14" height="35" rx="2" fill="#B33B34" />
+      <rect x="52" y="55" width="14" height="6" fill="#FFFFFF" />
+      <rect x="52" y="67" width="14" height="6" fill="#FFFFFF" />
+      <rect x="34" y="40" width="16" height="42" rx="2" fill="#D34E45" />
+      <rect x="34" y="50" width="16" height="7" fill="#FFFFFF" />
+      <rect x="34" y="64" width="16" height="7" fill="#FFFFFF" />
+      <path d="M 28 35 C 28 20 72 20 72 35 C 72 45 28 48 28 35 Z" fill="#D34E45" />
+      <path d="M 40 22 L 45 46 L 55 45 L 50 21 Z" fill="#FFFFFF" />
+      <path d="M 60 25 L 63 42 L 70 38 L 68 23 Z" fill="#FFFFFF" />
+      <path d="M 30 28 L 32 40 L 38 42 L 35 25 Z" fill="#FFFFFF" />
+      <line x1="36" y1="82" x2="36" y2="90" stroke="#D34E45" strokeWidth="2" strokeLinecap="round" />
+      <line x1="42" y1="82" x2="42" y2="90" stroke="#D34E45" strokeWidth="2" strokeLinecap="round" />
+      <line x1="48" y1="82" x2="48" y2="90" stroke="#D34E45" strokeWidth="2" strokeLinecap="round" />
+      <line x1="55" y1="80" x2="55" y2="86" stroke="#B33B34" strokeWidth="2" strokeLinecap="round" />
+      <line x1="63" y1="80" x2="63" y2="86" stroke="#B33B34" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
