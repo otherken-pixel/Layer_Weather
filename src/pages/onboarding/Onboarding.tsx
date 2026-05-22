@@ -23,9 +23,20 @@ const GRADIENTS: Record<Step, string> = {
   done:     "linear-gradient(135deg,#56ab2f,#a8e063)",
 };
 
+async function requestBrowserLocation(): Promise<{ latitude: number; longitude: number } | null> {
+  if (!navigator.geolocation) return null;
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  });
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { userId, setCalibration, setIsOnboarded } = useAppStore();
+  const { userId, setCalibration, setIsOnboarded, setLocation } = useAppStore();
   const [step, setStep] = useState<Step>("welcome");
   const [swipeResults, setSwipeResults] = useState<{ temp: number; direction: SwipeDirection }[]>([]);
   const [thermal, setThermal] = useState<ThermalSensitivity>(0);
@@ -40,19 +51,38 @@ export default function Onboarding() {
   async function handleFinish() {
     setLoading(true); setError("");
     try {
+      // 1. Get location — triggers browser permission dialog on web
+      let coords: { latitude: number; longitude: number } | null = null;
       if (Capacitor.isNativePlatform()) {
-        await Geolocation.requestPermissions();
+        const { location: perm } = await Geolocation.requestPermissions();
+        if (perm === "granted") {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+          coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        }
+      } else {
+        coords = await requestBrowserLocation();
       }
+      if (coords) {
+        setLocation({ ...coords, city: "", region: "", country: "" });
+      }
+
+      // 2. Save calibration — non-fatal so location denial doesn't block the user
       const derived = computeCalibrationFromSwipes(swipeResults);
       const payload = { ...derived, thermal_sensitivity: thermal, rain_tolerance: "moderate" as const, humidity_sensitivity: true };
       if (userId) {
-        const saved = await upsertCalibration(userId, payload);
-        if (saved) setCalibration(saved);
+        try {
+          const saved = await upsertCalibration(userId, payload);
+          if (saved) setCalibration(saved);
+        } catch (err) {
+          console.error("Calibration save failed (non-fatal):", err);
+        }
       }
+
       setIsOnboarded(true);
       setStep("done");
-    } catch {
-      setError("Could not save preferences. Please try again.");
+    } catch (err) {
+      console.error("Onboarding finish error:", err);
+      setError("Something went wrong. Please try again.");
     } finally { setLoading(false); }
   }
 

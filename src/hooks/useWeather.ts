@@ -23,20 +23,25 @@ export function useWeather() {
     setWeatherError(null);
 
     try {
-      if (Capacitor.isNativePlatform()) {
+      let latitude: number;
+      let longitude: number;
+
+      if (location?.latitude && location?.longitude) {
+        // Use coords cached during onboarding
+        ({ latitude, longitude } = location);
+      } else if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm !== "granted") {
           setWeatherError("Location permission denied. Enable it in Settings.");
           return;
         }
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+        ({ latitude, longitude } = pos.coords);
+      } else {
+        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+        ({ latitude, longitude } = pos.coords);
       }
 
-      const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: false,
-        timeout: 10000,
-      });
-
-      const { latitude, longitude } = pos.coords;
       const city = await reverseGeocode(latitude, longitude);
       setLocation({ latitude, longitude, city, region: "", country: "" });
 
