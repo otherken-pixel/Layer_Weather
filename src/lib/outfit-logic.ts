@@ -128,8 +128,8 @@ export function getOutfitRecommendation(opts: {
 
 function getOutfitLabel(outfit: OutfitType): string {
   const labels: Record<OutfitType, string> = {
-    shorts_tshirt: "Shorts & T-Shirt",
-    pants_tshirt: "Pants & T-Shirt",
+    shorts_tshirt: "Short Sleeves & Shorts",
+    pants_tshirt: "Long Sleeves & Pants",
     light_jacket: "Light Jacket",
     heavy_jacket: "Heavy Jacket",
     heavy_coat: "Winter Coat",
@@ -152,19 +152,19 @@ function buildDescription(
 
   switch (outfit) {
     case "shorts_tshirt":
-      return `It's ${feelsLike}°F out there — perfect for shorts.${windNote}`;
+      return `Short sleeves and shorts are the move at ${feelsLike}°F. Light, breathable fabrics will keep you comfortable.${windNote}`;
     case "pants_tshirt":
-      return `Comfortable at ${feelsLike}°F. Light layers keep you flexible.${windNote}`;
+      return `At ${feelsLike}°F, a long-sleeve shirt and pants is the right call. Light layers you can adjust as needed.${windNote}`;
     case "light_jacket":
-      return `Cool at ${feelsLike}°F. A light layer makes all the difference.${windNote}`;
+      return `${feelsLike}°F calls for a long-sleeve shirt under a light jacket. You'll appreciate that layer once the sun dips.${windNote}`;
     case "heavy_jacket":
-      return `Chilly at ${feelsLike}°F. Bundle up with a warm jacket.${windNote}`;
+      return `Bundle up at ${feelsLike}°F — long sleeves under a warm jacket will keep the chill off.${windNote}`;
     case "heavy_coat":
-      return `Cold at ${feelsLike}°F. Full winter coat weather.${windNote}${snowNote}`;
+      return `${feelsLike}°F is full winter coat territory. Layer your long sleeves underneath for extra warmth.${windNote}${snowNote}`;
     case "rain_light":
-      return `${feelsLike}°F with rain coming.${rainNote}`;
+      return `${feelsLike}°F with rain on the way — a rain jacket is your best move.${rainNote}`;
     case "rain_heavy":
-      return `${feelsLike}°F with heavy rain. Stay dry out there.${rainNote}`;
+      return `Heavy rain at ${feelsLike}°F — full rain gear is a must today. Stay dry out there.${rainNote}`;
   }
 }
 

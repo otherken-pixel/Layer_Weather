@@ -16,18 +16,14 @@ export default function TShirt({ stroke = "currentColor", size = 100, className 
       className={className}
       aria-label="T-shirt"
     >
-      {/* Main body + sleeves */}
+      {/* Outer silhouette — sleeves end at ~42% height, clearly short */}
       <path
-        d="M22,22 L8,16 Q4,26 10,34 L24,28 L24,86 Q24,90 28,90 L72,90 Q76,90 76,86 L76,28 L90,34 Q96,26 92,16 L78,22 L68,14 Q60,10 50,10 Q40,10 32,14 Z"
+        d="M36,12 L20,18 L4,22 L4,42 L20,36 L20,90 Q20,94 24,94 L76,94 Q80,94 80,90 L80,36 L96,42 L96,22 L80,18 L64,12 Q56,24 50,26 Q44,24 36,12 Z"
         stroke={stroke}
         strokeWidth="2.5"
       />
-      {/* Crew neck opening */}
-      <path
-        d="M34,18 Q50,28 66,18"
-        stroke={stroke}
-        strokeWidth="2"
-      />
+      {/* Inner neckband */}
+      <path d="M38,16 Q50,24 62,16" stroke={stroke} strokeWidth="1.5" />
     </svg>
   );
 }
