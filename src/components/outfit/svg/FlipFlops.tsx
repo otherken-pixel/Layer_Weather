@@ -1,40 +1,21 @@
-import { OutfitIcon } from "./OutfitIcon";
-
 interface Props {
+  size?: number;
   className?: string;
 }
 
-export default function FlipFlops({ className }: Props) {
+export default function FlipFlops({ size = 100, className }: Props) {
   return (
-    <OutfitIcon label="Flip flops" className={className}>
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Flip flops">
       <g transform="translate(18, 15)">
-        <path
-          d="M15 0c15 0 17 20 10 40-5 20 0 30-10 30s-5-10-10-30C-2 20 0 0 15 0z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M5 35q10-20 10-20t10 20"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
+        <path d="M 15 0 C 30 0 32 20 25 40 C 20 60 25 70 15 70 C 5 70 10 60 5 40 C -2 20 0 0 15 0 Z" fill="#77AAF1" />
+        <path d="M 5 35 Q 15 15 15 15 Q 15 15 25 35" fill="none" stroke="#255BAE" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="15" cy="15" r="3" fill="#1D2638" />
       </g>
       <g transform="translate(52, 15)">
-        <path
-          d="M15 0c15 0 17 20 10 40-5 20 0 30-10 30s-5-10-10-30C-2 20 0 0 15 0z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M5 35q10-20 10-20t10 20"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
+        <path d="M 15 0 C 0 0 -2 20 5 40 C 10 60 5 70 15 70 C 25 70 20 60 25 40 C 32 20 30 0 15 0 Z" fill="#77AAF1" />
+        <path d="M 5 35 Q 15 15 15 15 Q 15 15 25 35" fill="none" stroke="#255BAE" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="15" cy="15" r="3" fill="#1D2638" />
       </g>
-    </OutfitIcon>
+    </svg>
   );
 }

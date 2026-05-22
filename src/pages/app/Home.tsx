@@ -126,6 +126,7 @@ export default function Home() {
               weather={weather.current}
               today={weather.daily[0] ?? null}
               tempUnit={tempUnit}
+              isRefreshing={isLoadingWeather}
               onRefresh={() => refresh(true)}
             />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />

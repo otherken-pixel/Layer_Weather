@@ -1,27 +1,18 @@
-import { OutfitIcon } from "./OutfitIcon";
-
 interface Props {
+  size?: number;
   className?: string;
 }
 
-export default function HeavyJacket({ className }: Props) {
+export default function HeavyJacket({ size = 100, className }: Props) {
   return (
-    <OutfitIcon label="Heavy jacket" className={className}>
-      <path
-        d="M38 25c-8 0-13 3-21 13l7 7c4-5 8-10 11-13M62 25c8 0 13 3 21 13l-7 7c-4-5-8-10-11-13"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M31 32c0 13 2 28 0 43h38c-2-15 0-30 0-43 0-5-4-7-8-7H39c-4 0-8 2-8 7z"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-      <path d="M50 25v48M38 25h24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M34 55h8v12h-8zM58 55h8v12h-8z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-    </OutfitIcon>
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Heavy jacket">
+      <path d="M 38 25 C 30 25 25 28 14 46 L 22 53 C 28 45 33 40 35 34 Z" fill="#575DB6" />
+      <path d="M 62 25 C 70 25 75 28 86 46 L 78 53 C 72 45 67 40 65 34 Z" fill="#575DB6" />
+      <path d="M 31 32 C 31 45 33 60 32 75 L 68 75 C 67 60 69 45 69 32 C 69 28 65 25 60 25 L 40 25 C 35 25 31 28 31 32 Z" fill="#575DB6" />
+      <rect x="46" y="25" width="8" height="50" rx="1" fill="#434898" />
+      <rect x="34" y="55" width="10" height="12" rx="2" fill="#434898" />
+      <rect x="56" y="55" width="10" height="12" rx="2" fill="#434898" />
+      <path d="M 38 25 Q 50 15 62 25 Z" fill="#434898" />
+    </svg>
   );
 }

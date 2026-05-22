@@ -1,33 +1,22 @@
-import { OutfitIcon } from "./OutfitIcon";
-
 interface Props {
+  size?: number;
   className?: string;
 }
 
-/** Closed-toe sneakers — below 85°F when dry (no snow/rain) */
-export default function Sneakers({ className }: Props) {
+/** Closed-toe sneakers — below 85°F when dry */
+export default function Sneakers({ size = 100, className }: Props) {
   return (
-    <OutfitIcon label="Sneakers" className={className}>
-      <g transform="translate(14, 52)">
-        <path
-          d="M4 14h26c2 0 4-2 4-5 0-8-6-14-14-14S6 1 4 9c0 3 0 5 0 5z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path d="M8 14v4M20 14v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M10 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Sneakers">
+      <g transform="translate(10, 48)">
+        <path d="M 6 18 Q 6 4 18 4 Q 28 4 32 14 L 36 18 Q 38 22 34 26 L 8 26 Q 4 22 6 18 Z" fill="#3375E0" />
+        <path d="M 4 26 L 38 26 L 36 32 L 6 32 Z" fill="#255BAE" />
+        <rect x="14" y="10" width="12" height="4" rx="1" fill="#77AAF1" />
       </g>
-      <g transform="translate(52, 52)">
-        <path
-          d="M4 14h26c2 0 4-2 4-5 0-8-6-14-14-14S6 1 4 9c0 3 0 5 0 5z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path d="M8 14v4M20 14v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <path d="M10 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <g transform="translate(52, 48)">
+        <path d="M 6 18 Q 6 4 18 4 Q 28 4 32 14 L 36 18 Q 38 22 34 26 L 8 26 Q 4 22 6 18 Z" fill="#3375E0" />
+        <path d="M 4 26 L 38 26 L 36 32 L 6 32 Z" fill="#255BAE" />
+        <rect x="14" y="10" width="12" height="4" rx="1" fill="#77AAF1" />
       </g>
-    </OutfitIcon>
+    </svg>
   );
 }

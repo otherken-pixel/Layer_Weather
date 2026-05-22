@@ -1,34 +1,23 @@
-import { OutfitIcon } from "./OutfitIcon";
-
 interface Props {
+  size?: number;
   className?: string;
 }
 
-export default function SnowBoots({ className }: Props) {
+export default function SnowBoots({ size = 100, className }: Props) {
   return (
-    <OutfitIcon label="Snow boots" className={className}>
-      <g transform="translate(12, 18)">
-        <path
-          d="M18 8c0-6 4-10 8-10s8 4 8 10v28H18V8z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path d="M14 36h20v8H14z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d="M12 44h24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M22 20v12M30 20v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Snow boots">
+      <g transform="translate(10, 14)">
+        <path d="M 16 8 Q 16 0 24 0 Q 32 0 32 8 L 32 34 L 16 34 Z" fill="#77AAF1" />
+        <rect x="12" y="34" width="24" height="10" rx="2" fill="#5B86C4" />
+        <rect x="8" y="44" width="32" height="6" rx="2" fill="#3375E0" />
+        <rect x="20" y="12" width="8" height="18" fill="#F1E678" opacity="0.85" />
       </g>
-      <g transform="translate(52, 18)">
-        <path
-          d="M18 8c0-6 4-10 8-10s8 4 8 10v28H18V8z"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
-        <path d="M14 36h20v8H14z" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d="M12 44h24" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M22 20v12M30 20v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <g transform="translate(52, 14)">
+        <path d="M 16 8 Q 16 0 24 0 Q 32 0 32 8 L 32 34 L 16 34 Z" fill="#77AAF1" />
+        <rect x="12" y="34" width="24" height="10" rx="2" fill="#5B86C4" />
+        <rect x="8" y="44" width="32" height="6" rx="2" fill="#3375E0" />
+        <rect x="20" y="12" width="8" height="18" fill="#F1E678" opacity="0.85" />
       </g>
-    </OutfitIcon>
+    </svg>
   );
 }
