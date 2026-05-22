@@ -8,7 +8,7 @@ import { ThermalSlider } from "@/components/onboarding/ThermalSlider";
 import { Button } from "@/components/ui/Button";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { upsertCalibration, upsertProfile } from "@/lib/supabase";
-import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
+import { computeCalibrationFromSwipes, FLIP_FLOPS_MIN_TEMP_F } from "@/lib/outfit-logic";
 import { geocodeCity } from "@/lib/location-search";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity, SwipeDirection, UserCalibration } from "@/types";
@@ -166,9 +166,10 @@ export default function Onboarding() {
           </div>
           {isRecalibration && (
             <button
+              type="button"
               onClick={() => navigate("/app/settings")}
-              className="w-8 h-8 flex items-center justify-center rounded-full text-white flex-shrink-0"
-              style={{ background: "rgba(255,255,255,0.15)", fontSize: 16 }}
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-white flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.15)", fontSize: 18 }}
               aria-label="Cancel recalibration"
             >
               ✕
@@ -201,6 +202,7 @@ export default function Onboarding() {
                     sunglasses={false}
                     scarf={false}
                     beanie={false}
+                    flipFlops={false}
                     colorScheme="dark"
                   />
                 </div>
@@ -294,6 +296,7 @@ export default function Onboarding() {
                     sunglasses={true}
                     scarf={false}
                     beanie={false}
+                    flipFlops
                     colorScheme="dark"
                   />
                 </div>

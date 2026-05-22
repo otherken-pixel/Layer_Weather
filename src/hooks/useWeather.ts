@@ -10,6 +10,17 @@ import { saveWeatherCache } from "@/lib/cache";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
+function mapWeatherError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : "Could not load weather data.";
+  if (/denied|permission/i.test(msg)) {
+    return "Location permission denied. Add your city in Settings, or enable location in device Settings.";
+  }
+  if (/timeout/i.test(msg)) {
+    return "Location timed out. Check your signal and try again.";
+  }
+  return msg;
+}
+
 export function useWeather() {
   const refreshGeneration = useRef(0);
   const {
@@ -32,20 +43,36 @@ export function useWeather() {
       let latitude: number;
       let longitude: number;
 
+      const cached = useAppStore.getState().location;
+      const profileCoords =
+        profile?.last_latitude != null && profile?.last_longitude != null
+          ? { latitude: profile.last_latitude, longitude: profile.last_longitude }
+          : null;
+
       if (location?.latitude != null && location?.longitude != null) {
         ({ latitude, longitude } = location);
+      } else if (cached?.latitude != null && cached?.longitude != null) {
+        ({ latitude, longitude } = cached);
+      } else if (profileCoords) {
+        ({ latitude, longitude } = profileCoords);
       } else if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm !== "granted") {
           if (generation !== refreshGeneration.current) return;
-          setWeatherError("Location permission denied. Add your city in Settings.");
+          setWeatherError(
+            "Location permission denied. Add your city in Settings, or enable location in device Settings.",
+          );
           return;
         }
         const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
         ({ latitude, longitude } = pos.coords);
       } else {
-        const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
-        ({ latitude, longitude } = pos.coords);
+        try {
+          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
+          ({ latitude, longitude } = pos.coords);
+        } catch (geoErr) {
+          throw new Error(mapWeatherError(geoErr));
+        }
       }
 
       if (generation !== refreshGeneration.current) return;
@@ -82,7 +109,7 @@ export function useWeather() {
       saveWeatherCache(data, rec).catch(() => {});
     } catch (err) {
       if (generation !== refreshGeneration.current) return;
-      setWeatherError(err instanceof Error ? err.message : "Could not load weather data.");
+      setWeatherError(mapWeatherError(err));
     } finally {
       if (generation === refreshGeneration.current) {
         setIsLoadingWeather(false);

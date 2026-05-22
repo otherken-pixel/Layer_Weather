@@ -124,6 +124,8 @@ export interface OutfitRecommendation {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
+  /** Flip-flops accessory — only when feels-like ≥ 85°F and dry */
+  flipFlops: boolean;
   avatarCondition: AvatarCondition;
   commuteAlert: CommuteAlert | null;
 }

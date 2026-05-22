@@ -287,11 +287,9 @@ export default function Settings() {
             {saving ? "⟳ Saving…" : saved ? "✓ Saved!" : "Save Changes"}
           </button>
           <button
+            type="button"
             onClick={handleSignOut}
-            style={{
-              background: "none", border: "none", color: "#EF4444",
-              fontSize: 15, fontWeight: 600, padding: "12px 0", cursor: "pointer",
-            }}
+            className="min-h-[44px] w-full bg-transparent border-0 text-red-500 text-[15px] font-semibold cursor-pointer"
           >
             Sign Out
           </button>
@@ -335,18 +333,17 @@ function PillToggle<T extends string>({ options, active, onSelect, format }: {
   format: (v: T) => string;
 }) {
   return (
-    <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 999, padding: 3, gap: 2 }}>
+    <div className="flex bg-neutral-100 rounded-full p-1 gap-0.5">
       {options.map((o) => (
         <button
           key={o}
+          type="button"
           onClick={() => onSelect(o)}
-          style={{
-            padding: "6px 18px", borderRadius: 999, fontSize: 14, fontWeight: 700,
-            border: "none", cursor: "pointer",
-            background: active === o ? ACCENT : "transparent",
-            color: active === o ? "white" : "#9CA3AF",
-            transition: "all 0.2s",
-          }}
+          aria-pressed={active === o}
+          className={`min-h-[44px] min-w-[44px] px-4 rounded-full text-sm font-bold border-0 cursor-pointer transition-colors ${
+            active === o ? "text-white" : "text-neutral-600"
+          }`}
+          style={{ background: active === o ? ACCENT : "transparent" }}
         >
           {format(o)}
         </button>

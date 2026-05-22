@@ -42,10 +42,13 @@ export function NowcastCard({ data }: Props) {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", letterSpacing: "0.1em", textTransform: "uppercase" }}>
           Next 60 Minutes
         </p>
-        <span style={{ fontSize: 12, fontWeight: 600, color: hasAnyPrecip ? "#3B82F6" : "#9CA3AF" }}>
+        <span
+          className="truncate max-w-[55%] text-right"
+          style={{ fontSize: 12, fontWeight: 600, color: hasAnyPrecip ? "#2563EB" : "#6B7280" }}
+        >
           {summaryText()}
         </span>
       </div>
@@ -87,9 +90,9 @@ export function NowcastCard({ data }: Props) {
 
       {/* Time labels */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 500 }}>Now</span>
-        <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 500 }}>+30 min</span>
-        <span style={{ fontSize: 10, color: "#9CA3AF", fontWeight: 500 }}>+60 min</span>
+        <span style={{ fontSize: 10, color: "#6B7280", fontWeight: 500 }}>Now</span>
+        <span style={{ fontSize: 10, color: "#6B7280", fontWeight: 500 }}>+30 min</span>
+        <span style={{ fontSize: 10, color: "#6B7280", fontWeight: 500 }}>+60 min</span>
       </div>
     </div>
   );
