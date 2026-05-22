@@ -72,6 +72,7 @@ export default function App() {
           </>
         ) : (
           <>
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Navigate to="home" replace />} />
               <Route path="home" element={<Home />} />
