@@ -25,7 +25,7 @@ const URGENCY_COLORS = {
 };
 
 export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onRecalibrate }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, footwear, commuteAlert } = recommendation;
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } = recommendation;
 
   const displayFeelsLike =
     tempUnit === "C"
@@ -66,6 +66,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
             sunglasses={sunglasses}
             scarf={scarf}
             beanie={beanie}
+            gloves={gloves}
             footwear={footwear}
             colorScheme="light"
           />
@@ -76,7 +77,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           </p>
 
           {/* Accessories pills */}
-          {(umbrella || sunglasses || scarf || beanie || footwear) && (
+          {(umbrella || sunglasses || scarf || beanie || gloves || footwear) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
               {footwear && (
                 <AccessoryPill
@@ -90,6 +91,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
               {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />}
               {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
               {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
+              {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" />}
             </div>
           )}
 

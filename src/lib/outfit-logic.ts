@@ -157,6 +157,7 @@ export function getOutfitRecommendation(opts: {
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
   const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie = effectiveFeelsLike < 30 || isSnowy;
+  const gloves = effectiveFeelsLike < 40 || isSnowy;
   const footwear = resolveFootwear({
     effectiveFeelsLike,
     isRainy,
@@ -195,6 +196,7 @@ export function getOutfitRecommendation(opts: {
     sunglasses,
     scarf,
     beanie,
+    gloves,
     footwear,
     avatarCondition,
     commuteAlert,
@@ -441,6 +443,9 @@ export function generatePackingList(
 
   if (coldDays > 0) {
     items.push({ category: "outerwear", name: "Warm jacket", quantity: 1, reason: `Lows around ${Math.min(...dailyForecasts.map((d) => d.feelsLikeMin))}°F` });
+    if (dailyForecasts.some((d) => d.feelsLikeMin < 40)) {
+      items.push({ category: "accessories", name: "Gloves", quantity: 1, reason: "Cold mornings expected" });
+    }
   }
 
   if (rainDays > 0) {

@@ -12,6 +12,7 @@ import Umbrella from "./svg/Umbrella";
 import Sunglasses from "./svg/Sunglasses";
 import Scarf from "./svg/Scarf";
 import Beanie from "./svg/Beanie";
+import Gloves from "./svg/Gloves";
 import FlipFlops from "./svg/FlipFlops";
 import Sneakers from "./svg/Sneakers";
 import SnowBoots from "./svg/SnowBoots";
@@ -24,6 +25,7 @@ interface Props {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
+  gloves?: boolean;
   footwear?: FootwearKind | null;
   /** Kept for call-site compatibility — icons use their own colors */
   colorScheme?: "dark" | "light";
@@ -51,121 +53,204 @@ function FootwearIcon({ kind, size }: { kind: FootwearKind; size: number }) {
   }
 }
 
+function TopGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
+  switch (outfit) {
+    case "shorts_tshirt":
+      return <TShirt size={size} />;
+    case "pants_tshirt":
+      return <LongSleeve size={size} />;
+    case "light_jacket":
+      return <Jacket size={size} />;
+    case "heavy_jacket":
+      return <HeavyJacket size={size} />;
+    case "heavy_coat":
+      return <HeavyCoat size={size} />;
+    case "rain_light":
+    case "rain_heavy":
+      return <RainJacket size={size} />;
+  }
+}
+
+function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
+  return outfit === "shorts_tshirt" ? <Shorts size={size} /> : <Pants size={size} />;
+}
+
 export default function OutfitFlatLay({
   outfit,
   umbrella,
   sunglasses,
   scarf,
   beanie,
+  gloves = false,
   footwear = null,
   compact = false,
 }: Props) {
-  const sz = compact ? 72 : 100;
-  const accSz = compact ? 52 : 72;
+  /** Reference icons are 70×70px — scale proportionally by role */
+  const topSz = compact ? 64 : 80;
+  const bottomSz = compact ? 52 : 68;
+  const accSz = compact ? 44 : 56;
 
   const wrap = (node: React.ReactNode, delay: number) => (
-    <motion.div {...ITEM_ANIM} transition={{ delay }}>
+    <motion.div
+      {...ITEM_ANIM}
+      transition={{ delay }}
+      className="flex items-center justify-center"
+      style={{ width: accSz, height: accSz }}
+    >
       {node}
     </motion.div>
   );
 
-  const topGarment = (() => {
-    switch (outfit) {
-      case "shorts_tshirt":
-        return wrap(<TShirt size={sz} />, 0 * STAGGER);
-      case "pants_tshirt":
-        return wrap(<LongSleeve size={sz} />, 0 * STAGGER);
-      case "light_jacket":
-        return wrap(<Jacket size={sz} />, 0);
-      case "heavy_jacket":
-        return wrap(<HeavyJacket size={sz} />, 0);
-      case "heavy_coat":
-        return wrap(<HeavyCoat size={sz} />, 0);
-      case "rain_light":
-      case "rain_heavy":
-        return wrap(<RainJacket size={sz} />, 0);
-    }
-  })();
-
-  const bottomGarment =
-    outfit === "shorts_tshirt"
-      ? wrap(<Shorts size={sz} />, 1 * STAGGER)
-      : wrap(<Pants size={sz} />, 1 * STAGGER);
-
-  const accessories: React.ReactNode[] = [];
-  let delay = 2;
-
-  if (footwear) {
-    accessories.push(wrap(<FootwearIcon kind={footwear} size={accSz} />, delay * STAGGER));
-    delay += 1;
-  }
-  if (umbrella) {
-    accessories.push(wrap(<Umbrella size={accSz} />, delay * STAGGER));
-    delay += 1;
-  }
-  if (sunglasses) {
-    accessories.push(wrap(<Sunglasses size={accSz} />, delay * STAGGER));
-    delay += 1;
-  }
-  if (scarf) {
-    accessories.push(wrap(<Scarf size={accSz} />, delay * STAGGER));
-    delay += 1;
-  }
-  if (beanie) {
-    accessories.push(wrap(<Beanie size={accSz} />, delay * STAGGER));
-  }
-
-  const collapseBottomRow = accessories.length <= 1;
-  const bottomOnly = accessories.length === 0;
+  const hasAccessories = Boolean(footwear || umbrella || sunglasses || scarf || beanie || gloves);
+  const row3 = scarf || gloves;
 
   return (
     <motion.div
       layout
-      className="flex flex-col gap-3 w-full max-w-[320px] mx-auto overflow-hidden"
+      className="mx-auto w-full overflow-hidden"
+      style={{ maxWidth: compact ? 220 : 280 }}
       aria-label="Outfit flat lay"
     >
       <AnimatePresence mode="wait">
         <motion.div
           key={outfit}
-          className="flex justify-center items-center"
+          className="grid"
+          style={{
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateRows: row3 ? "auto auto auto" : "auto auto",
+            gap: compact ? 2 : 4,
+            alignItems: "end",
+          }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          {topGarment}
+          {/* Hero top — centered, full width */}
+          <motion.div
+            {...ITEM_ANIM}
+            transition={{ delay: 0 }}
+            className="flex justify-center items-center"
+            style={{ gridColumn: "1 / 4", gridRow: 1, minHeight: topSz }}
+          >
+            <TopGarment outfit={outfit} size={topSz} />
+          </motion.div>
+
+          {hasAccessories ? (
+            <>
+              {/* Bottom garment — lower left */}
+              <motion.div
+                {...ITEM_ANIM}
+                transition={{ delay: STAGGER }}
+                className="flex justify-center items-end"
+                style={{ gridColumn: 1, gridRow: 2, justifySelf: "center" }}
+              >
+                <BottomGarment outfit={outfit} size={bottomSz} />
+              </motion.div>
+
+              {footwear && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
+                >
+                  {wrap(<FootwearIcon kind={footwear} size={accSz} />, 2 * STAGGER)}
+                </div>
+              )}
+
+              {!footwear && umbrella && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
+                >
+                  {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
+                </div>
+              )}
+
+              {!footwear && !umbrella && sunglasses && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
+                >
+                  {wrap(<Sunglasses size={accSz} />, 2 * STAGGER)}
+                </div>
+              )}
+
+              {beanie && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
+                >
+                  {wrap(<Beanie size={accSz} />, 3 * STAGGER)}
+                </div>
+              )}
+
+              {footwear && umbrella && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
+                >
+                  {!beanie && wrap(<Umbrella size={accSz} />, 4 * STAGGER)}
+                </div>
+              )}
+
+              {footwear && sunglasses && !umbrella && (
+                <div
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
+                >
+                  {!beanie && wrap(<Sunglasses size={accSz} />, 4 * STAGGER)}
+                </div>
+              )}
+
+              {row3 && (
+                <>
+                  {scarf && (
+                    <div
+                      className="flex justify-center items-start"
+                      style={{
+                        gridColumn: footwear ? 2 : 1,
+                        gridRow: 3,
+                        justifySelf: "center",
+                      }}
+                    >
+                      {wrap(<Scarf size={accSz} />, 5 * STAGGER)}
+                    </div>
+                  )}
+                  {gloves && (
+                    <div
+                      className="flex justify-center items-start"
+                      style={{
+                        gridColumn: scarf && footwear ? 1 : 2,
+                        gridRow: 3,
+                        justifySelf: "center",
+                      }}
+                    >
+                      {wrap(<Gloves size={accSz} />, 6 * STAGGER)}
+                    </div>
+                  )}
+                  {!scarf && !gloves && umbrella && sunglasses && (
+                    <div
+                      className="flex justify-center items-start"
+                      style={{ gridColumn: 2, gridRow: 3, justifySelf: "center" }}
+                    >
+                      {wrap(<Sunglasses size={accSz} />, 4 * STAGGER)}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <motion.div
+              {...ITEM_ANIM}
+              transition={{ delay: STAGGER }}
+              className="flex justify-center items-center"
+              style={{ gridColumn: "1 / 4", gridRow: 2 }}
+            >
+              <BottomGarment outfit={outfit} size={bottomSz} />
+            </motion.div>
+          )}
         </motion.div>
       </AnimatePresence>
-
-      {bottomOnly ? (
-        <AnimatePresence mode="wait">
-          <motion.div key={`btm-only-${outfit}`} className="flex justify-center items-center">
-            {bottomGarment}
-          </motion.div>
-        </AnimatePresence>
-      ) : (
-        <motion.div
-          layout
-          className={collapseBottomRow ? "flex justify-center items-center gap-6" : "grid grid-cols-2 gap-3"}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div key={`btm-${outfit}`} className="flex justify-center items-center">
-              {bottomGarment}
-            </motion.div>
-          </AnimatePresence>
-
-          <motion.div
-            layout
-            className={
-              collapseBottomRow
-                ? "flex justify-center items-center"
-                : "flex flex-wrap gap-2 justify-center items-start content-start"
-            }
-          >
-            <AnimatePresence>{accessories}</AnimatePresence>
-          </motion.div>
-        </motion.div>
-      )}
     </motion.div>
   );
 }
