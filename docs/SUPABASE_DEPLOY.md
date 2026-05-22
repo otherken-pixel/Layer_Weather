@@ -10,12 +10,17 @@ The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/dep
 
 ## Project reference (one of these)
 
-| Secret / variable | Required | How to get it |
-|-------------------|----------|----------------|
-| `SUPABASE_PROJECT_ID` | Preferred | Project **Reference ID** on [Settings → General](https://supabase.com/dashboard/project/_/settings/general) (20-char string, e.g. `abcdefghijklmnop`) |
-| `VITE_SUPABASE_URL` | Fallback | If already set for the Vite build, the workflow extracts the ref from `https://<ref>.supabase.co` |
+The secret name must match **exactly** (GitHub is case-sensitive):
 
-**Do not** use the anon key or service role key as the project ref.
+| Secret name | Required | Value |
+|-------------|----------|--------|
+| `SUPABASE_PROJECT_ID` | **Preferred** | Reference ID only, e.g. `abcdefghijklmnop` from [Settings → General](https://supabase.com/dashboard/project/_/settings/general) |
+| `SUPABASE_PROJECT_REF` | Alternate | Same reference ID if you used this name by mistake |
+| `VITE_SUPABASE_URL` | Fallback | Full URL `https://<ref>.supabase.co` — workflow extracts `<ref>` |
+
+**Common mistake:** naming the secret `SUPABASE_PROJECT_REF` while the workflow only read `SUPABASE_PROJECT_ID` — both are now supported.
+
+**Do not** use the anon key, service role key, or full dashboard URL as the project ref (unless it is `VITE_SUPABASE_URL`, which is parsed automatically).
 
 ## Add secrets in GitHub
 
