@@ -1,122 +1,61 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { Card } from "@/components/ui/Card";
 import type { CurrentWeather } from "@/types";
-import { Colors } from "@/constants/colors";
+
+const CONDITION_EMOJI: Record<string, string> = {
+  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️",
+  foggy: "🌫️", drizzle: "🌦️", rain: "🌧️",
+  heavy_rain: "⛈️", snow: "❄️", thunderstorm: "⛈️",
+};
+
+function convertTemp(f: number, unit: "F" | "C") {
+  return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
+}
 
 interface WeatherWidgetProps {
   weather: CurrentWeather;
   tempUnit: "F" | "C";
 }
 
-function convertTemp(f: number, unit: "F" | "C"): number {
-  if (unit === "C") return Math.round(((f - 32) * 5) / 9);
-  return Math.round(f);
-}
-
-const CONDITION_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  clear: "sunny",
-  partly_cloudy: "partly-sunny",
-  cloudy: "cloud",
-  foggy: "cloud",
-  drizzle: "rainy",
-  rain: "rainy",
-  heavy_rain: "thunderstorm",
-  snow: "snow",
-  thunderstorm: "thunderstorm",
-};
-
 export function WeatherWidget({ weather, tempUnit }: WeatherWidgetProps) {
   const temp = convertTemp(weather.temp, tempUnit);
   const feelsLike = convertTemp(weather.feelsLike, tempUnit);
-  const iconName = CONDITION_ICONS[weather.condition] ?? "cloud";
+  const emoji = CONDITION_EMOJI[weather.condition] ?? "🌤️";
 
   return (
-    <Card style={styles.card}>
-      <View style={styles.row}>
-        {/* Main temp */}
-        <View>
-          <Text style={styles.location}>{weather.location}</Text>
-          <View style={styles.tempRow}>
-            <Text style={styles.temp}>{temp}°</Text>
-            <Ionicons name={iconName} size={36} color="white" style={{ marginTop: 8 }} />
-          </View>
-          <Text style={styles.feelsLike}>Feels like {feelsLike}°{tempUnit}</Text>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.stats}>
-          <StatRow icon="water" value={`${weather.humidity}%`} label="Humidity" />
-          <StatRow icon="speedometer" value={`${weather.windSpeed} mph`} label="Wind" />
-          <StatRow icon="umbrella" value={`${weather.precipProb}%`} label="Rain" />
-        </View>
-      </View>
+    <Card>
+      <div className="flex justify-between items-start">
+        <div>
+          {weather.location && (
+            <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {weather.location}
+            </p>
+          )}
+          <div className="flex items-start gap-2">
+            <span className="text-6xl font-black text-white leading-none" style={{ letterSpacing: "-2px" }}>
+              {temp}°
+            </span>
+            <span className="text-4xl mt-1">{emoji}</span>
+          </div>
+          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
+            Feels like {feelsLike}°{tempUnit}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 pt-2">
+          <Stat label="Humidity" value={`${weather.humidity}%`} />
+          <Stat label="Wind" value={`${weather.windSpeed} mph`} />
+          <Stat label="Rain" value={`${weather.precipProb}%`} />
+        </div>
+      </div>
     </Card>
   );
 }
 
-function StatRow({ icon, value, label }: { icon: string; value: string; label: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.statRow}>
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={14} color={Colors.text.inverseSecondary} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-bold text-white">{value}</span>
+      <span className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>{label}</span>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 0,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  location: {
-    fontSize: 13,
-    color: Colors.text.inverseSecondary,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-    marginBottom: 4,
-  },
-  tempRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-  },
-  temp: {
-    fontSize: 56,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -2,
-    lineHeight: 60,
-  },
-  feelsLike: {
-    fontSize: 14,
-    color: Colors.text.inverseSecondary,
-    marginTop: 2,
-  },
-  stats: {
-    gap: 12,
-    justifyContent: "center",
-    paddingTop: 8,
-  },
-  statRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "white",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.text.inverseSecondary,
-  },
-});

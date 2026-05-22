@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  /* Safe area support for notch/home indicator */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+}
+
+/* ── Avatar animations ───────────────────────────────────────────── */
+@keyframes raindrop-fall {
+  0%   { transform: translateY(0);     opacity: 0; }
+  8%   {                               opacity: 0.65; }
+  88%  {                               opacity: 0.65; }
+  100% { transform: translateY(280px); opacity: 0; }
+}
+
+@keyframes snowflake-drift {
+  0%   { transform: translateY(0)     translateX(0);   opacity: 0; }
+  8%   {                                               opacity: 0.8; }
+  50%  { transform: translateY(140px) translateX(14px); }
+  88%  {                                               opacity: 0.8; }
+  100% { transform: translateY(280px) translateX(0);   opacity: 0; }
+}
+
+.raindrop {
+  position: absolute;
+  width: 2px;
+  height: 10px;
+  border-radius: 1px;
+  background: #90CAF9;
+  animation: raindrop-fall 1.4s linear infinite;
+}
+
+.snowflake {
+  position: absolute;
+  animation: snowflake-drift 3s ease-in-out infinite;
+}

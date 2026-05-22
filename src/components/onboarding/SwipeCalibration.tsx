@@ -1,60 +1,16 @@
-import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
-import {
-  GestureDetector,
-  Gesture,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-  interpolate,
-  interpolateColor,
-  Extrapolation,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
-
+import React, { useState } from "react";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 import type { CalibrationScenario, SwipeDirection } from "@/types";
-import { Colors } from "@/constants/colors";
 
-const { width: SCREEN_W } = Dimensions.get("window");
-const SWIPE_THRESHOLD = SCREEN_W * 0.35;
+const SWIPE_THRESHOLD = 100;
 
 const SCENARIOS: CalibrationScenario[] = [
-  {
-    id: "hot",
-    temp: 85,
-    outfit: "shorts_tshirt",
-    description: "85°F sunny afternoon",
-  },
-  {
-    id: "warm",
-    temp: 74,
-    outfit: "pants_tshirt",
-    description: "74°F comfortable day",
-  },
-  {
-    id: "mild",
-    temp: 64,
-    outfit: "light_jacket",
-    description: "64°F breezy morning",
-  },
-  {
-    id: "cool",
-    temp: 52,
-    outfit: "heavy_jacket",
-    description: "52°F grey afternoon",
-  },
-  {
-    id: "cold",
-    temp: 38,
-    outfit: "heavy_coat",
-    description: "38°F cold winter day",
-  },
+  { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F sunny afternoon" },
+  { id: "warm", temp: 74, outfit: "pants_tshirt",  description: "74°F comfortable day" },
+  { id: "mild", temp: 64, outfit: "light_jacket",  description: "64°F breezy morning" },
+  { id: "cool", temp: 52, outfit: "heavy_jacket",  description: "52°F grey afternoon" },
+  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F cold winter day" },
 ];
 
 interface SwipeCalibrationProps {
@@ -65,276 +21,109 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
   const [index, setIndex] = useState(0);
   const [swipes, setSwipes] = useState<Array<{ temp: number; direction: SwipeDirection }>>([]);
 
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const isGesturing = useSharedValue(false);
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 0, 200], [-15, 0, 15]);
+  const leftOpacity = useTransform(x, [-150, -30, 0], [1, 0.2, 0]);
+  const rightOpacity = useTransform(x, [0, 30, 150], [0, 0.2, 1]);
 
-  const triggerHaptic = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, []);
+  function handleSwipe(dir: SwipeDirection) {
+    const scenario = SCENARIOS[index];
+    const next = [...swipes, { temp: scenario.temp, direction: dir }];
+    setSwipes(next);
 
-  const advanceCard = useCallback(
-    (dir: SwipeDirection) => {
-      const scenario = SCENARIOS[index];
-      const next = [...swipes, { temp: scenario.temp, direction: dir }];
-      setSwipes(next);
-
-      if (index + 1 >= SCENARIOS.length) {
-        onComplete(next);
-      } else {
-        setIndex((i) => i + 1);
-        translateX.value = 0;
-        translateY.value = 0;
-      }
-    },
-    [index, swipes, onComplete]
-  );
-
-  const gesture = Gesture.Pan()
-    .onStart(() => {
-      isGesturing.value = true;
-    })
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-      translateY.value = e.translationY * 0.3;
-    })
-    .onEnd((e) => {
-      isGesturing.value = false;
-      if (Math.abs(e.translationX) > SWIPE_THRESHOLD) {
-        const dir: SwipeDirection = e.translationX > 0 ? "right" : "left";
-        const targetX = dir === "right" ? SCREEN_W * 1.5 : -SCREEN_W * 1.5;
-        translateX.value = withTiming(targetX, { duration: 300 });
-        runOnJS(triggerHaptic)();
-        runOnJS(advanceCard)(dir);
-      } else {
-        translateX.value = withSpring(0, { damping: 15, stiffness: 200 });
-        translateY.value = withSpring(0, { damping: 15, stiffness: 200 });
-      }
-    });
-
-  const cardAnimStyle = useAnimatedStyle(() => {
-    const rotation = interpolate(
-      translateX.value,
-      [-SCREEN_W / 2, 0, SCREEN_W / 2],
-      [-15, 0, 15],
-      Extrapolation.CLAMP
-    );
-    return {
-      transform: [
-        { translateX: translateX.value },
-        { translateY: translateY.value },
-        { rotate: `${rotation}deg` },
-      ],
-    };
-  });
-
-  const leftLabelStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [-SCREEN_W * 0.3, -60, 0],
-      [1, 0.2, 0],
-      Extrapolation.CLAMP
-    ),
-    transform: [{ scale: interpolate(translateX.value, [-SCREEN_W * 0.3, 0], [1.2, 0.8], Extrapolation.CLAMP) }],
-  }));
-
-  const rightLabelStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, 60, SCREEN_W * 0.3],
-      [0, 0.2, 1],
-      Extrapolation.CLAMP
-    ),
-    transform: [{ scale: interpolate(translateX.value, [0, SCREEN_W * 0.3], [0.8, 1.2], Extrapolation.CLAMP) }],
-  }));
+    if (index + 1 >= SCENARIOS.length) {
+      onComplete(next);
+    } else {
+      setIndex((i) => i + 1);
+      animate(x, 0, { type: "spring", stiffness: 300, damping: 25 });
+    }
+  }
 
   const scenario = SCENARIOS[index];
   const nextScenario = SCENARIOS[index + 1];
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.step}>{index + 1} / {SCENARIOS.length}</Text>
-        <Text style={styles.title}>How does this feel?</Text>
-        <Text style={styles.subtitle}>Swipe left if you'd be cold · right if warm enough</Text>
-      </View>
+    <div className="flex flex-col items-center w-full gap-4">
+      {/* Header */}
+      <div className="text-center">
+        <p className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+          {index + 1} / {SCENARIOS.length}
+        </p>
+        <h2 className="text-3xl font-black text-white">How does this feel?</h2>
+        <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
+          Swipe left if you'd be cold · right if warm enough
+        </p>
+      </div>
 
       {/* Progress dots */}
-      <View style={styles.dots}>
+      <div className="flex gap-2">
         {SCENARIOS.map((_, i) => (
-          <View
+          <motion.div
             key={i}
-            style={[styles.dot, i === index && styles.dotActive, i < index && styles.dotDone]}
+            animate={{
+              width: i === index ? 24 : 8,
+              backgroundColor: i < index ? "rgba(255,255,255,0.6)" : i === index ? "white" : "rgba(255,255,255,0.25)",
+            }}
+            className="h-2 rounded-full"
           />
         ))}
-      </View>
+      </div>
 
-      {/* Cards stack */}
-      <View style={styles.cardStack}>
-        {/* Background card (next) */}
+      {/* Card stack */}
+      <div className="relative flex items-center justify-center" style={{ width: "100%", maxWidth: 360, height: 380 }}>
+        {/* Background card */}
         {nextScenario && (
-          <View style={[styles.card, styles.nextCard]}>
-            <WeatherAvatar outfit={nextScenario.outfit} condition="sunny" size={180} />
-          </View>
+          <div
+            className="absolute inset-0 rounded-3xl border flex items-center justify-center"
+            style={{
+              background: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.25)",
+              transform: "scale(0.94) translateY(16px)", opacity: 0.7,
+            }}
+          >
+            <WeatherAvatar outfit={nextScenario.outfit} condition="sunny" size={160} />
+          </div>
         )}
 
         {/* Active card */}
-        <GestureDetector gesture={gesture}>
-          <Animated.View style={[styles.card, cardAnimStyle]}>
-            {/* Swipe direction labels */}
-            <Animated.View style={[styles.swipeLabel, styles.swipeLabelLeft, leftLabelStyle]}>
-              <Text style={styles.swipeLabelText}>🥶 Too Cold</Text>
-            </Animated.View>
-            <Animated.View style={[styles.swipeLabel, styles.swipeLabelRight, rightLabelStyle]}>
-              <Text style={styles.swipeLabelText}>😊 Feels Good</Text>
-            </Animated.View>
+        <motion.div
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          style={{ x, rotate, width: "100%", height: 360, position: "absolute", background: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.30)", boxShadow: "0 12px 40px rgba(0,0,0,0.3)" }}
+          onDragEnd={(_, info) => {
+            if (info.offset.x > SWIPE_THRESHOLD) handleSwipe("right");
+            else if (info.offset.x < -SWIPE_THRESHOLD) handleSwipe("left");
+            else animate(x, 0, { type: "spring", stiffness: 300, damping: 25 });
+          }}
+          className="rounded-3xl border flex flex-col items-center justify-center gap-4 p-5 cursor-grab active:cursor-grabbing"
+        >
+          {/* Swipe labels */}
+          <motion.div
+            style={{ opacity: leftOpacity }}
+            className="absolute top-6 left-5 px-3 py-2 rounded-xl border border-blue-300/60 bg-blue-400/10"
+          >
+            <span className="text-sm font-bold text-white">🥶 Too Cold</span>
+          </motion.div>
+          <motion.div
+            style={{ opacity: rightOpacity }}
+            className="absolute top-6 right-5 px-3 py-2 rounded-xl border border-green-300/60 bg-green-400/10"
+          >
+            <span className="text-sm font-bold text-white">😊 Feels Good</span>
+          </motion.div>
 
-            <WeatherAvatar
-              outfit={scenario.outfit}
-              condition="sunny"
-              size={200}
-            />
+          <WeatherAvatar outfit={scenario.outfit} condition="sunny" size={200} />
 
-            <View style={styles.tempBadge}>
-              <Text style={styles.tempText}>{scenario.temp}°</Text>
-              <Text style={styles.tempDesc}>{scenario.description}</Text>
-            </View>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+          <div className="text-center">
+            <p className="text-5xl font-black text-white" style={{ letterSpacing: "-2px" }}>{scenario.temp}°</p>
+            <p className="text-base mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>{scenario.description}</p>
+          </div>
+        </motion.div>
+      </div>
 
-      {/* Hint arrows */}
-      <View style={styles.hints}>
-        <Text style={styles.hintText}>← Too cold for me</Text>
-        <Text style={styles.hintText}>Feels good! →</Text>
-      </View>
-    </GestureHandlerRootView>
+      {/* Hint row */}
+      <div className="flex justify-between w-full px-6">
+        <span className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>← Too cold for me</span>
+        <span className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>Feels good! →</span>
+      </div>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    alignItems: "center",
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  step: {
-    fontSize: 13,
-    color: Colors.text.inverseSecondary,
-    marginBottom: 6,
-    fontWeight: "600",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: Colors.text.inverse,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: Colors.text.inverseSecondary,
-    textAlign: "center",
-  },
-  dots: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 24,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(255,255,255,0.25)",
-  },
-  dotActive: {
-    backgroundColor: "white",
-    width: 24,
-  },
-  dotDone: {
-    backgroundColor: "rgba(255,255,255,0.6)",
-  },
-  cardStack: {
-    width: SCREEN_W - 48,
-    height: 380,
-    position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  card: {
-    position: "absolute",
-    width: "100%",
-    height: 360,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.30)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-  nextCard: {
-    transform: [{ scale: 0.94 }, { translateY: 16 }],
-    opacity: 0.7,
-  },
-  swipeLabel: {
-    position: "absolute",
-    top: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    zIndex: 10,
-  },
-  swipeLabelLeft: {
-    left: 20,
-    borderColor: "#4FC3F7",
-    backgroundColor: "rgba(79, 195, 247, 0.1)",
-  },
-  swipeLabelRight: {
-    right: 20,
-    borderColor: "#81C784",
-    backgroundColor: "rgba(129, 199, 132, 0.1)",
-  },
-  swipeLabelText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "white",
-  },
-  tempBadge: {
-    alignItems: "center",
-    marginTop: 8,
-  },
-  tempText: {
-    fontSize: 52,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -2,
-  },
-  tempDesc: {
-    fontSize: 16,
-    color: Colors.text.inverseSecondary,
-    marginTop: 4,
-  },
-  hints: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingHorizontal: 24,
-    marginTop: 16,
-  },
-  hintText: {
-    fontSize: 13,
-    color: "rgba(255,255,255,0.5)",
-    fontWeight: "500",
-  },
-});

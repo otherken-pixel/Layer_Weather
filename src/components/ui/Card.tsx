@@ -1,42 +1,25 @@
 import React from "react";
-import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
-import { BlurView } from "expo-blur";
-import { Colors } from "@/constants/colors";
 
 interface CardProps {
   children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-  frosted?: boolean;
-  padding?: number;
+  className?: string;
+  padding?: string;
 }
 
-export function Card({ children, style, frosted = true, padding = 20 }: CardProps) {
-  if (frosted) {
-    return (
-      <BlurView intensity={18} tint="light" style={[styles.base, { padding }, style]}>
-        <View style={styles.overlay}>{children}</View>
-      </BlurView>
-    );
-  }
-
+export function Card({ children, className = "", padding = "p-5" }: CardProps) {
   return (
-    <View style={[styles.base, styles.solid, { padding }, style]}>
+    <div
+      className={[
+        "rounded-3xl border",
+        "bg-white/[0.14] border-white/30",
+        "backdrop-blur-sm",
+        padding,
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {children}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: Colors.surface.cardBorder,
-  },
-  solid: {
-    backgroundColor: Colors.surface.card,
-  },
-  overlay: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-});

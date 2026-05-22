@@ -1,29 +1,19 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
+import { motion } from "framer-motion";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 import { Card } from "@/components/ui/Card";
 import type { OutfitRecommendation as OutfitRec } from "@/types";
-import { Colors } from "@/constants/colors";
 
-interface OutfitRecommendationProps {
+interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
   onRecalibrate?: () => void;
 }
 
-export function OutfitRecommendationCard({
-  recommendation,
-  tempUnit,
-  feelsLike,
-  onRecalibrate,
-}: OutfitRecommendationProps) {
-  const { outfit, label, description, umbrella, sunglasses, scarf, beanie, avatarCondition, commuteAlert } = recommendation;
+export function OutfitRecommendationCard({ recommendation, onRecalibrate }: Props) {
+  const { outfit, label, description, umbrella, sunglasses, scarf, beanie, avatarCondition, commuteAlert } =
+    recommendation;
 
   const accessories: string[] = [];
   if (umbrella) accessories.push("☂️ Umbrella");
@@ -32,139 +22,74 @@ export function OutfitRecommendationCard({
   if (beanie) accessories.push("🧢 Beanie");
 
   return (
-    <View style={styles.root}>
-      {/* Avatar section */}
-      <Animated.View entering={FadeInUp.delay(100).springify()} style={styles.avatarWrap}>
-        <WeatherAvatar
-          outfit={outfit}
-          condition={avatarCondition}
-          umbrella={umbrella}
-          sunglasses={sunglasses}
-          scarf={scarf}
-          beanie={beanie}
-          size={260}
-        />
-      </Animated.View>
+    <div className="flex flex-col items-center gap-4">
+      {/* Avatar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, type: "spring" }}
+      >
+        <WeatherAvatar outfit={outfit} condition={avatarCondition} umbrella={umbrella} sunglasses={sunglasses} scarf={scarf} beanie={beanie} size={260} />
+      </motion.div>
 
-      {/* Outfit label */}
-      <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.labelWrap}>
-        <Text style={styles.outfitLabel}>{label}</Text>
-        <Text style={styles.description}>{description}</Text>
-      </Animated.View>
+      {/* Label + description */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, type: "spring" }}
+        className="text-center"
+      >
+        <h2 className="text-4xl font-black text-white" style={{ letterSpacing: "-0.5px" }}>{label}</h2>
+        <p className="text-base mt-1 max-w-xs mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.72)" }}>
+          {description}
+        </p>
+      </motion.div>
 
-      {/* Accessories row */}
+      {/* Accessories */}
       {accessories.length > 0 && (
-        <Animated.View entering={FadeInDown.delay(300)} style={styles.accessoriesRow}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="flex flex-wrap gap-2 justify-center"
+        >
           {accessories.map((acc) => (
-            <View key={acc} style={styles.accessoryChip}>
-              <Text style={styles.accessoryText}>{acc}</Text>
-            </View>
+            <span
+              key={acc}
+              className="text-sm font-semibold text-white px-3.5 py-1.5 rounded-full border"
+              style={{ background: "rgba(255,255,255,0.14)", borderColor: "rgba(255,255,255,0.25)" }}
+            >
+              {acc}
+            </span>
           ))}
-        </Animated.View>
+        </motion.div>
       )}
 
       {/* Commute alert */}
       {commuteAlert && (
-        <Animated.View entering={FadeInDown.delay(400)}>
-          <Card style={[styles.alertCard, commuteAlert.urgency === "warning" && styles.alertWarning]}>
-            <View style={styles.alertInner}>
-              <Ionicons
-                name={commuteAlert.urgency === "warning" ? "warning" : "information-circle"}
-                size={20}
-                color={commuteAlert.urgency === "warning" ? "#F6AD55" : Colors.text.inverseSecondary}
-              />
-              <Text style={styles.alertText}>{commuteAlert.message}</Text>
-            </View>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="w-full">
+          <Card
+            className={commuteAlert.urgency === "warning" ? "border-yellow-400/50" : ""}
+            padding="p-4"
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-xl">{commuteAlert.urgency === "warning" ? "⚠️" : "ℹ️"}</span>
+              <p className="text-sm text-white leading-snug flex-1">{commuteAlert.message}</p>
+            </div>
           </Card>
-        </Animated.View>
+        </motion.div>
       )}
 
       {/* Recalibrate nudge */}
       {onRecalibrate && (
-        <Pressable onPress={onRecalibrate} style={styles.recalibrate}>
-          <Ionicons name="refresh" size={14} color={Colors.text.inverseSecondary} />
-          <Text style={styles.recalibrateText}>Not quite right? Recalibrate</Text>
-        </Pressable>
+        <button
+          onClick={onRecalibrate}
+          className="flex items-center gap-1.5 opacity-50 hover:opacity-80 transition-opacity"
+        >
+          <span className="text-xs">🔄</span>
+          <span className="text-xs text-white/70 font-medium">Not quite right? Recalibrate</span>
+        </button>
       )}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    alignItems: "center",
-    gap: 8,
-  },
-  avatarWrap: {
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  labelWrap: {
-    alignItems: "center",
-    gap: 4,
-  },
-  outfitLabel: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "white",
-    letterSpacing: -0.5,
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 16,
-    color: Colors.text.inverseSecondary,
-    textAlign: "center",
-    maxWidth: 280,
-    lineHeight: 22,
-  },
-  accessoriesRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "center",
-    marginTop: 4,
-  },
-  accessoryChip: {
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  accessoryText: {
-    fontSize: 14,
-    color: "white",
-    fontWeight: "600",
-  },
-  alertCard: {
-    marginHorizontal: 0,
-    marginTop: 4,
-  },
-  alertWarning: {
-    borderColor: "rgba(246, 173, 85, 0.5)",
-  },
-  alertInner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  alertText: {
-    flex: 1,
-    fontSize: 14,
-    color: "white",
-    lineHeight: 20,
-  },
-  recalibrate: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 8,
-    opacity: 0.6,
-  },
-  recalibrateText: {
-    fontSize: 13,
-    color: Colors.text.inverseSecondary,
-    fontWeight: "500",
-  },
-});
