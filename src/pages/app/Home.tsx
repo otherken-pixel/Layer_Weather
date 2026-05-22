@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
@@ -13,6 +13,7 @@ import { getSkyColor } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile } from "@/lib/supabase";
+import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -28,6 +29,7 @@ export default function Home() {
   const { profile, calibration, userId, setProfile } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh(); }, []);
@@ -128,6 +130,13 @@ export default function Home() {
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
               onRefresh={() => refresh(true)}
+              onLocationPress={() => setLocationPickerOpen(true)}
+            />
+            <LocationPickerSheet
+              open={locationPickerOpen}
+              onClose={() => setLocationPickerOpen(false)}
+              onSaved={() => refresh(true)}
+              variant="sky"
             />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
             <WeatherAnimationLayer

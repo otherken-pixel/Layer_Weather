@@ -5,52 +5,39 @@ import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
-import { geocodeCity } from "@/lib/location-search";
 import { useWeather } from "@/hooks/useWeather";
+import { useSaveLocation } from "@/hooks/useSaveLocation";
 
 const ACCENT = "#7C3AED";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, calibration, userId, setProfile, location, setLocation } = useAppStore();
+  const { profile, calibration, userId, setProfile, location } = useAppStore();
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
+  const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
-  const [cityQuery, setCityQuery] = useState(location?.city ?? "");
-  const [citySaving, setCitySaving] = useState(false);
-  const [cityError, setCityError] = useState("");
+  const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  React.useEffect(() => {
+    const label = location?.city || profile?.last_city;
+    if (label) setCityQuery(label);
+  }, [location?.city, profile?.last_city]);
+
   async function saveCity() {
     if (!userId || !cityQuery.trim()) return;
-    setCitySaving(true);
-    setCityError("");
-    try {
-      const place = await geocodeCity(cityQuery);
-      if (!place) {
-        setCityError("City not found. Try a different name.");
-        return;
-      }
-      setLocation({
-        latitude: place.latitude,
-        longitude: place.longitude,
-        city: place.city,
-        region: "",
-        country: "",
-      });
-      await upsertProfile(userId, {
-        last_latitude: place.latitude,
-        last_longitude: place.longitude,
-      });
-      await refresh(true);
-    } catch {
-      setCityError("Could not save location. Check your connection.");
-    } finally {
-      setCitySaving(false);
-    }
+    const result = await saveFromCity(cityQuery);
+    if (result.ok) await refresh(true);
+  }
+
+  async function saveGpsLocation() {
+    if (!userId) return;
+    const result = await saveFromDevice();
+    if (result.ok) await refresh(true);
   }
 
   async function saveSettings() {
@@ -150,9 +137,29 @@ export default function Settings() {
                 fontSize: 14,
                 cursor: citySaving ? "not-allowed" : "pointer",
                 opacity: citySaving || !cityQuery.trim() ? 0.6 : 1,
+                marginBottom: 8,
               }}
             >
-              {citySaving ? "Saving…" : "Update location"}
+              {citySaving ? "Saving…" : "Save city"}
+            </button>
+            <button
+              type="button"
+              onClick={saveGpsLocation}
+              disabled={citySaving}
+              style={{
+                width: "100%",
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "1.5px solid #E5E7EB",
+                background: "#F3F4F6",
+                color: "#111827",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: citySaving ? "not-allowed" : "pointer",
+                opacity: citySaving ? 0.6 : 1,
+              }}
+            >
+              Use current location
             </button>
           </WhiteCard>
         </Section>
@@ -212,7 +219,7 @@ export default function Settings() {
                 padding: "10px 0", width: "100%", color: ACCENT, fontWeight: 600, fontSize: 14, cursor: "pointer",
               }}
             >
-              🔄 Recalibrate preferences
+              🔄 Recalibrate outfit preferences
             </button>
           </Section>
         )}
