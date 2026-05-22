@@ -5,12 +5,18 @@ import type { CalibrationScenario, SwipeDirection, OutfitType } from "@/types";
 
 const SWIPE_THRESHOLD = 80;
 
-const SCENARIOS: CalibrationScenario[] = [
-  { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F — sunny afternoon" },
+interface ScenarioWithAccessories extends CalibrationScenario {
+  sunglasses?: boolean;
+  beanie?: boolean;
+  scarf?: boolean;
+}
+
+const SCENARIOS: ScenarioWithAccessories[] = [
+  { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F — sunny afternoon", sunglasses: true },
   { id: "warm", temp: 74, outfit: "pants_tshirt",  description: "74°F — comfortable day" },
   { id: "mild", temp: 64, outfit: "light_jacket",  description: "64°F — breezy morning" },
   { id: "cool", temp: 52, outfit: "heavy_jacket",  description: "52°F — grey afternoon" },
-  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day" },
+  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day", beanie: true, scarf: true },
 ];
 
 function isRainOutfit(outfit: OutfitType) {
@@ -95,10 +101,10 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
           <div
             className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-3 p-5"
             style={{
-              background: "rgba(255,255,255,0.08)",
-              border: "1px solid rgba(255,255,255,0.2)",
+              background: "rgba(15,25,45,0.70)",
+              border: "1px solid rgba(255,255,255,0.10)",
               transform: "scale(0.93) translateY(14px)",
-              opacity: 0.6,
+              opacity: 0.7,
             }}
           >
             <div style={{ opacity: 0.5 }}>
@@ -106,9 +112,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
                 outfit={nextScenario.outfit}
                 rainGear={isRainOutfit(nextScenario.outfit)}
                 umbrella={false}
-                sunglasses={false}
-                scarf={false}
-                beanie={false}
+                sunglasses={nextScenario.sunglasses ?? false}
+                scarf={nextScenario.scarf ?? false}
+                beanie={nextScenario.beanie ?? false}
                 colorScheme="dark"
                 compact
               />
@@ -129,9 +135,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             width: "100%",
             height: 320,
             position: "absolute",
-            background: "rgba(255,255,255,0.14)",
-            borderColor: "rgba(255,255,255,0.28)",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
+            background: "rgba(15,25,45,0.92)",
+            borderColor: "rgba(255,255,255,0.12)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
           }}
           onDragEnd={(_, info) => {
             if (info.offset.x > SWIPE_THRESHOLD) handleSwipe("right");
@@ -159,9 +165,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             outfit={scenario.outfit}
             rainGear={isRainOutfit(scenario.outfit)}
             umbrella={false}
-            sunglasses={false}
-            scarf={false}
-            beanie={false}
+            sunglasses={scenario.sunglasses ?? false}
+            scarf={scenario.scarf ?? false}
+            beanie={scenario.beanie ?? false}
             colorScheme="dark"
             compact
           />

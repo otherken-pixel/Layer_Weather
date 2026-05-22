@@ -49,10 +49,36 @@ export default function Login() {
 
   return (
     <div
-      className="flex flex-col min-h-full px-7 pt-safe"
-      style={{ background: "linear-gradient(160deg,#1a1a2e,#16213e)" }}
+      className="relative flex flex-col min-h-full overflow-hidden"
+      style={{ background: "linear-gradient(160deg,#1a1a2e 0%,#2d1b4e 55%,#162033 100%)" }}
     >
-      <div className="flex flex-col gap-6 mt-8 pb-10">
+      {/* Background glow blobs */}
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: 300,
+          height: 300,
+          background: "radial-gradient(circle, rgba(108,99,255,0.22) 0%, transparent 70%)",
+          top: -80,
+          left: -80,
+        }}
+        animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{
+          width: 220,
+          height: 220,
+          background: "radial-gradient(circle, rgba(0,122,255,0.15) 0%, transparent 70%)",
+          bottom: 80,
+          right: -60,
+        }}
+        animate={{ scale: [1, 1.2, 1] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
+      <div className="relative flex flex-col gap-6 px-7 pt-safe mt-8 pb-10 max-w-sm w-full mx-auto">
         <button
           onClick={() => navigate("/welcome")}
           className="w-11 h-11 rounded-full flex items-center justify-center text-white self-start"
