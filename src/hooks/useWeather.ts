@@ -5,6 +5,7 @@ import { useAppStore } from "@/store";
 import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
+import { saveWidgetSnapshot } from "@/lib/widget";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
@@ -67,6 +68,7 @@ export function useWeather() {
         commuteEnd: profile?.commute_end ?? null,
       });
       setOutfit(rec);
+      saveWidgetSnapshot(data, rec).catch(() => {});
     } catch (err) {
       setWeatherError(err instanceof Error ? err.message : "Could not load weather data.");
     } finally {

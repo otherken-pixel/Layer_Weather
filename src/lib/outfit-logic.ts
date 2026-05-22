@@ -17,7 +17,6 @@ export const DEFAULT_CALIBRATION: UserCalibration = {
   heavy_coat_max_temp: 45,
   rain_tolerance: "moderate",
   humidity_sensitivity: true,
-  updated_at: new Date().toISOString(),
 };
 
 // ── Core recommendation engine ────────────────────────────────────────────────

@@ -76,3 +76,33 @@ export function showLocalNotification(title: string, body: string): void {
   // eslint-disable-next-line no-new
   new Notification(title, { body, icon: "/icons/icon.png" });
 }
+
+const LAST_ALERT_KEY = "wt_last_outfit_alert";
+
+/**
+ * Shows a one-per-day outfit alert in the browser notification tray
+ * when significant weather conditions warrant it.
+ * Server-side push (weather-alerts edge function) handles scheduled morning delivery;
+ * this fires on the first weather load of the day as a fallback for web users.
+ */
+export function maybeShowOutfitAlert(opts: {
+  feelsLike: number;
+  precipProb: number;
+  outfitLabel: string;
+  description: string;
+}): void {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const today = new Date().toDateString();
+  if (localStorage.getItem(LAST_ALERT_KEY) === today) return;
+
+  // Only alert for notable conditions
+  const notable = opts.feelsLike < 40 || opts.feelsLike > 92 || opts.precipProb > 60;
+  if (!notable) return;
+
+  localStorage.setItem(LAST_ALERT_KEY, today);
+  showLocalNotification(
+    `Today: ${opts.outfitLabel}`,
+    opts.description,
+  );
+}
