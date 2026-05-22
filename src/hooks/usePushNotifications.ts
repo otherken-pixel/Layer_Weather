@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useAppStore } from "@/store";
 import { registerPushNotifications, maybeShowOutfitAlert } from "@/lib/notifications";
 
@@ -8,17 +8,14 @@ import { registerPushNotifications, maybeShowOutfitAlert } from "@/lib/notificat
  */
 export function usePushNotifications(): void {
   const { userId, weather, outfit } = useAppStore();
-  const registeredRef = useRef(false);
 
   useEffect(() => {
-    if (!userId || registeredRef.current) return;
-    registeredRef.current = true;
+    if (!userId) return;
     registerPushNotifications(userId).catch((err) => {
       console.warn("Push notification registration failed:", err);
     });
   }, [userId]);
 
-  // Show a one-per-day local notification when weather loads and conditions are notable
   useEffect(() => {
     if (!weather || !outfit) return;
     maybeShowOutfitAlert({

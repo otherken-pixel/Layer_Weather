@@ -1,13 +1,25 @@
 import { useEffect, useState } from "react";
 import { supabase, getProfile, getCalibration, upsertCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
+import { loadWeatherCache, clearWeatherCache } from "@/lib/cache";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
-  const { userId, profile, setUserId, setProfile, setCalibration, setIsOnboarded, reset } =
-    useAppStore();
+  const {
+    userId,
+    profile,
+    setUserId,
+    setProfile,
+    setCalibration,
+    setIsOnboarded,
+    setWeather,
+    setOutfit,
+    setWeatherLastFetched,
+    setLocation,
+    reset,
+  } = useAppStore();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -21,8 +33,9 @@ export function useAuth() {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
         await loadUser(session.user.id);
-      } else if (event === "SIGNED_OUT") {
+      } else if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         reset();
+        await clearWeatherCache();
       }
     });
 
@@ -31,6 +44,14 @@ export function useAuth() {
 
   async function loadUser(id: string) {
     setUserId(id);
+
+    const cached = await loadWeatherCache();
+    if (cached) {
+      setWeather(cached.weather);
+      setOutfit(cached.outfit);
+      setWeatherLastFetched(new Date(cached.savedAt));
+    }
+
     const [prof, cal] = await Promise.all([getProfile(id), getCalibration(id)]);
     setProfile(prof);
 
@@ -39,7 +60,6 @@ export function useAuth() {
       setIsOnboarded(true);
       localStorage.removeItem(CALIBRATION_PENDING_KEY);
     } else {
-      // Retry a calibration save that timed out during onboarding
       const pending = localStorage.getItem(CALIBRATION_PENDING_KEY);
       if (pending) {
         try {
@@ -51,7 +71,6 @@ export function useAuth() {
             localStorage.removeItem(CALIBRATION_PENDING_KEY);
           }
         } catch {
-          // Still failing — keep pending flag, don't mark as onboarded
           setIsOnboarded(false);
         }
       } else {
@@ -59,12 +78,13 @@ export function useAuth() {
       }
     }
 
-    // Restore last known location into store
-    if (prof?.last_latitude && prof?.last_longitude) {
-      useAppStore.getState().setLocation({
+    if (prof?.last_latitude != null && prof?.last_longitude != null) {
+      setLocation({
         latitude: prof.last_latitude,
         longitude: prof.last_longitude,
-        city: "", region: "", country: "",
+        city: cached?.weather.current.location ?? "",
+        region: "",
+        country: "",
       });
     }
   }

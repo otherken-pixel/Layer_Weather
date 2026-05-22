@@ -6,6 +6,7 @@ import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
+import { saveWeatherCache } from "@/lib/cache";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const GEOCODE_TIMEOUT_MS = 8_000;
@@ -24,7 +25,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 function mapWeatherError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "Could not load weather data.";
   if (/denied|permission/i.test(msg)) {
-    return "Location access is required for local weather. Enable it in your device Settings.";
+    return "Location permission denied. Add your city in Settings, or enable location in device Settings.";
   }
   if (/timeout|timed out/i.test(msg)) {
     return msg.includes("timed out") ? msg : "Request timed out. Check your connection and try again.";
@@ -67,7 +68,7 @@ async function resolveCoordinates(
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm !== "granted") {
       throw new Error(
-        "Location permission denied. Enable location in Settings, or complete onboarding to set your area.",
+        "Location permission denied. Add your city in Settings, or enable location in device Settings.",
       );
     }
   }
@@ -80,6 +81,7 @@ async function resolveCoordinates(
 }
 
 export function useWeather() {
+  const refreshGeneration = useRef(0);
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
     profile, calibration, userId,
@@ -87,14 +89,12 @@ export function useWeather() {
     setIsLoadingWeather, setWeatherError,
   } = useAppStore();
 
-  const refreshGenRef = useRef(0);
-
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
   const refresh = useCallback(async (force = false) => {
     if (!force && !isStale && weather) return;
 
-    const gen = ++refreshGenRef.current;
+    const generation = ++refreshGeneration.current;
     setIsLoadingWeather(true);
     setWeatherError(null);
 
@@ -102,12 +102,15 @@ export function useWeather() {
       await withTimeout(
         (async () => {
           const { latitude, longitude } = await resolveCoordinates(force, location, profile);
+          if (generation !== refreshGeneration.current) return;
 
           const city = await withTimeout(
             reverseGeocode(latitude, longitude),
             GEOCODE_TIMEOUT_MS,
             "Location lookup",
           );
+          if (generation !== refreshGeneration.current) return;
+
           setLocation({ latitude, longitude, city, region: "", country: "" });
           if (userId) {
             upsertProfile(userId, { last_latitude: latitude, last_longitude: longitude }).catch(console.error);
@@ -118,6 +121,8 @@ export function useWeather() {
             WEATHER_TIMEOUT_MS,
             "Weather fetch",
           );
+          if (generation !== refreshGeneration.current) return;
+
           data.current.location = city;
           setWeather(data);
           setWeatherLastFetched(new Date());
@@ -136,16 +141,16 @@ export function useWeather() {
           });
           setOutfit(rec);
           saveWidgetSnapshot(data, rec).catch(() => {});
+          saveWeatherCache(data, rec).catch(() => {});
         })(),
         REFRESH_TIMEOUT_MS,
         "Refresh",
       );
     } catch (err) {
-      if (gen === refreshGenRef.current) {
-        setWeatherError(mapWeatherError(err));
-      }
+      if (generation !== refreshGeneration.current) return;
+      setWeatherError(mapWeatherError(err));
     } finally {
-      if (gen === refreshGenRef.current) {
+      if (generation === refreshGeneration.current) {
         setIsLoadingWeather(false);
       }
     }
