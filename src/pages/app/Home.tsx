@@ -1,176 +1,304 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
+import { SkyHeader } from "@/components/weather/SkyHeader";
+import { VectorLandscape } from "@/components/weather/VectorLandscape";
 import { Card } from "@/components/ui/Card";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
-import { getWeatherGradient, isLightBackground } from "@/constants/colors";
+import { getSkyColor } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
+import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import TShirt from "@/components/outfit/svg/TShirt";
+import Jacket from "@/components/outfit/svg/Jacket";
+import HeavyCoat from "@/components/outfit/svg/HeavyCoat";
+import RainJacket from "@/components/outfit/svg/RainJacket";
+import type { DailyForecast, OutfitType } from "@/types";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
   drizzle: "🌦️", rain: "🌧️", heavy_rain: "⛈️", snow: "❄️", thunderstorm: "⛈️",
 };
 
-function wmoKey(code: number) {
-  if (code === 0) return "clear"; if (code <= 2) return "partly_cloudy";
-  if (code <= 3) return "cloudy"; if (code <= 48) return "foggy";
-  if (code <= 57) return "drizzle"; if (code <= 67) return "rain";
-  if (code <= 77) return "snow"; if (code <= 82) return "rain";
-  return "thunderstorm";
+function toUnit(f: number, unit: "F" | "C") {
+  return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
+// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile } = useAppStore();
+  const { profile, calibration } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
+  const cal = calibration ?? DEFAULT_CALIBRATION;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
-
-  const [g0, g1] = weather
-    ? getWeatherGradient(weather.current.condition, weather.current.isDay, new Date().getHours())
-    : ["#1a1a2e", "#16213e"];
-
-  const colorMode: "light" | "dark" = weather
-    ? (isLightBackground(weather.current.condition, weather.current.isDay) ? "light" : "dark")
-    : "dark";
-  const isLight = colorMode === "light";
-  const headerPrimary = isLight ? "rgba(0,0,0,0.85)" : "#fff";
-  const headerSecondary = isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.6)";
-
-  function convertTemp(f: number) {
-    return tempUnit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
-  }
+  const skyColor = weather
+    ? getSkyColor(weather.current.condition, weather.current.isDay)
+    : "#1a1a2e";
 
   return (
-    <div className="min-h-full px-5 py-6 pt-safe flex flex-col gap-4" style={{ background: `linear-gradient(to bottom, ${g0}, ${g1})` }}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-black" style={{ letterSpacing: "-0.5px", color: headerPrimary }}>
-            {greeting()}, {profile?.display_name?.split(" ")[0] ?? "there"}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: headerSecondary }}>
-            {format(new Date(), "EEEE, MMMM d")}
-          </p>
-        </div>
-        <button
-          onClick={() => refresh(true)}
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)", color: headerPrimary }}
-        >
-          🔄
-        </button>
-      </div>
-
-      {/* Loading */}
+    <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
+      {/* ── Loading ── */}
       {isLoadingWeather && !weather && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="text-5xl animate-pulse">⛅</div>
-          <p style={{ color: "rgba(255,255,255,0.65)" }}>Fetching your weather…</p>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 120 }}>
+          <span style={{ fontSize: 56 }} className="animate-pulse">⛅</span>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15 }}>Fetching your weather…</p>
         </div>
       )}
 
-      {/* Error */}
+      {/* ── Error ── */}
       {weatherError && !weather && (
-        <Card className="text-center" padding="p-6">
-          <p className="text-4xl mb-3">⚠️</p>
-          <p className="text-white mb-4">{weatherError}</p>
-          <button onClick={() => refresh(true)} className="px-5 py-2 rounded-full text-sm font-semibold text-white" style={{ background: "rgba(255,255,255,0.15)" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "120px 24px 24px" }}>
+          <span style={{ fontSize: 48 }}>⚠️</span>
+          <p style={{ color: "rgba(255,255,255,0.85)", textAlign: "center" }}>{weatherError}</p>
+          <button
+            onClick={() => refresh(true)}
+            style={{ padding: "10px 24px", borderRadius: 999, background: "rgba(255,255,255,0.2)", border: "none", color: "white", fontWeight: 600, cursor: "pointer" }}
+          >
             Try again
           </button>
-        </Card>
+        </div>
       )}
 
-      {/* Main */}
+      {/* ── Main content ── */}
       {weather && outfit && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
-          <OutfitRecommendationCard recommendation={outfit} tempUnit={tempUnit} feelsLike={weather.current.feelsLike} colorMode={colorMode} />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {/* Sky header */}
+          <SkyHeader
+            weather={weather.current}
+            today={weather.daily[0] ?? null}
+            tempUnit={tempUnit}
+            onRefresh={() => refresh(true)}
+          />
 
-          {/* Calendar style hint */}
-          {styleHint && eventType !== "default" && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-              style={{ background: "rgba(108,99,255,0.15)", border: "1px solid rgba(108,99,255,0.35)" }}
-            >
-              <span className="text-lg">{EVENT_TYPE_LABELS[eventType].emoji}</span>
-              <p className="text-sm text-white flex-1">{styleHint}</p>
-            </motion.div>
-          )}
+          {/* Vector landscape */}
+          <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
 
-          <WeatherWidget weather={weather.current} tempUnit={tempUnit} colorMode={colorMode} />
-          <HourlyStrip hourly={weather.hourly.slice(0, 12)} convertTemp={convertTemp} colorMode={colorMode} />
-          <SignificantChanges hourly={weather.hourly.slice(0, 12)} currentFeelsLike={weather.current.feelsLike} colorMode={colorMode} />
+          {/* ── Cards area — overlaps landscape, scrolls upward ── */}
+          <div style={{
+            flex: 1,
+            background: "#F2F2F7",
+            borderRadius: "32px 32px 0 0",
+            marginTop: -32,
+            padding: "16px 14px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}>
+            {/* Today outfit */}
+            <OutfitRecommendationCard
+              recommendation={outfit}
+              tempUnit={tempUnit}
+              feelsLike={weather.current.feelsLike}
+            />
+
+            {/* Calendar style hint */}
+            {styleHint && eventType !== "default" && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 12,
+                padding: "12px 16px", borderRadius: 20,
+                background: "#EDE9FE", border: "1px solid #C4B5FD",
+              }}>
+                <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
+                <p style={{ fontSize: 13, color: "#5B21B6", flex: 1 }}>{styleHint}</p>
+              </div>
+            )}
+
+            {/* Conditions */}
+            <WeatherWidget
+              weather={weather.current}
+              tempUnit={tempUnit}
+              hiTemp={weather.daily[0]?.tempMax}
+              loTemp={weather.daily[0]?.tempMin}
+            />
+
+            {/* Hourly strip */}
+            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} />
+
+            {/* Week outfits (Option B: combined forecast + outfit per day) */}
+            {weather.daily.length > 0 && (
+              <WeekOutfitsCard daily={weather.daily} calibration={cal} tempUnit={tempUnit} />
+            )}
+          </div>
         </motion.div>
       )}
     </div>
   );
 }
 
-function HourlyStrip({ hourly, convertTemp, colorMode = "dark" }: {
+// ── Hourly Strip (white card) ─────────────────────────────────────────────────
+
+function HourlyStrip({ hourly, tempUnit }: {
   hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
-  convertTemp: (f: number) => number;
-  colorMode?: "dark" | "light";
+  tempUnit: "F" | "C";
 }) {
-  const isLight = colorMode === "light";
-  const textMuted = isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)";
-  const textLabel = isLight ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
-  const textPrimary = isLight ? "rgba(0,0,0,0.85)" : "#fff";
   return (
-    <Card mode={colorMode}>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: textMuted }}>Next 12 Hours</p>
-      <div className="flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-        {hourly.map((h, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 min-w-14 py-1">
-            <span className="text-xs font-semibold" style={{ color: textLabel }}>
-              {i === 0 ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
-            </span>
-            <span className="text-2xl">{CONDITION_EMOJI[wmoKey(h.weatherCode)] ?? "🌤️"}</span>
-            <span className="text-sm font-bold" style={{ color: textPrimary }}>{convertTemp(h.feelsLike)}°</span>
-            {h.precipProb > 20 && <span className="text-xs" style={{ color: isLight ? "#0060C0" : "#90CAF9" }}>{h.precipProb}%</span>}
-          </div>
-        ))}
+    <Card mode="weather">
+      <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+        Next 12 Hours
+      </p>
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, scrollbarWidth: "none" }}>
+        {hourly.map((h, i) => {
+          const isNow = i === 0;
+          const condKey = wmoToCondition(h.weatherCode);
+          return (
+            <div
+              key={i}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
+                background: isNow ? "#7C3AED" : "#F3F4F6",
+              }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.8)" : "#9CA3AF", textTransform: "uppercase" }}>
+                {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
+              </span>
+              <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : "#111827" }}>
+                {toUnit(h.feelsLike, tempUnit)}°
+              </span>
+              {h.precipProb > 20 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.75)" : "#3B82F6" }}>
+                  {h.precipProb}%
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
 }
 
-function SignificantChanges({ hourly, currentFeelsLike, colorMode = "dark" }: {
-  hourly: { time: Date; feelsLike: number }[];
-  currentFeelsLike: number;
-  colorMode?: "dark" | "light";
+// ── Week Outfits Card (Option B) ──────────────────────────────────────────────
+
+function WeekOutfitsCard({ daily, calibration, tempUnit }: {
+  daily: DailyForecast[];
+  calibration: typeof DEFAULT_CALIBRATION;
+  tempUnit: "F" | "C";
 }) {
-  const isLight = colorMode === "light";
-  const alerts: string[] = [];
-  for (let i = 1; i < hourly.length && alerts.length < 2; i++) {
-    const delta = hourly[i].feelsLike - currentFeelsLike;
-    if (Math.abs(delta) >= 15) {
-      const dir = delta < 0 ? "drops" : "rises";
-      alerts.push(`Feels-like ${dir} ${Math.abs(Math.round(delta))}° by ${hourly[i].time.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}`);
-    }
-  }
-  if (!alerts.length) return null;
+  const [selectedDay, setSelectedDay] = useState(0);
+  const day = daily[selectedDay];
+
+  const rec = getOutfitRecommendation({
+    feelsLike: day.feelsLikeMin + (day.feelsLikeMax - day.feelsLikeMin) * 0.35,
+    weatherCode: day.weatherCode,
+    windSpeed: 10,
+    precipProb: day.precipProb,
+    humidity: 55,
+    calibration,
+    hourly: [],
+  });
+
   return (
-    <Card mode={colorMode}>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)" }}>Heads Up</p>
-      {alerts.map((a, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <span>📉</span>
-          <span className="text-sm" style={{ color: isLight ? "rgba(0,0,0,0.85)" : "#fff" }}>{a}</span>
+    <Card mode="weather">
+      <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
+        Week Ahead
+      </p>
+
+      {/* Day chip selector */}
+      <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16, paddingBottom: 2, scrollbarWidth: "none" }}>
+        {daily.map((d, i) => {
+          const active = selectedDay === i;
+          const condKey = d.condition as string;
+          return (
+            <button
+              key={i}
+              onClick={() => setSelectedDay(i)}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                minWidth: 54, padding: "9px 6px", borderRadius: 16, flexShrink: 0,
+                background: active ? "#7C3AED" : "#F3F4F6",
+                border: "none", cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 10, fontWeight: 600, color: active ? "rgba(255,255,255,0.8)" : "#9CA3AF", textTransform: "uppercase" }}>
+                {i === 0 ? "Today" : format(d.date, "EEE")}
+              </span>
+              <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: active ? "white" : "#111827" }}>
+                {toUnit(d.tempMax, tempUnit)}°
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Selected day outfit detail */}
+      <div style={{ borderTop: "1px solid #F3F4F6", paddingTop: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
+          {/* Outfit icon */}
+          <div style={{
+            width: 72, height: 72, background: "#F9FAFB", borderRadius: 18,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <OutfitIconDark outfit={rec.outfit} rainGear={rec.rainGear} />
+          </div>
+
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 3, lineHeight: 1.2 }}>{rec.label}</p>
+            <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 6 }}>
+              {CONDITION_EMOJI[day.condition] ?? "🌤️"}&nbsp;
+              H: {toUnit(day.tempMax, tempUnit)}°&nbsp;·&nbsp;L: {toUnit(day.tempMin, tempUnit)}°
+            </p>
+            {day.precipProb > 20 && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#3B82F6", background: "#EFF6FF", padding: "2px 10px", borderRadius: 999 }}>
+                {day.precipProb}% rain
+              </span>
+            )}
+          </div>
         </div>
-      ))}
+
+        <p style={{ fontSize: 13, color: "#6B7280", lineHeight: 1.55 }}>{rec.description}</p>
+
+        {/* Accessory pills */}
+        {(rec.umbrella || rec.sunglasses || rec.scarf || rec.beanie) && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            {rec.umbrella && <ChipPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
+            {rec.sunglasses && <ChipPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />}
+            {rec.scarf && <ChipPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
+            {rec.beanie && <ChipPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
+          </div>
+        )}
+      </div>
     </Card>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function ChipPill({ label, emoji, color, bg }: { label: string; emoji: string; color: string; bg: string }) {
+  return (
+    <span style={{ fontSize: 11, fontWeight: 600, color, background: bg, padding: "4px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 4 }}>
+      {emoji} {label}
+    </span>
+  );
+}
+
+function OutfitIconDark({ outfit, rainGear }: { outfit: OutfitType; rainGear: boolean }) {
+  const stroke = "#374151";
+  const sz = 40;
+  if (outfit === "rain_light" || outfit === "rain_heavy") return <RainJacket stroke={stroke} size={sz} rainActive={rainGear} />;
+  if (outfit === "heavy_coat") return <HeavyCoat stroke={stroke} size={sz} />;
+  if (outfit === "heavy_jacket" || outfit === "light_jacket") return <Jacket stroke={stroke} size={sz} />;
+  return <TShirt stroke={stroke} size={sz} />;
+}
+
+function wmoToCondition(code: number): string {
+  if (code === 0) return "clear";
+  if (code <= 2) return "partly_cloudy";
+  if (code <= 3) return "cloudy";
+  if (code <= 48) return "foggy";
+  if (code <= 57) return "drizzle";
+  if (code <= 67) return "rain";
+  if (code <= 77) return "snow";
+  if (code <= 82) return "rain";
+  return "thunderstorm";
 }
