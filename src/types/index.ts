@@ -91,6 +91,7 @@ export interface WeatherData {
   hourly: HourlyForecast[];
   daily: DailyForecast[];
   nextHourPrecip: NextHourPrecip | null;
+  _source?: "weatherkit" | "open-meteo";
 }
 
 // ── Outfits ───────────────────────────────────────────────────────────────────

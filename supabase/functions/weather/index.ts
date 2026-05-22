@@ -1,5 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,7 +20,6 @@ const WK_TO_APP: Record<string, string> = {
   Breezy: "partly_cloudy", Windy: "cloudy", Hot: "clear", Frigid: "clear", Hail: "heavy_rain",
 };
 
-// Map app condition → approximate WMO code so outfit-logic.ts continues to work
 const APP_TO_WMO: Record<string, number> = {
   clear: 0, partly_cloudy: 2, cloudy: 3, foggy: 45,
   drizzle: 51, rain: 61, heavy_rain: 65, snow: 71, thunderstorm: 95,
@@ -65,10 +62,14 @@ async function makeJWT(): Promise<string> {
   const p = b64url(JSON.stringify(payload));
   const sigInput = `${h}.${p}`;
 
+  // Supabase dashboard stores multiline secrets with literal \n sequences.
+  // Convert those to real newlines before stripping all whitespace for base64.
   const pemBody = pem
+    .replace(/\\n/g, "\n")
     .replace(/-----BEGIN (?:EC )?PRIVATE KEY-----/, "")
     .replace(/-----END (?:EC )?PRIVATE KEY-----/, "")
     .replace(/\s/g, "");
+
   const der = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0));
 
   const key = await crypto.subtle.importKey(
@@ -90,22 +91,23 @@ async function makeJWT(): Promise<string> {
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
-    // Accept both GET (query params) and POST (JSON body)
-    let lat: number, lon: number, timezone: string;
+    let lat: number, lon: number, timezone: string, countryCode: string;
     if (req.method === "POST") {
       const b = await req.json();
       lat = parseFloat(b.lat);
       lon = parseFloat(b.lon);
       timezone = b.timezone ?? "UTC";
+      countryCode = b.countryCode ?? "US";
     } else {
       const u = new URL(req.url);
       lat = parseFloat(u.searchParams.get("lat") ?? "0");
       lon = parseFloat(u.searchParams.get("lon") ?? "0");
       timezone = u.searchParams.get("timezone") ?? "UTC";
+      countryCode = u.searchParams.get("countryCode") ?? "US";
     }
 
     if (!lat || !lon) {
@@ -119,7 +121,8 @@ serve(async (req) => {
     const wkUrl =
       `https://weatherkit.apple.com/api/v1/weather/en/${lat}/${lon}` +
       `?dataSets=currentWeather,forecastHourly,forecastDaily,forecastNextHour` +
-      `&timezone=${encodeURIComponent(timezone)}`;
+      `&timezone=${encodeURIComponent(timezone)}` +
+      `&countryCode=${encodeURIComponent(countryCode)}`;
 
     const wkRes = await fetch(wkUrl, {
       headers: { Authorization: `Bearer ${jwt}` },
@@ -139,13 +142,13 @@ serve(async (req) => {
     const days: Record<string, unknown>[] = wk.forecastDaily?.days ?? [];
     const nextHour = wk.forecastNextHour ?? null;
 
-    // Precipitation probability for current moment from first hourly slot
     const curPrecipProb =
       hours.length > 0
         ? Math.round(((hours[0].precipitationChance as number) ?? 0) * 100)
         : 0;
 
     const out = {
+      _source: "weatherkit",
       current: {
         temp: cToF(cur.temperature ?? 0),
         feelsLike: cToF(cur.temperatureApparent ?? cur.temperature ?? 0),
