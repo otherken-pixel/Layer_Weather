@@ -57,6 +57,11 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "weartoday"
+    "scheme": "weartoday",
+    "extra": {
+      "eas": {
+        "projectId": "e73a9d50-3214-4bd1-8dd2-39b08fe01668"
+      }
+    }
   }
 }
