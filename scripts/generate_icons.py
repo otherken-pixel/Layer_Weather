@@ -22,47 +22,46 @@ def build_svg(size: int) -> str:
     parts = ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">']
 
     # ── Sun (drawn first so cloud overlaps it) ──
-    scx, scy = 342, 150
-    sun_r = 52
+    scx, scy = 358, 140
+    sun_r = 80
     for angle in range(0, 360, 45):
-        parts.append(sun_ray(scx, scy, angle, sun_r + 18, sun_r + 46))
+        parts.append(sun_ray(scx, scy, angle, sun_r + 22, sun_r + 54))
     # Filled circle + lighter inner
     parts.append(f'<circle cx="{scx}" cy="{scy}" r="{sun_r}" fill="{BLUE}"/>')
-    parts.append(f'<circle cx="{scx}" cy="{scy}" r="36" fill="#E0F5FF"/>')
+    parts.append(f'<circle cx="{scx}" cy="{scy}" r="56" fill="#E0F5FF"/>')
 
-    # ── Cloud ──
-    # Path designed as a fluffy cloud covering left-centre with bumps at top.
+    # ── Cloud (smaller, shifted down/left so sun stands out) ──
     cloud = (
-        "M 62 318 "
-        "C 42 318 38 296 40 278 "
-        "C 42 260 54 246 72 242 "
-        "C 68 214 78 192 100 182 "
-        "C 118 174 140 176 155 188 "
-        "C 158 170 170 152 192 146 "
-        "C 212 140 234 148 246 164 "
-        "C 254 146 270 128 294 124 "
-        "C 318 120 338 136 344 158 "
-        "C 360 152 378 160 390 176 "
-        "C 404 196 402 220 388 236 "
-        "C 408 242 422 260 422 282 "
-        "C 422 306 404 320 384 320 "
+        "M 52 340 "
+        "C 32 340 28 318 30 300 "
+        "C 32 282 44 268 62 264 "
+        "C 58 238 68 218 88 208 "
+        "C 104 200 124 202 138 213 "
+        "C 141 196 152 178 172 172 "
+        "C 190 166 210 174 221 189 "
+        "C 228 173 243 156 264 152 "
+        "C 285 148 302 162 308 182 "
+        "C 322 177 336 183 346 197 "
+        "C 358 215 355 237 342 252 "
+        "C 360 257 372 273 372 293 "
+        "C 372 315 355 328 336 330 "
         "Z"
     )
     # Subtle inner shadow highlight
     shadow = (
-        "M 90 316 "
-        "C 76 316 70 302 72 290 "
-        "C 74 278 84 268 96 265 "
-        "C 93 244 102 228 120 220 "
-        "C 134 214 152 216 164 226 "
-        "C 167 210 178 194 198 188 "
-        "C 215 182 234 189 244 202 "
-        "C 252 188 266 172 285 168 "
-        "C 303 164 320 174 326 190 "
-        "C 340 184 354 191 362 204 "
-        "C 370 218 366 236 354 248 "
-        "C 370 252 382 266 382 282 "
-        "C 382 300 368 314 354 316 "
+        "M 78 337 "
+        "C 66 337 60 323 62 312 "
+        "C 64 300 73 290 85 287 "
+        "C 82 266 90 250 107 243 "
+        "C 119 237 135 239 145 249 "
+        "C 148 234 158 218 176 212 "
+        "C 192 207 209 213 218 226 "
+        "C 225 213 238 198 255 194 "
+        "C 272 190 287 200 292 215 "
+        "C 304 210 316 216 323 228 "
+        "C 330 241 326 258 315 268 "
+        "C 330 271 340 284 340 299 "
+        "C 340 316 327 328 314 329 "
         "Z"
     )
     parts.append(f'<path d="{cloud}" fill="{CLOUD_FILL}"/>')
@@ -70,11 +69,11 @@ def build_svg(size: int) -> str:
     # Outline
     parts.append(f'<path d="{cloud}" fill="none" stroke="{BLUE}" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>')
 
-    # ── Rain drops (3 diagonal lines angled ~30° leftward) ──
+    # ── Rain drops (repositioned below smaller cloud) ──
     drops = [
-        (150, 356, 120, 418),
-        (244, 356, 214, 418),
-        (338, 356, 308, 418),
+        (118, 358, 88, 420),
+        (202, 358, 172, 420),
+        (286, 358, 256, 420),
     ]
     for x1, y1, x2, y2 in drops:
         parts.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{BLUE}" stroke-width="22" stroke-linecap="round"/>')
