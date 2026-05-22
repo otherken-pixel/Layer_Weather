@@ -127,6 +127,7 @@ export interface OutfitRecommendation {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
+  gloves: boolean;
   /** Weather-appropriate footwear for the Flat Lay */
   footwear: FootwearKind;
   avatarCondition: AvatarCondition;

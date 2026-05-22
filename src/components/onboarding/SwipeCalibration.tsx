@@ -10,6 +10,7 @@ interface ScenarioWithAccessories extends CalibrationScenario {
   sunglasses?: boolean;
   beanie?: boolean;
   scarf?: boolean;
+  gloves?: boolean;
 }
 
 const SCENARIOS: ScenarioWithAccessories[] = [
@@ -17,7 +18,7 @@ const SCENARIOS: ScenarioWithAccessories[] = [
   { id: "warm", temp: 74, outfit: "pants_tshirt",  description: "74°F — comfortable day" },
   { id: "mild", temp: 64, outfit: "light_jacket",  description: "64°F — breezy morning" },
   { id: "cool", temp: 52, outfit: "heavy_jacket",  description: "52°F — grey afternoon" },
-  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day",  beanie: true, scarf: true },
+  { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day",  beanie: true, scarf: true, gloves: true },
 ];
 
 function isRainOutfit(outfit: OutfitType) {
@@ -106,8 +107,8 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
 
       {/* Card stack */}
       <div
-        className="relative flex items-center justify-center"
-        style={{ width: "100%", maxWidth: 340, height: 420 }}
+        className="relative w-full"
+        style={{ maxWidth: 340, minHeight: 380 }}
       >
         {/* Background card (next scenario peek) */}
         {nextScenario && (
@@ -131,6 +132,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
                 sunglasses={nextScenario.sunglasses ?? false}
                 scarf={nextScenario.scarf ?? false}
                 beanie={nextScenario.beanie ?? false}
+                gloves={nextScenario.gloves ?? false}
                 footwear={resolveFootwearForScenario(nextScenario.temp, nextScenario.outfit)}
                 compact
               />
@@ -151,8 +153,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             scale: cardScale,
             opacity: cardOpacity,
             width: "100%",
-            height: 400,
-            position: "absolute",
+            minHeight: 360,
+            position: "relative",
+            zIndex: 1,
             background: "rgba(15,25,45,0.95)",
             borderColor: "rgba(255,255,255,0.12)",
             boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
@@ -169,10 +172,10 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
           }}
           aria-live="polite"
           aria-label={`${scenario.temp} degrees, ${scenario.description}`}
-          className="rounded-3xl border flex flex-col items-center justify-between p-5 swipe-card"
+          className="rounded-3xl border flex flex-col items-stretch p-5 swipe-card overflow-hidden"
         >
           {/* Swipe direction labels — animate on drag */}
-          <div className="relative w-full flex justify-between items-start" style={{ minHeight: 40 }}>
+          <motion.div className="relative w-full flex justify-between items-start shrink-0" style={{ minHeight: 36 }}>
             <motion.div
               style={{ opacity: leftOpacity, background: "rgba(59,130,246,0.2)", border: "1px solid rgba(147,197,253,0.5)" }}
               className="px-3 py-2 rounded-xl"
@@ -185,17 +188,26 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             >
               <span className="text-sm font-bold text-white">🔥 Too Warm</span>
             </motion.div>
+          </motion.div>
+
+          {/* Temperature + description — above icons so it won't overlap buttons */}
+          <div className="text-center w-full shrink-0 py-2">
+            <p className="text-3xl font-black text-white leading-none" style={{ letterSpacing: "-0.04em" }}>
+              {scenario.temp}°
+            </p>
+            <p className="text-xs mt-1 truncate px-2" style={{ color: "rgba(255,255,255,0.6)" }}>
+              {scenario.description}
+            </p>
           </div>
 
           {/* Icon area — white card so colored icons pop */}
           <div
-            className="w-full rounded-2xl flex items-center justify-center"
+            className="w-full rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
             style={{
               background: "#F0F2F6",
-              padding: "16px 12px",
-              flex: 1,
-              marginTop: 8,
-              marginBottom: 8,
+              padding: "10px 8px",
+              minHeight: 200,
+              maxHeight: 220,
             }}
           >
             <OutfitFlatLay
@@ -205,18 +217,10 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
               sunglasses={scenario.sunglasses ?? false}
               scarf={scenario.scarf ?? false}
               beanie={scenario.beanie ?? false}
+              gloves={scenario.gloves ?? false}
               footwear={resolveFootwearForScenario(scenario.temp, scenario.outfit)}
+              compact
             />
-          </div>
-
-          {/* Temperature + description */}
-          <div className="text-center w-full" style={{ minHeight: 56 }}>
-            <p className="text-4xl font-black text-white" style={{ letterSpacing: "-0.04em" }}>
-              {scenario.temp}°
-            </p>
-            <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>
-              {scenario.description}
-            </p>
           </div>
         </motion.div>
       </div>
