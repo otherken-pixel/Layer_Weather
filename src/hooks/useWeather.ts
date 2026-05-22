@@ -1,32 +1,21 @@
 import { useCallback } from "react";
-import * as Location from "expo-location";
+import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
 import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
-const STALE_AFTER_MS = 15 * 60 * 1000; // 15 minutes
+const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export function useWeather() {
   const {
-    weather,
-    outfit,
-    location,
-    weatherLastFetched,
-    isLoadingWeather,
-    weatherError,
-    profile,
-    calibration,
-    setWeather,
-    setOutfit,
-    setLocation,
-    setWeatherLastFetched,
-    setIsLoadingWeather,
-    setWeatherError,
+    weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
+    profile, calibration,
+    setWeather, setOutfit, setLocation, setWeatherLastFetched,
+    setIsLoadingWeather, setWeatherError,
   } = useAppStore();
 
-  const isStale =
-    !weatherLastFetched ||
-    Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
+  const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
   const refresh = useCallback(async (force = false) => {
     if (!force && !isStale && weather) return;
@@ -34,27 +23,22 @@ export function useWeather() {
     setWeatherError(null);
 
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        setWeatherError("Location permission denied. Enable it in Settings.");
-        return;
+      if (Capacitor.isNativePlatform()) {
+        const { location: perm } = await Geolocation.requestPermissions();
+        if (perm !== "granted") {
+          setWeatherError("Location permission denied. Enable it in Settings.");
+          return;
+        }
       }
 
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: false,
+        timeout: 10000,
       });
 
       const { latitude, longitude } = pos.coords;
       const city = await reverseGeocode(latitude, longitude);
-
-      const loc = {
-        latitude,
-        longitude,
-        city,
-        region: "",
-        country: "",
-      };
-      setLocation(loc);
+      setLocation({ latitude, longitude, city, region: "", country: "" });
 
       const data = await fetchWeatherData(latitude, longitude);
       data.current.location = city;
@@ -75,9 +59,7 @@ export function useWeather() {
       });
       setOutfit(rec);
     } catch (err) {
-      setWeatherError(
-        err instanceof Error ? err.message : "Could not load weather data."
-      );
+      setWeatherError(err instanceof Error ? err.message : "Could not load weather data.");
     } finally {
       setIsLoadingWeather(false);
     }

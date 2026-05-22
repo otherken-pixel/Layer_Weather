@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase, getProfile, getCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 
 export function useAuth() {
+  const [isLoading, setIsLoading] = useState(true);
   const { userId, profile, setUserId, setProfile, setCalibration, setIsOnboarded, reset } =
     useAppStore();
 
@@ -11,17 +12,16 @@ export function useAuth() {
       if (session?.user) {
         await loadUser(session.user.id);
       }
+      setIsLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
-          await loadUser(session.user.id);
-        } else if (event === "SIGNED_OUT") {
-          reset();
-        }
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        await loadUser(session.user.id);
+      } else if (event === "SIGNED_OUT") {
+        reset();
       }
-    );
+    });
 
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -34,5 +34,5 @@ export function useAuth() {
     setIsOnboarded(cal !== null);
   }
 
-  return { userId, profile, isAuthenticated: !!userId };
+  return { userId, profile, isAuthenticated: !!userId, isLoading };
 }

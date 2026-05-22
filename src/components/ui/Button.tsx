@@ -1,152 +1,62 @@
 import React from "react";
-import {
-  Pressable,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  View,
-} from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
-import { Colors } from "@/constants/colors";
+import { motion } from "framer-motion";
 
 interface ButtonProps {
   label: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
+  fullWidth?: boolean;
   loading?: boolean;
   disabled?: boolean;
-  fullWidth?: boolean;
   leftIcon?: React.ReactNode;
 }
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function Button({
   label,
   onPress,
   variant = "primary",
   size = "md",
+  fullWidth = false,
   loading = false,
   disabled = false,
-  fullWidth = false,
   leftIcon,
 }: ButtonProps) {
-  const scale = useSharedValue(1);
+  const base = "inline-flex items-center justify-center gap-2 font-semibold rounded-2xl select-none cursor-pointer border-0 outline-none";
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withTiming(0.96, { duration: 80 });
+  const variants = {
+    primary: "bg-brand text-white shadow-lg",
+    secondary: "bg-white/20 text-white border border-white/30 backdrop-blur-sm",
+    ghost: "bg-transparent text-brand",
+    danger: "bg-red-500 text-white",
   };
-  const handlePressOut = () => {
-    scale.value = withTiming(1, { duration: 120 });
+
+  const sizes = {
+    sm: "text-sm px-4 py-2.5",
+    md: "text-base px-6 py-3.5",
+    lg: "text-lg px-8 py-4",
   };
 
   const isDisabled = disabled || loading;
 
   return (
-    <AnimatedPressable
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
+    <motion.button
+      onClick={onPress}
       disabled={isDisabled}
-      style={[
-        styles.base,
-        styles[variant],
-        styles[size],
-        fullWidth && styles.fullWidth,
-        isDisabled && styles.disabled,
-        animStyle,
-      ]}
+      whileTap={isDisabled ? {} : { scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className={[
+        base,
+        variants[variant],
+        sizes[size],
+        fullWidth ? "w-full" : "",
+        isDisabled ? "opacity-50 cursor-not-allowed" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === "primary" ? Colors.text.inverse : Colors.brand.primary}
-          size="small"
-        />
-      ) : (
-        <View style={styles.inner}>
-          {leftIcon && <View style={styles.iconWrap}>{leftIcon}</View>}
-          <Text
-            style={[
-              styles.label,
-              styles[`label_${variant}` as keyof typeof styles],
-              styles[`label_${size}` as keyof typeof styles],
-            ]}
-          >
-            {label}
-          </Text>
-        </View>
-      )}
-    </AnimatedPressable>
+      {leftIcon && <span>{leftIcon}</span>}
+      {loading ? <span className="inline-block animate-spin">⟳</span> : label}
+    </motion.button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  fullWidth: {
-    width: "100%",
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  inner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  iconWrap: {
-    marginRight: 4,
-  },
-
-  // Variants
-  primary: {
-    backgroundColor: Colors.brand.primary,
-    shadowColor: Colors.brand.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  secondary: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.35)",
-  },
-  ghost: {
-    backgroundColor: "transparent",
-  },
-  danger: {
-    backgroundColor: Colors.semantic.error,
-  },
-
-  // Sizes
-  sm: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
-  md: { paddingHorizontal: 24, paddingVertical: 14 },
-  lg: { paddingHorizontal: 32, paddingVertical: 18, borderRadius: 20 },
-
-  // Labels
-  label: {
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  label_primary: { color: Colors.text.inverse },
-  label_secondary: { color: Colors.text.inverse },
-  label_ghost: { color: Colors.brand.primary },
-  label_danger: { color: Colors.text.inverse },
-  label_sm: { fontSize: 14 },
-  label_md: { fontSize: 16 },
-  label_lg: { fontSize: 18 },
-});
