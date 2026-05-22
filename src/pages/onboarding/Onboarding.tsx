@@ -13,6 +13,7 @@ import { useAppStore } from "@/store";
 import type { ThermalSensitivity, SwipeDirection, UserCalibration, RainTolerance } from "@/types";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
+const IS_ONBOARDED_KEY = "wt_is_onboarded";
 
 type Step = "welcome" | "swipe" | "thermal" | "rain" | "location" | "done";
 const FIRST_TIME_STEPS: Step[] = ["welcome", "swipe", "thermal", "rain", "location", "done"];
@@ -76,15 +77,18 @@ export default function Onboarding() {
       if (saved) {
         setCalibration(saved);
         localStorage.removeItem(CALIBRATION_PENDING_KEY);
+        localStorage.setItem(IS_ONBOARDED_KEY, "1");
         setIsOnboarded(true);
         return true;
       }
       localStorage.setItem(CALIBRATION_PENDING_KEY, JSON.stringify({ userId, payload }));
+      localStorage.setItem(IS_ONBOARDED_KEY, "1");
       setCalibration({ user_id: userId, ...payload, updated_at: new Date().toISOString() } as UserCalibration);
       setIsOnboarded(true);
       return true;
     } catch {
       localStorage.setItem(CALIBRATION_PENDING_KEY, JSON.stringify({ userId, payload }));
+      localStorage.setItem(IS_ONBOARDED_KEY, "1");
       setCalibration({ user_id: userId, ...payload, updated_at: new Date().toISOString() } as UserCalibration);
       setIsOnboarded(true);
       return true;

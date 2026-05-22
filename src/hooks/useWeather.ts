@@ -157,9 +157,7 @@ export function useWeather() {
       if (generation !== refreshGeneration.current) return;
       setWeatherError(mapWeatherError(err));
     } finally {
-      if (generation === refreshGeneration.current) {
-        setIsLoadingWeather(false);
-      }
+      setIsLoadingWeather(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStale, weather, calibration, profile, userId, location]);
