@@ -44,7 +44,7 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
     >
       <p
         style={{
-          fontSize: 11, fontWeight: 700, color: "#9CA3AF",
+          fontSize: 11, fontWeight: 700, color: "#6B7280",
           letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14,
         }}
       >
@@ -63,23 +63,16 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
         </div>
 
         {/* °F / °C pill toggle */}
-        <div
-          style={{
-            display: "flex", background: "#F3F4F6",
-            borderRadius: 999, padding: 3, gap: 2,
-          }}
-        >
+        <div className="flex bg-neutral-100 rounded-full p-1 gap-0.5">
           {(["F", "C"] as const).map((u) => (
             <button
               key={u}
+              type="button"
               onClick={() => onUnitChange(u)}
-              style={{
-                padding: "6px 16px", borderRadius: 999,
-                fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
-                background: tempUnit === u ? "#7C3AED" : "transparent",
-                color: tempUnit === u ? "white" : "#9CA3AF",
-                transition: "background 0.15s, color 0.15s",
-              }}
+              aria-pressed={tempUnit === u}
+              className={`min-w-[44px] min-h-[44px] px-4 rounded-full text-sm font-semibold border-0 cursor-pointer transition-colors ${
+                tempUnit === u ? "bg-brand-dark text-white" : "bg-transparent text-neutral-600"
+              }`}
             >
               °{u}
             </button>
@@ -131,7 +124,7 @@ function StatCell({
     <div style={{ background: "#F9FAFB", borderRadius: 16, padding: "12px 14px" }}>
       <p
         style={{
-          fontSize: 11, fontWeight: 600, color: "#9CA3AF",
+          fontSize: 11, fontWeight: 600, color: "#6B7280",
           textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4,
         }}
       >

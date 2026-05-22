@@ -45,11 +45,20 @@ export default function Home() {
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
 
-      {/* Loading */}
+      {/* Loading skeleton */}
       {isLoadingWeather && !weather && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, paddingTop: 120 }}>
-          <span style={{ fontSize: 56 }} className="animate-pulse">⛅</span>
-          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15 }}>Fetching your weather…</p>
+        <div className="flex flex-col flex-1" style={{ background: "#1a1a2e" }}>
+          <div className="pt-safe px-6 pb-4 flex flex-col items-center gap-3">
+            <div className="h-4 w-32 rounded skeleton mt-16" />
+            <div className="h-20 w-40 rounded skeleton" />
+            <div className="h-5 w-24 rounded skeleton" />
+          </div>
+          <div className="flex-1 bg-[#F2F2F7] rounded-t-[32px] -mt-8 px-4 pt-6 pb-4 flex flex-col gap-3">
+            <div className="h-64 rounded-3xl skeleton" />
+            <div className="h-40 rounded-3xl skeleton" />
+            <div className="h-48 rounded-3xl skeleton" />
+            <p className="text-center text-sm text-neutral-500 pt-2">Fetching your weather…</p>
+          </div>
         </div>
       )}
 
@@ -57,10 +66,11 @@ export default function Home() {
       {weatherError && !weather && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "120px 24px 24px" }}>
           <span style={{ fontSize: 48 }}>⚠️</span>
-          <p style={{ color: "rgba(255,255,255,0.85)", textAlign: "center" }}>{weatherError}</p>
+          <p style={{ color: "rgba(255,255,255,0.9)", textAlign: "center", lineHeight: 1.5, maxWidth: 300 }}>{weatherError}</p>
           <button
+            type="button"
             onClick={() => refresh(true)}
-            style={{ padding: "10px 24px", borderRadius: 999, background: "rgba(255,255,255,0.2)", border: "none", color: "white", fontWeight: 600, cursor: "pointer" }}
+            className="min-h-[44px] px-6 rounded-full bg-white/20 border-0 text-white font-semibold cursor-pointer"
           >
             Try again
           </button>
@@ -70,6 +80,16 @@ export default function Home() {
       {/* Main content */}
       {weather && outfit && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+          {isLoadingWeather && (
+            <div
+              className="fixed top-0 left-0 right-0 z-[60] flex justify-center pt-safe pointer-events-none"
+              aria-live="polite"
+            >
+              <span className="mt-2 px-4 py-2 rounded-full text-xs font-semibold text-white bg-black/40 backdrop-blur-sm">
+                Updating…
+              </span>
+            </div>
+          )}
 
           {/* Sky section — animation layer sits behind text, over landscape */}
           <div style={{ position: "relative", overflow: "hidden" }}>
@@ -162,7 +182,7 @@ function HourlyStrip({
 }) {
   return (
     <div style={{ background: "#FFFFFF", borderRadius: 24, padding: "20px", boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
         Hourly Forecast
       </p>
       <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
@@ -178,7 +198,7 @@ function HourlyStrip({
                 background: isNow ? "#7C3AED" : "#F3F4F6",
               }}
             >
-              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.8)" : "#9CA3AF", textTransform: "uppercase" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.9)" : "#6B7280", textTransform: "uppercase" }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>

@@ -107,11 +107,11 @@ export default function Packing() {
               {geoResults.map((r, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
+                  className="flex items-center gap-2 min-h-[44px] py-2.5 px-1 w-full bg-transparent border-0 cursor-pointer text-left text-sm text-neutral-900"
                   style={{
-                    display: "flex", alignItems: "center", gap: 8, padding: "10px 4px",
-                    background: "none", border: "none", borderBottom: i < geoResults.length - 1 ? "1px solid #F3F4F6" : "none",
-                    cursor: "pointer", textAlign: "left", fontSize: 14, color: "#111827",
+                    borderBottom: i < geoResults.length - 1 ? "1px solid #F3F4F6" : "none",
                   }}
                 >
                   <span>📍</span>

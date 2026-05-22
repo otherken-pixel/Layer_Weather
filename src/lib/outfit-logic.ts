@@ -7,6 +7,9 @@ import type {
   CommuteAlert,
 } from "@/types";
 
+/** Flip-flops are only shown at or above this feels-like temperature (°F) */
+export const FLIP_FLOPS_MIN_TEMP_F = 85;
+
 // ── Default calibration (used before onboarding) ──────────────────────────────
 export const DEFAULT_CALIBRATION: UserCalibration = {
   user_id: "",
@@ -83,6 +86,11 @@ export function getOutfitRecommendation(opts: {
     outfit = "heavy_coat";
   }
 
+  // Snow → winter coat regardless of perceived warmth
+  if (isSnowy) {
+    outfit = "heavy_coat";
+  }
+
   // Rain override — only escalate to full rain gear when it's also cold
   if (isRainy && calibration.rain_tolerance !== "high") {
     if (isHeavyRain && effectiveFeelsLike < 75) {
@@ -99,6 +107,12 @@ export function getOutfitRecommendation(opts: {
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
   const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie = effectiveFeelsLike < 30 || isSnowy;
+  const flipFlops =
+    effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F &&
+    !isRainy &&
+    !isSnowy &&
+    outfit !== "heavy_coat" &&
+    outfit !== "heavy_jacket";
 
   const avatarCondition = getAvatarCondition(
     weatherCode,
@@ -124,6 +138,7 @@ export function getOutfitRecommendation(opts: {
     sunglasses,
     scarf,
     beanie,
+    flipFlops,
     avatarCondition,
     commuteAlert,
   };
@@ -296,9 +311,20 @@ export function generatePackingList(
   const hotDays = dailyForecasts.filter((d) => d.feelsLikeMax >= calibration.shorts_min_temp).length;
   const rainDays = dailyForecasts.filter((d) => d.precipProb > 50).length;
 
+  const flipFlopDays = dailyForecasts.filter((d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F).length;
+
   if (hotDays > 0) {
     items.push({ category: "tops", name: "T-shirts", quantity: hotDays + 1, reason: `${hotDays} warm days expected` });
     items.push({ category: "bottoms", name: "Shorts", quantity: Math.ceil(hotDays / 2) });
+  }
+
+  if (flipFlopDays > 0) {
+    items.push({
+      category: "footwear",
+      name: "Flip flops",
+      quantity: 1,
+      reason: `${flipFlopDays} day${flipFlopDays > 1 ? "s" : ""} at ${FLIP_FLOPS_MIN_TEMP_F}°F or warmer`,
+    });
   }
 
   if (coldDays > 0) {

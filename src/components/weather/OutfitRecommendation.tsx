@@ -18,7 +18,7 @@ const URGENCY_COLORS = {
 };
 
 export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onRecalibrate }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, commuteAlert } = recommendation;
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, flipFlops, commuteAlert } = recommendation;
 
   const displayFeelsLike =
     tempUnit === "C"
@@ -59,6 +59,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
             sunglasses={sunglasses}
             scarf={scarf}
             beanie={beanie}
+            flipFlops={flipFlops}
             colorScheme="light"
           />
 
@@ -68,8 +69,9 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           </p>
 
           {/* Accessories pills */}
-          {(umbrella || sunglasses || scarf || beanie) && (
+          {(umbrella || sunglasses || scarf || beanie || flipFlops) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+              {flipFlops && <AccessoryPill label="Flip flops" emoji="🩴" color="#1E40AF" bg="#EFF6FF" />}
               {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
               {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />}
               {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
@@ -108,11 +110,12 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
       {/* Recalibrate nudge */}
       {onRecalibrate && (
         <motion.button
+          type="button"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.35 }}
           onClick={onRecalibrate}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "none", border: "none", cursor: "pointer" }}
+          className="min-h-[44px] w-full flex items-center justify-center gap-2 bg-transparent border-0 cursor-pointer"
         >
           <span style={{ fontSize: 12 }}>🔄</span>
           <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF" }}>Not quite right? Recalibrate</span>

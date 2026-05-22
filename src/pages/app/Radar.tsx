@@ -169,7 +169,13 @@ export default function Radar() {
   }
 
   return (
-    <div style={{ position: "relative", height: "calc(100vh - 64px)", overflow: "hidden" }}>
+    <div
+      style={{
+        position: "relative",
+        height: "calc(100dvh - 56px - env(safe-area-inset-bottom, 0px))",
+        overflow: "hidden",
+      }}
+    >
       <MapContainer
         center={center}
         zoom={8}
@@ -190,7 +196,7 @@ export default function Radar() {
       <div
         style={{
           position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1000,
-          padding: "20px 20px 16px",
+          padding: "20px 20px calc(16px + env(safe-area-inset-bottom, 0px))",
           background: overlayGradient,
           pointerEvents: "none",
         }}
@@ -223,22 +229,26 @@ export default function Radar() {
             return (
               <button
                 key={frame.time}
+                type="button"
                 onClick={() => { setFrameIdx(i); setPlaying(false); }}
-                style={{
-                  flex: 1,
-                  height: isActive ? 22 : 6,
-                  borderRadius: 3,
-                  background: isActive
-                    ? isDark ? "white" : "#1a1a1a"
-                    : isFramePast
-                    ? isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.3)"
-                    : "rgba(108,99,255,0.55)",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "height 0.15s ease",
-                }}
-              />
+                aria-label={`Radar frame ${new Date(frame.time * 1000).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}`}
+                className="flex-1 min-h-[44px] flex items-end p-0 border-0 cursor-pointer bg-transparent"
+              >
+                <span
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: isActive ? 22 : 6,
+                    borderRadius: 3,
+                    background: isActive
+                      ? isDark ? "white" : "#1a1a1a"
+                      : isFramePast
+                      ? isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.3)"
+                      : "rgba(108,99,255,0.55)",
+                    transition: "height 0.15s ease",
+                  }}
+                />
+              </button>
             );
           })}
         </div>
@@ -246,7 +256,9 @@ export default function Radar() {
         {/* Play/Pause + Latest */}
         <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
           <button
+            type="button"
             onClick={() => setPlaying((p) => !p)}
+            className="min-h-[44px]"
             style={{
               background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
               borderRadius: 999, padding: "8px 22px",
@@ -256,7 +268,9 @@ export default function Radar() {
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
           <button
+            type="button"
             onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
+            className="min-h-[44px]"
             style={{
               background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
               borderRadius: 999, padding: "8px 18px",
