@@ -7,6 +7,37 @@ import type {
   WeatherCondition,
 } from "@/types";
 
+const WEATHER_FETCH_TIMEOUT_MS = 12_000;
+const WEATHER_MAX_RETRIES = 2;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs = WEATHER_FETCH_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function withRetry<T>(fn: () => Promise<T>, retries = WEATHER_MAX_RETRIES): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt === retries) break;
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+    }
+  }
+  throw lastError;
+}
+
 // ── WMO → app condition (used by Open-Meteo fallback + detectSignificantChanges) ──
 function wmoToCondition(code: number): WeatherCondition {
   if (code === 0) return "clear";
@@ -98,12 +129,19 @@ async function fetchFromEdgeFunction(
     if (locale.region) countryCode = locale.region;
   } catch { /* keep default */ }
 
-  const { data, error } = await supabase.functions.invoke("weather", {
-    body: { lat: latitude, lon: longitude, timezone, countryCode },
+  const body = await withRetry(async () => {
+    const { data, error } = await supabase.functions.invoke("weather", {
+      body: { lat: latitude, lon: longitude, timezone, countryCode },
+    });
+    if (error) throw new Error(error.message);
+    if (!data || typeof data !== "object") throw new Error("Empty weather response");
+    const record = data as Record<string, unknown>;
+    if ("error" in record && record.error) throw new Error(String(record.error));
+    return record;
   });
-  if (error) throw new Error(error.message);
-  const parsed = parseEdgeResponse(data as Record<string, unknown>);
-  parsed._source = ((data as Record<string, unknown>)._source as "weatherkit" | "open-meteo") ?? "weatherkit";
+
+  const parsed = parseEdgeResponse(body);
+  parsed._source = (body._source as "weatherkit" | "open-meteo") ?? "weatherkit";
   return parsed;
 }
 
@@ -136,7 +174,7 @@ async function fetchFromOpenMeteo(
     forecast_days: "7",
   });
 
-  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+  const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`);
   if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
   const json = await res.json();
 
@@ -207,9 +245,10 @@ export async function fetchWeatherData(
 // ── Reverse geocode via Nominatim ─────────────────────────────────────────────
 export async function reverseGeocode(lat: number, lon: number): Promise<string> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
       { headers: { "Accept-Language": "en" } },
+      8_000,
     );
     if (!res.ok) return "Your Location";
     const json = await res.json();

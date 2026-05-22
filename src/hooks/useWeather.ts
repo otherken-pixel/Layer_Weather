@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
@@ -6,10 +6,12 @@ import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
+import { saveWeatherCache } from "@/lib/cache";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export function useWeather() {
+  const refreshGeneration = useRef(0);
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
     profile, calibration, userId,
@@ -21,6 +23,8 @@ export function useWeather() {
 
   const refresh = useCallback(async (force = false) => {
     if (!force && !isStale && weather) return;
+
+    const generation = ++refreshGeneration.current;
     setIsLoadingWeather(true);
     setWeatherError(null);
 
@@ -28,13 +32,13 @@ export function useWeather() {
       let latitude: number;
       let longitude: number;
 
-      if (location?.latitude && location?.longitude) {
-        // Use coords cached during onboarding
+      if (location?.latitude != null && location?.longitude != null) {
         ({ latitude, longitude } = location);
       } else if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm !== "granted") {
-          setWeatherError("Location permission denied. Enable it in Settings.");
+          if (generation !== refreshGeneration.current) return;
+          setWeatherError("Location permission denied. Add your city in Settings.");
           return;
         }
         const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
@@ -44,13 +48,19 @@ export function useWeather() {
         ({ latitude, longitude } = pos.coords);
       }
 
+      if (generation !== refreshGeneration.current) return;
+
       const city = await reverseGeocode(latitude, longitude);
+      if (generation !== refreshGeneration.current) return;
+
       setLocation({ latitude, longitude, city, region: "", country: "" });
       if (userId) {
         upsertProfile(userId, { last_latitude: latitude, last_longitude: longitude }).catch(console.error);
       }
 
       const data = await fetchWeatherData(latitude, longitude);
+      if (generation !== refreshGeneration.current) return;
+
       data.current.location = city;
       setWeather(data);
       setWeatherLastFetched(new Date());
@@ -69,13 +79,15 @@ export function useWeather() {
       });
       setOutfit(rec);
       saveWidgetSnapshot(data, rec).catch(() => {});
+      saveWeatherCache(data, rec).catch(() => {});
     } catch (err) {
+      if (generation !== refreshGeneration.current) return;
       setWeatherError(err instanceof Error ? err.message : "Could not load weather data.");
     } finally {
-      setIsLoadingWeather(false);
+      if (generation === refreshGeneration.current) {
+        setIsLoadingWeather(false);
+      }
     }
-  // Zustand setters are stable references; location/userId changes are intentionally
-  // handled via the isStale/force guard rather than re-creating the callback.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isStale, weather, calibration, profile, userId, location]);
 

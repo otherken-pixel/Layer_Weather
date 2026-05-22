@@ -5,18 +5,53 @@ import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
+import { geocodeCity } from "@/lib/location-search";
+import { useWeather } from "@/hooks/useWeather";
 
 const ACCENT = "#7C3AED";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, calibration, userId, setProfile } = useAppStore();
+  const { profile, calibration, userId, setProfile, location, setLocation } = useAppStore();
   const { eventType, setEventType } = useCalendarContext();
+  const { refresh } = useWeather();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
+  const [cityQuery, setCityQuery] = useState(location?.city ?? "");
+  const [citySaving, setCitySaving] = useState(false);
+  const [cityError, setCityError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  async function saveCity() {
+    if (!userId || !cityQuery.trim()) return;
+    setCitySaving(true);
+    setCityError("");
+    try {
+      const place = await geocodeCity(cityQuery);
+      if (!place) {
+        setCityError("City not found. Try a different name.");
+        return;
+      }
+      setLocation({
+        latitude: place.latitude,
+        longitude: place.longitude,
+        city: place.city,
+        region: "",
+        country: "",
+      });
+      await upsertProfile(userId, {
+        last_latitude: place.latitude,
+        last_longitude: place.longitude,
+      });
+      await refresh(true);
+    } catch {
+      setCityError("Could not save location. Check your connection.");
+    } finally {
+      setCitySaving(false);
+    }
+  }
 
   async function saveSettings() {
     if (!userId) return;
@@ -72,6 +107,55 @@ export default function Settings() {
 
       {/* ── Sections ── */}
       <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 22 }}>
+
+        {/* Location */}
+        <Section title="Location">
+          <WhiteCard>
+            <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10 }}>
+              Used for weather and radar when GPS is off or denied.
+            </p>
+            <input
+              type="text"
+              value={cityQuery}
+              onChange={(e) => setCityQuery(e.target.value)}
+              placeholder="e.g. Seattle, WA"
+              style={{
+                width: "100%",
+                background: "#F3F4F6",
+                border: "1.5px solid #E5E7EB",
+                borderRadius: 12,
+                padding: "10px 12px",
+                fontSize: 15,
+                fontWeight: 600,
+                color: "#111827",
+                outline: "none",
+                marginBottom: 8,
+              }}
+            />
+            {cityError && (
+              <p style={{ fontSize: 12, color: "#EF4444", marginBottom: 8 }}>{cityError}</p>
+            )}
+            <button
+              type="button"
+              onClick={saveCity}
+              disabled={citySaving || !cityQuery.trim()}
+              style={{
+                width: "100%",
+                padding: "10px 0",
+                borderRadius: 12,
+                border: "none",
+                background: ACCENT,
+                color: "white",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: citySaving ? "not-allowed" : "pointer",
+                opacity: citySaving || !cityQuery.trim() ? 0.6 : 1,
+              }}
+            >
+              {citySaving ? "Saving…" : "Update location"}
+            </button>
+          </WhiteCard>
+        </Section>
 
         {/* Units */}
         <Section title="Units">

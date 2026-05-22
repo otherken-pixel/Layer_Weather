@@ -4,15 +4,15 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
 
-// ── RainViewer types ──────────────────────────────────────────────────────────
+// RainViewer personal API: max tile zoom is 7 (see rainviewer.com/api/weather-maps-api.html)
+const RAINVIEWER_MAX_ZOOM = 7;
+const RADAR_DEFAULT_ZOOM = 6;
 
 interface RVFrame { time: number; path: string; }
 interface RVManifest {
   host: string;
   radar: { past: RVFrame[]; nowcast: RVFrame[] };
 }
-
-// ── Dark mode hook ────────────────────────────────────────────────────────────
 
 function useDarkMode(themePreference: string | null): boolean {
   const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -33,7 +33,29 @@ function useDarkMode(themePreference: string | null): boolean {
   return isDark;
 }
 
-// ── Radar overlay (imperative Leaflet inside react-leaflet) ───────────────────
+/** Keeps map centered and clamps zoom to RainViewer-supported levels. */
+function MapViewSync({ center }: { center: [number, number] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const zoom = Math.min(map.getZoom(), RAINVIEWER_MAX_ZOOM);
+    map.setView(center, zoom, { animate: false });
+  }, [center, map]);
+
+  useEffect(() => {
+    const clampZoom = () => {
+      if (map.getZoom() > RAINVIEWER_MAX_ZOOM) {
+        map.setZoom(RAINVIEWER_MAX_ZOOM);
+      }
+    };
+    map.on("zoomend", clampZoom);
+    return () => {
+      map.off("zoomend", clampZoom);
+    };
+  }, [map]);
+
+  return null;
+}
 
 function RadarOverlay({ url }: { url: string }) {
   const map = useMap();
@@ -44,16 +66,14 @@ function RadarOverlay({ url }: { url: string }) {
       map.removeLayer(layerRef.current);
       layerRef.current = null;
     }
-    // errorTileUrl: transparent 1×1 PNG — silently hides tiles the server can't serve
-    // maxNativeZoom: caps tile requests at zoom 8 and scales up beyond that
     layerRef.current = L.tileLayer(url, {
       opacity: 0.65,
       zIndex: 200,
       tileSize: 256,
       minZoom: 1,
-      maxZoom: 10,
-      maxNativeZoom: 8,
-      crossOrigin: "",
+      maxZoom: RAINVIEWER_MAX_ZOOM,
+      maxNativeZoom: RAINVIEWER_MAX_ZOOM,
+      crossOrigin: "anonymous",
       errorTileUrl:
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
     }).addTo(map);
@@ -68,8 +88,6 @@ function RadarOverlay({ url }: { url: string }) {
   return null;
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-
 export default function Radar() {
   const { location, profile } = useAppStore();
   const isDark = useDarkMode(profile?.theme_preference ?? null);
@@ -82,7 +100,10 @@ export default function Radar() {
 
   useEffect(() => {
     fetch("https://api.rainviewer.com/public/weather-maps.json")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`RainViewer manifest ${r.status}`);
+        return r.json();
+      })
       .then((data: RVManifest) => {
         setManifest(data);
         setFrameIdx(Math.max(0, (data.radar.past.length ?? 1) - 1));
@@ -98,7 +119,6 @@ export default function Radar() {
     ? [...manifest.radar.past, ...manifest.radar.nowcast]
     : [];
 
-  // Animate
   useEffect(() => {
     if (!playing || allFrames.length === 0) return;
     const id = setInterval(
@@ -129,11 +149,12 @@ export default function Radar() {
     ? [location.latitude, location.longitude]
     : [37.7749, -122.4194];
 
+  const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
+
   const baseTileUrl = isDark
     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
     : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
-  // Theme-aware UI tokens
   const overlayGradient = isDark
     ? "linear-gradient(to top, rgba(0,0,0,0.85) 60%, transparent)"
     : "linear-gradient(to top, rgba(255,255,255,0.92) 60%, transparent)";
@@ -162,7 +183,7 @@ export default function Radar() {
         <span style={{ fontSize: 48 }}>📍</span>
         <p style={{ color: isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.6)", textAlign: "center", lineHeight: 1.5 }}>
           Location required for radar.
-          {"\n"}Complete onboarding to allow location access.
+          {"\n"}Add your city in Settings or complete onboarding.
         </p>
       </div>
     );
@@ -171,13 +192,17 @@ export default function Radar() {
   return (
     <div style={{ position: "relative", height: "calc(100vh - 64px)", overflow: "hidden" }}>
       <MapContainer
+        key={mapKey}
         center={center}
-        zoom={8}
+        zoom={RADAR_DEFAULT_ZOOM}
+        minZoom={3}
+        maxZoom={RAINVIEWER_MAX_ZOOM}
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer url={baseTileUrl} />
+        <TileLayer url={baseTileUrl} maxZoom={RAINVIEWER_MAX_ZOOM} />
+        <MapViewSync center={center} />
         {tileUrl && <RadarOverlay url={tileUrl} />}
         <Circle
           center={center}
@@ -186,7 +211,6 @@ export default function Radar() {
         />
       </MapContainer>
 
-      {/* Controls gradient overlay */}
       <div
         style={{
           position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1000,
@@ -195,7 +219,6 @@ export default function Radar() {
           pointerEvents: "none",
         }}
       >
-        {/* Time badge */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
           <div
             style={{
@@ -210,7 +233,6 @@ export default function Radar() {
           </div>
         </div>
 
-        {/* Frame scrubber */}
         <div
           style={{
             display: "flex", gap: 3, alignItems: "flex-end", height: 28,
@@ -223,6 +245,7 @@ export default function Radar() {
             return (
               <button
                 key={frame.time}
+                type="button"
                 onClick={() => { setFrameIdx(i); setPlaying(false); }}
                 style={{
                   flex: 1,
@@ -243,9 +266,9 @@ export default function Radar() {
           })}
         </div>
 
-        {/* Play/Pause + Latest */}
         <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
           <button
+            type="button"
             onClick={() => setPlaying((p) => !p)}
             style={{
               background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
@@ -256,6 +279,7 @@ export default function Radar() {
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
           <button
+            type="button"
             onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
             style={{
               background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
@@ -268,7 +292,6 @@ export default function Radar() {
         </div>
       </div>
 
-      {/* Loading / error overlay */}
       {(loading || fetchError) && (
         <div
           style={{
@@ -289,12 +312,35 @@ export default function Radar() {
               <p style={{ color: loadingText, fontSize: 14, textAlign: "center", maxWidth: 220 }}>
                 Radar data unavailable. Check your connection.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFetchError(false);
+                  setLoading(true);
+                  fetch("https://api.rainviewer.com/public/weather-maps.json")
+                    .then((r) => r.json())
+                    .then((data: RVManifest) => {
+                      setManifest(data);
+                      setFrameIdx(Math.max(0, (data.radar.past.length ?? 1) - 1));
+                      setLoading(false);
+                    })
+                    .catch(() => {
+                      setFetchError(true);
+                      setLoading(false);
+                    });
+                }}
+                style={{
+                  padding: "8px 20px", borderRadius: 999, border: "none",
+                  background: "#7C3AED", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                Retry
+              </button>
             </>
           )}
         </div>
       )}
 
-      {/* Map attribution (required by CartoDB) */}
       <div
         style={{
           position: "absolute", bottom: 100, right: 8, zIndex: 1000,

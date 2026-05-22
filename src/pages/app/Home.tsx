@@ -67,6 +67,35 @@ export default function Home() {
         </div>
       )}
 
+      {/* Stale/error banner when cached data is shown */}
+      {weatherError && weather && (
+        <div
+          style={{
+            margin: "8px 14px 0",
+            padding: "10px 14px",
+            borderRadius: 14,
+            background: "#FEF3C7",
+            border: "1px solid #F59E0B",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 13, color: "#92400E", flex: 1 }}>{weatherError}</span>
+          <button
+            type="button"
+            onClick={() => refresh(true)}
+            style={{
+              fontSize: 12, fontWeight: 700, color: "#92400E",
+              background: "none", border: "none", cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Main content */}
       {weather && outfit && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", flex: 1 }}>

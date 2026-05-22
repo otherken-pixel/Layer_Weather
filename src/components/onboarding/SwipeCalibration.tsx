@@ -30,6 +30,7 @@ interface SwipeCalibrationProps {
 export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
   const [index, setIndex] = useState(0);
   const [swipes, setSwipes] = useState<Array<{ temp: number; direction: SwipeDirection }>>([]);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 0, 200], [-12, 0, 12]);
@@ -39,6 +40,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
   const cardOpacity = useMotionValue(1);
 
   function handleSwipe(dir: SwipeDirection) {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
     const scenario = SCENARIOS[index];
     const next = [...swipes, { temp: scenario.temp, direction: dir }];
     setSwipes(next);
@@ -57,6 +61,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
         setIndex((i) => i + 1);
         animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
       }
+      setIsAnimating(false);
     }, 220);
   }
 
@@ -135,8 +140,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
         <motion.div
           key={scenario.id}
           drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.8}
+          dragConstraints={{ left: -120, right: 120 }}
+          dragElastic={0.15}
+          dragMomentum={false}
           style={{
             x,
             rotate,
@@ -148,13 +154,13 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             background: "rgba(15,25,45,0.95)",
             borderColor: "rgba(255,255,255,0.12)",
             boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+            touchAction: "none",
           }}
           onDragEnd={(_, info) => {
             if (info.offset.x > SWIPE_THRESHOLD) handleSwipe("right");
             else if (info.offset.x < -SWIPE_THRESHOLD) handleSwipe("left");
             else animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
           }}
-          onTap={() => handleSwipe("center")}
           className="rounded-3xl border flex flex-col items-center justify-between p-5 swipe-card"
         >
           {/* Swipe direction labels — animate on drag */}

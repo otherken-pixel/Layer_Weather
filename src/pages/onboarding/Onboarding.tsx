@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { upsertCalibration, upsertProfile } from "@/lib/supabase";
 import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
+import { geocodeCity } from "@/lib/location-search";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity, SwipeDirection, UserCalibration } from "@/types";
 
@@ -63,6 +64,8 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState("");
+  const [manualCity, setManualCity] = useState("");
+  const [useManualCity, setUseManualCity] = useState(false);
 
   const stepIdx = ACTIVE_STEPS.indexOf(step);
   const progress = ((stepIdx + 1) / (ACTIVE_STEPS.length - 1)) * 100;
@@ -72,9 +75,18 @@ export default function Onboarding() {
   async function handleFinish() {
     setLoading(true); setError(""); setLoadingStatus("Getting your location…");
     try {
-      // 1. Get location with generous timeout — iOS GPS can be slow on first fix
-      let coords: { latitude: number; longitude: number } | null = null;
-      if (Capacitor.isNativePlatform()) {
+      // 1. Get location — GPS, or manual city when permission denied / user opts in
+      let coords: { latitude: number; longitude: number; city?: string } | null = null;
+
+      if (useManualCity && manualCity.trim()) {
+        setLoadingStatus("Looking up your city…");
+        const place = await geocodeCity(manualCity);
+        if (!place) {
+          setError("City not found. Check the spelling and try again.");
+          return;
+        }
+        coords = { latitude: place.latitude, longitude: place.longitude, city: place.city };
+      } else if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm === "granted") {
           const pos = await withTimeout(
@@ -83,12 +95,22 @@ export default function Onboarding() {
             null
           );
           if (pos) coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        } else if (manualCity.trim()) {
+          const place = await geocodeCity(manualCity);
+          if (place) coords = { latitude: place.latitude, longitude: place.longitude, city: place.city };
         }
       } else {
         coords = await requestBrowserLocation();
       }
+
       if (coords) {
-        setLocation({ ...coords, city: "", region: "", country: "" });
+        setLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          city: coords.city ?? "",
+          region: "",
+          country: "",
+        });
       }
 
       // 2. Save calibration — non-fatal with pending flag for retry on next session
@@ -209,26 +231,51 @@ export default function Onboarding() {
           )}
 
           {step === "location" && (
-            <div className="flex flex-col items-center text-center gap-6 max-w-xs">
+            <div className="flex flex-col items-center text-center gap-6 max-w-xs w-full">
               <span className="text-8xl">📍</span>
               <div>
                 <h2 className="text-3xl font-black text-white">Your location</h2>
                 <p className="text-base mt-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  WearToday needs your location to fetch local weather. We never store your precise coordinates.
+                  WearToday needs your location for local weather and radar.
                 </p>
               </div>
+              <input
+                type="text"
+                value={manualCity}
+                onChange={(e) => setManualCity(e.target.value)}
+                placeholder="Or enter your city"
+                className="w-full rounded-2xl px-4 py-3 text-base font-semibold text-white"
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  outline: "none",
+                }}
+              />
               {loadingStatus && (
                 <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{loadingStatus}</p>
               )}
               {error && <p className="text-red-300 text-sm">{error}</p>}
               <Button
                 label={loading ? loadingStatus || "Working…" : "Allow Location Access"}
-                onPress={handleFinish}
-                loading={loading}
+                onPress={() => { setUseManualCity(false); handleFinish(); }}
+                loading={loading && !useManualCity}
                 variant="secondary"
                 size="lg"
                 fullWidth
               />
+              <button
+                type="button"
+                disabled={loading || !manualCity.trim()}
+                onClick={() => { setUseManualCity(true); handleFinish(); }}
+                className="w-full py-3 rounded-2xl text-sm font-bold text-white"
+                style={{
+                  background: "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  opacity: loading || !manualCity.trim() ? 0.5 : 1,
+                }}
+              >
+                Use city instead
+              </button>
             </div>
           )}
 
