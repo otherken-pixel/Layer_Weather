@@ -111,7 +111,7 @@ function InputField({
       <Text style={inputStyles.label}>{label}</Text>
       <View style={inputStyles.row}>
         <TextInput
-          style={[inputStyles.input, rightAction && { paddingRight: 44 }]}
+          style={[inputStyles.input, rightAction ? { paddingRight: 44 } : null]}
           placeholderTextColor={Colors.text.muted}
           {...props}
         />

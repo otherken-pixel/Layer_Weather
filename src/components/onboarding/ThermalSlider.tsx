@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Slider from "@react-native-community/slider";
 import Animated, {
@@ -14,13 +14,14 @@ interface ThermalSliderProps {
   onChange: (v: ThermalSensitivity) => void;
 }
 
-const LABELS: Record<ThermalSensitivity, { emoji: string; text: string; sub: string }> = {
-  "-2": { emoji: "🥶", text: "Always Freezing", sub: "You're the one cranking the heat up" },
-  "-1": { emoji: "😬", text: "Runs Cold", sub: "Usually reach for a layer first" },
-  "0":  { emoji: "😌", text: "Just Right", sub: "Pretty average temperature tolerance" },
-  "1":  { emoji: "😅", text: "Runs Warm", sub: "You're first to complain it's stuffy" },
-  "2":  { emoji: "🔥", text: "Always Hot", sub: "You're the one secretly turning the AC up" },
-};
+// Ordered -2 → +2; index with (value + 2)
+const LABELS: Array<{ emoji: string; text: string; sub: string }> = [
+  { emoji: "🥶", text: "Always Freezing", sub: "You're the one cranking the heat up" },
+  { emoji: "😬", text: "Runs Cold", sub: "Usually reach for a layer first" },
+  { emoji: "😌", text: "Just Right", sub: "Pretty average temperature tolerance" },
+  { emoji: "😅", text: "Runs Warm", sub: "You're first to complain it's stuffy" },
+  { emoji: "🔥", text: "Always Hot", sub: "You're the one secretly turning the AC up" },
+];
 
 export function ThermalSlider({ value, onChange }: ThermalSliderProps) {
   const emoji = useSharedValue(1);
@@ -29,7 +30,7 @@ export function ThermalSlider({ value, onChange }: ThermalSliderProps) {
     transform: [{ scale: withSpring(emoji.value, { damping: 10 }) }],
   }));
 
-  const info = LABELS[value.toString() as keyof typeof LABELS];
+  const info = LABELS[value + 2];
 
   return (
     <View style={styles.root}>

@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
-import { signOut, upsertProfile, upsertCalibration } from "@/lib/supabase";
+import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { Colors } from "@/constants/colors";
 

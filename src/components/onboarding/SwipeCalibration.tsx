@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import {
   GestureDetector,
@@ -18,7 +18,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
-import type { OutfitType, CalibrationScenario, SwipeDirection } from "@/types";
+import type { CalibrationScenario, SwipeDirection } from "@/types";
 import { Colors } from "@/constants/colors";
 
 const { width: SCREEN_W } = Dimensions.get("window");

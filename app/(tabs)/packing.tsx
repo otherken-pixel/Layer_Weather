@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  ActivityIndicator,
   Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
