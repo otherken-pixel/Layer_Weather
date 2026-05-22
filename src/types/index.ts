@@ -105,6 +105,9 @@ export type OutfitType =
   | "rain_light"
   | "rain_heavy";
 
+/** Footwear shown in the Flat Lay accessories zone */
+export type FootwearKind = "flip_flops" | "sneakers" | "snow_boots" | "rain_boots";
+
 export type AvatarCondition =
   | "sunny"
   | "cloudy"
@@ -124,8 +127,8 @@ export interface OutfitRecommendation {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
-  /** Flip-flops accessory — only when feels-like ≥ 85°F and dry */
-  flipFlops: boolean;
+  /** Weather-appropriate footwear for the Flat Lay */
+  footwear: FootwearKind;
   avatarCondition: AvatarCondition;
   commuteAlert: CommuteAlert | null;
 }
