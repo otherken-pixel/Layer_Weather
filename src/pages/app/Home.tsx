@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
@@ -37,6 +37,9 @@ export default function Home() {
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const cal = calibration ?? DEFAULT_CALIBRATION;
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, []);
 
   const skyColor = weather
     ? getSkyColor(weather.current.condition, weather.current.isDay)
