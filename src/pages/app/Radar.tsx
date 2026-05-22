@@ -109,6 +109,7 @@ function RadarOverlay({ url }: { url: string }) {
   const layersRef = useRef<[L.TileLayer | null, L.TileLayer | null]>([null, null]);
   const activeRef = useRef(0);
   const urlRef = useRef(url);
+  const activeLayerUrlRef = useRef<string | null>(null);
   const animRef = useRef(0);
 
   useEffect(() => {
@@ -149,6 +150,7 @@ function RadarOverlay({ url }: { url: string }) {
         layer.setOpacity(0.65);
       }
       activeRef.current = inactive;
+      activeLayerUrlRef.current = nextUrl;
     }
 
     const current = layersRef.current[activeRef.current];
@@ -156,7 +158,8 @@ function RadarOverlay({ url }: { url: string }) {
       const layer = L.tileLayer(url, { ...RADAR_TILE_OPTS, opacity: 0.65 }).addTo(map);
       layersRef.current[0] = layer;
       activeRef.current = 0;
-    } else if (current.getUrl() !== url) {
+      activeLayerUrlRef.current = url;
+    } else if (activeLayerUrlRef.current !== url) {
       void transitionTo(url);
     }
 
@@ -171,6 +174,7 @@ function RadarOverlay({ url }: { url: string }) {
         if (layer) map.removeLayer(layer);
       });
       layersRef.current = [null, null];
+      activeLayerUrlRef.current = null;
     };
   }, [map]);
 

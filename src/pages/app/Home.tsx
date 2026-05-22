@@ -26,7 +26,7 @@ function toUnit(f: number, unit: "F" | "C") {
 
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile, calibration, userId, setProfile } = useAppStore();
+  const { profile, userId, setProfile } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
