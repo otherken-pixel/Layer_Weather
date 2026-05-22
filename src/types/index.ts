@@ -9,6 +9,8 @@ export interface Profile {
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"
   fcm_token: string | null;
+  last_latitude: number | null;
+  last_longitude: number | null;
   updated_at: string;
 }
 

@@ -7,7 +7,7 @@ import { SwipeCalibration } from "@/components/onboarding/SwipeCalibration";
 import { ThermalSlider } from "@/components/onboarding/ThermalSlider";
 import { Button } from "@/components/ui/Button";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
-import { upsertCalibration } from "@/lib/supabase";
+import { upsertCalibration, upsertProfile } from "@/lib/supabase";
 import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity, SwipeDirection } from "@/types";
@@ -66,15 +66,15 @@ export default function Onboarding() {
         setLocation({ ...coords, city: "", region: "", country: "" });
       }
 
-      // 2. Save calibration — non-fatal so location denial doesn't block the user
+      // 2. Save calibration — must succeed so isOnboarded persists across sessions
       const derived = computeCalibrationFromSwipes(swipeResults);
       const payload = { ...derived, thermal_sensitivity: thermal, rain_tolerance: "moderate" as const, humidity_sensitivity: true };
       if (userId) {
-        try {
-          const saved = await upsertCalibration(userId, payload);
-          if (saved) setCalibration(saved);
-        } catch (err) {
-          console.error("Calibration save failed (non-fatal):", err);
+        const saved = await upsertCalibration(userId, payload);
+        if (saved) setCalibration(saved);
+        // Save location to profile so it restores on next session (fire-and-forget)
+        if (coords) {
+          upsertProfile(userId, { last_latitude: coords.latitude, last_longitude: coords.longitude }).catch(console.error);
         }
       }
 
@@ -82,7 +82,7 @@ export default function Onboarding() {
       setStep("done");
     } catch (err) {
       console.error("Onboarding finish error:", err);
-      setError("Something went wrong. Please try again.");
+      setError("Could not save your preferences. Check your connection and try again.");
     } finally { setLoading(false); }
   }
 

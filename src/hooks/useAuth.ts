@@ -32,6 +32,13 @@ export function useAuth() {
     setProfile(prof);
     setCalibration(cal);
     setIsOnboarded(cal !== null);
+    if (prof?.last_latitude && prof?.last_longitude) {
+      useAppStore.getState().setLocation({
+        latitude: prof.last_latitude,
+        longitude: prof.last_longitude,
+        city: "", region: "", country: "",
+      });
+    }
   }
 
   return { userId, profile, isAuthenticated: !!userId, isLoading };

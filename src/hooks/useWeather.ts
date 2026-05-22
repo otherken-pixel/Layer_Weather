@@ -4,13 +4,14 @@ import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
 import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import { upsertProfile } from "@/lib/supabase";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 
 export function useWeather() {
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
-    profile, calibration,
+    profile, calibration, userId,
     setWeather, setOutfit, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError,
   } = useAppStore();
@@ -44,6 +45,9 @@ export function useWeather() {
 
       const city = await reverseGeocode(latitude, longitude);
       setLocation({ latitude, longitude, city, region: "", country: "" });
+      if (userId) {
+        upsertProfile(userId, { last_latitude: latitude, last_longitude: longitude }).catch(console.error);
+      }
 
       const data = await fetchWeatherData(latitude, longitude);
       data.current.location = city;
