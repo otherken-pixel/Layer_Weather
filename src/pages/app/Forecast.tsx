@@ -1,11 +1,23 @@
 import React from "react";
 import { format } from "date-fns";
 import { Card } from "@/components/ui/Card";
-import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
+import TShirt from "@/components/outfit/svg/TShirt";
+import Jacket from "@/components/outfit/svg/Jacket";
+import HeavyCoat from "@/components/outfit/svg/HeavyCoat";
+import RainJacket from "@/components/outfit/svg/RainJacket";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
-import type { DailyForecast } from "@/types";
+import type { DailyForecast, OutfitType } from "@/types";
+
+function OutfitIcon({ outfit, rainGear }: { outfit: OutfitType; rainGear: boolean }) {
+  const stroke = "rgba(255,255,255,0.88)";
+  const sz = 44;
+  if (outfit === "rain_light" || outfit === "rain_heavy") return <RainJacket stroke={stroke} size={sz} rainActive={rainGear} />;
+  if (outfit === "heavy_coat") return <HeavyCoat stroke={stroke} size={sz} />;
+  if (outfit === "heavy_jacket" || outfit === "light_jacket") return <Jacket stroke={stroke} size={sz} />;
+  return <TShirt stroke={stroke} size={sz} />;
+}
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -86,18 +98,9 @@ function DayCard({
           </p>
         </div>
 
-        {/* Compact Flat Lay */}
-        <div className="flex-shrink-0 w-16 h-16 overflow-hidden flex items-center justify-center">
-          <OutfitFlatLay
-            outfit={rec.outfit}
-            rainGear={rec.rainGear}
-            umbrella={false}
-            sunglasses={false}
-            scarf={false}
-            beanie={false}
-            colorScheme="dark"
-            compact
-          />
+        {/* Single garment icon */}
+        <div className="flex-shrink-0 w-16 h-16 flex items-center justify-center">
+          <OutfitIcon outfit={rec.outfit} rainGear={rec.rainGear} />
         </div>
 
         {/* Info */}

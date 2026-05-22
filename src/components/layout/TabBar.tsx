@@ -2,11 +2,61 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
+function IconToday({ stroke }: { stroke: string }) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
+      <line x1="4.93" y1="4.93" x2="7.05" y2="7.05" />
+      <line x1="16.95" y1="16.95" x2="19.07" y2="19.07" />
+      <line x1="19.07" y1="4.93" x2="16.95" y2="7.05" />
+      <line x1="7.05" y1="16.95" x2="4.93" y2="19.07" />
+    </svg>
+  );
+}
+
+function IconForecast({ stroke }: { stroke: string }) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="14" x2="16" y2="14" />
+      <line x1="8" y1="18" x2="13" y2="18" />
+    </svg>
+  );
+}
+
+function IconPacking({ stroke }: { stroke: string }) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="8" width="20" height="13" rx="2" />
+      <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="2" y1="14.5" x2="22" y2="14.5" />
+      <line x1="12" y1="14.5" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+function IconSettings({ stroke }: { stroke: string }) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      <circle cx="12" cy="12" r="7" />
+    </svg>
+  );
+}
+
 const TABS = [
-  { path: "/app/home", emoji: "🌤️", label: "Today" },
-  { path: "/app/forecast", emoji: "📅", label: "Forecast" },
-  { path: "/app/packing", emoji: "🧳", label: "Packing" },
-  { path: "/app/settings", emoji: "⚙️", label: "Settings" },
+  { path: "/app/home", Icon: IconToday, label: "Today" },
+  { path: "/app/forecast", Icon: IconForecast, label: "Forecast" },
+  { path: "/app/packing", Icon: IconPacking, label: "Packing" },
+  { path: "/app/settings", Icon: IconSettings, label: "Settings" },
 ];
 
 export function TabBar() {
@@ -19,27 +69,27 @@ export function TabBar() {
       style={{ background: "rgba(20,20,40,0.85)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(255,255,255,0.12)" }}
     >
       <div className="flex justify-around px-2 py-2">
-        {TABS.map((tab) => {
-          const active = location.pathname === tab.path;
+        {TABS.map(({ path, Icon, label }) => {
+          const active = location.pathname === path;
+          const stroke = active ? "#fff" : "rgba(255,255,255,0.42)";
           return (
             <button
-              key={tab.path}
-              onClick={() => navigate(tab.path)}
+              key={path}
+              onClick={() => navigate(path)}
               className="flex flex-col items-center gap-0.5 px-4 py-1 rounded-2xl transition-colors"
               style={{ minWidth: 60 }}
             >
-              <motion.span
-                animate={{ scale: active ? 1.15 : 1 }}
+              <motion.div
+                animate={{ scale: active ? 1.1 : 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="text-2xl"
               >
-                {tab.emoji}
-              </motion.span>
+                <Icon stroke={stroke} />
+              </motion.div>
               <span
                 className="text-xs font-semibold"
                 style={{ color: active ? "white" : "rgba(255,255,255,0.45)" }}
               >
-                {tab.label}
+                {label}
               </span>
             </button>
           );
