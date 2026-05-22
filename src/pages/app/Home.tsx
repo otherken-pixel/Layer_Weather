@@ -6,7 +6,7 @@ import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { Card } from "@/components/ui/Card";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
-import { getWeatherGradient } from "@/constants/colors";
+import { getWeatherGradient, isLightBackground } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 
@@ -41,6 +41,13 @@ export default function Home() {
     ? getWeatherGradient(weather.current.condition, weather.current.isDay, new Date().getHours())
     : ["#1a1a2e", "#16213e"];
 
+  const colorMode: "light" | "dark" = weather
+    ? (isLightBackground(weather.current.condition, weather.current.isDay) ? "light" : "dark")
+    : "dark";
+  const isLight = colorMode === "light";
+  const headerPrimary = isLight ? "rgba(0,0,0,0.85)" : "#fff";
+  const headerSecondary = isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.6)";
+
   function convertTemp(f: number) {
     return tempUnit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
   }
@@ -50,17 +57,17 @@ export default function Home() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white" style={{ letterSpacing: "-0.5px" }}>
+          <h1 className="text-3xl font-black" style={{ letterSpacing: "-0.5px", color: headerPrimary }}>
             {greeting()}, {profile?.display_name?.split(" ")[0] ?? "there"}
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <p className="text-sm mt-0.5" style={{ color: headerSecondary }}>
             {format(new Date(), "EEEE, MMMM d")}
           </p>
         </div>
         <button
           onClick={() => refresh(true)}
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white"
-          style={{ background: "rgba(255,255,255,0.15)" }}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)", color: headerPrimary }}
         >
           🔄
         </button>
@@ -88,7 +95,7 @@ export default function Home() {
       {/* Main */}
       {weather && outfit && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-4">
-          <OutfitRecommendationCard recommendation={outfit} tempUnit={tempUnit} feelsLike={weather.current.feelsLike} />
+          <OutfitRecommendationCard recommendation={outfit} tempUnit={tempUnit} feelsLike={weather.current.feelsLike} colorMode={colorMode} />
 
           {/* Calendar style hint */}
           {styleHint && eventType !== "default" && (
@@ -103,31 +110,36 @@ export default function Home() {
             </motion.div>
           )}
 
-          <WeatherWidget weather={weather.current} tempUnit={tempUnit} />
-          <HourlyStrip hourly={weather.hourly.slice(0, 12)} convertTemp={convertTemp} />
-          <SignificantChanges hourly={weather.hourly.slice(0, 12)} currentFeelsLike={weather.current.feelsLike} />
+          <WeatherWidget weather={weather.current} tempUnit={tempUnit} colorMode={colorMode} />
+          <HourlyStrip hourly={weather.hourly.slice(0, 12)} convertTemp={convertTemp} colorMode={colorMode} />
+          <SignificantChanges hourly={weather.hourly.slice(0, 12)} currentFeelsLike={weather.current.feelsLike} colorMode={colorMode} />
         </motion.div>
       )}
     </div>
   );
 }
 
-function HourlyStrip({ hourly, convertTemp }: {
+function HourlyStrip({ hourly, convertTemp, colorMode = "dark" }: {
   hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
   convertTemp: (f: number) => number;
+  colorMode?: "dark" | "light";
 }) {
+  const isLight = colorMode === "light";
+  const textMuted = isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)";
+  const textLabel = isLight ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
+  const textPrimary = isLight ? "rgba(0,0,0,0.85)" : "#fff";
   return (
-    <Card>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.55)" }}>Next 12 Hours</p>
+    <Card mode={colorMode}>
+      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: textMuted }}>Next 12 Hours</p>
       <div className="flex gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
         {hourly.map((h, i) => (
           <div key={i} className="flex flex-col items-center gap-1 min-w-14 py-1">
-            <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.6)" }}>
+            <span className="text-xs font-semibold" style={{ color: textLabel }}>
               {i === 0 ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
             </span>
             <span className="text-2xl">{CONDITION_EMOJI[wmoKey(h.weatherCode)] ?? "🌤️"}</span>
-            <span className="text-sm font-bold text-white">{convertTemp(h.feelsLike)}°</span>
-            {h.precipProb > 20 && <span className="text-xs" style={{ color: "#90CAF9" }}>{h.precipProb}%</span>}
+            <span className="text-sm font-bold" style={{ color: textPrimary }}>{convertTemp(h.feelsLike)}°</span>
+            {h.precipProb > 20 && <span className="text-xs" style={{ color: isLight ? "#0060C0" : "#90CAF9" }}>{h.precipProb}%</span>}
           </div>
         ))}
       </div>
@@ -135,10 +147,12 @@ function HourlyStrip({ hourly, convertTemp }: {
   );
 }
 
-function SignificantChanges({ hourly, currentFeelsLike }: {
+function SignificantChanges({ hourly, currentFeelsLike, colorMode = "dark" }: {
   hourly: { time: Date; feelsLike: number }[];
   currentFeelsLike: number;
+  colorMode?: "dark" | "light";
 }) {
+  const isLight = colorMode === "light";
   const alerts: string[] = [];
   for (let i = 1; i < hourly.length && alerts.length < 2; i++) {
     const delta = hourly[i].feelsLike - currentFeelsLike;
@@ -149,12 +163,12 @@ function SignificantChanges({ hourly, currentFeelsLike }: {
   }
   if (!alerts.length) return null;
   return (
-    <Card>
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.55)" }}>Heads Up</p>
+    <Card mode={colorMode}>
+      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.55)" }}>Heads Up</p>
       {alerts.map((a, i) => (
         <div key={i} className="flex items-center gap-2">
           <span>📉</span>
-          <span className="text-sm text-white">{a}</span>
+          <span className="text-sm" style={{ color: isLight ? "rgba(0,0,0,0.85)" : "#fff" }}>{a}</span>
         </div>
       ))}
     </Card>

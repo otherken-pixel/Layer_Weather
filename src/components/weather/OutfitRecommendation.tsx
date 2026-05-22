@@ -8,6 +8,7 @@ interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
+  colorMode?: "dark" | "light";
   onRecalibrate?: () => void;
 }
 
@@ -17,7 +18,7 @@ const URGENCY_COLORS = {
   info: { bg: "rgba(0,122,255,0.12)", border: "rgba(0,122,255,0.3)", icon: "ℹ️" },
 };
 
-export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onRecalibrate }: Props) {
+export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, colorMode = "dark", onRecalibrate }: Props) {
   const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, commuteAlert } =
     recommendation;
 
@@ -25,6 +26,11 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
     tempUnit === "C"
       ? `${Math.round(((feelsLike - 32) * 5) / 9)}°C`
       : `${Math.round(feelsLike)}°F`;
+
+  const isLight = colorMode === "light";
+  const textPrimary = isLight ? "rgba(0,0,0,0.85)" : "#fff";
+  const textSecondary = isLight ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.55)";
+  const textBody = isLight ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.72)";
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,17 +40,17 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 24 }}
       >
-        <Card padding="p-6">
+        <Card padding="p-6" mode={colorMode}>
           {/* Outfit label + feels-like backdrop */}
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2
-                className="text-2xl font-black text-white leading-tight"
-                style={{ letterSpacing: "-0.02em" }}
+                className="text-2xl font-black leading-tight"
+                style={{ letterSpacing: "-0.02em", color: textPrimary }}
               >
                 {label}
               </h2>
-              <p className="text-sm mt-0.5" style={{ color: "rgba(255,255,255,0.55)" }}>
+              <p className="text-sm mt-0.5" style={{ color: textSecondary }}>
                 Feels like {displayFeelsLike}
               </p>
             </div>
@@ -66,13 +72,13 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
             sunglasses={sunglasses}
             scarf={scarf}
             beanie={beanie}
-            colorScheme="dark"
+            colorScheme={colorMode}
           />
 
           {/* Description */}
           <p
             className="text-sm leading-relaxed mt-4"
-            style={{ color: "rgba(255,255,255,0.72)" }}
+            style={{ color: textBody }}
           >
             {description}
           </p>
@@ -109,7 +115,7 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           transition={{ delay: 0.35 }}
           onClick={onRecalibrate}
           className="flex items-center justify-center gap-1.5"
-          style={{ color: "rgba(255,255,255,0.4)" }}
+          style={{ color: isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)" }}
         >
           <span className="text-xs">🔄</span>
           <span className="text-xs font-medium">Not quite right? Recalibrate</span>

@@ -90,6 +90,25 @@ export function getWeatherGradient(
   }
 }
 
+// ── Light-background detection ────────────────────────────────────────────────
+// Returns true for gradient conditions where white text/icons would have poor contrast
+export function isLightBackground(
+  condition: WeatherCondition,
+  isDay: boolean,
+): boolean {
+  if (!isDay) return false;
+  switch (condition) {
+    case "clear":
+    case "partly_cloudy":
+    case "cloudy":
+    case "foggy":
+    case "snow":
+      return true;
+    default:
+      return false;
+  }
+}
+
 // ── Outfit colors ─────────────────────────────────────────────────────────────
 export const OutfitColors = {
   shorts_tshirt: {

@@ -15,19 +15,26 @@ export default function Packing() {
 
   const [destination, setDestination] = useState("");
   const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
+  const [noResults, setNoResults] = useState(false);
   const [selected, setSelected] = useState<GeoResult | null>(null);
   const [days, setDays] = useState("5");
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<{ category: string; name: string; quantity: number; reason?: string }[]>([]);
   const [error, setError] = useState("");
 
   async function search() {
-    if (!destination.trim()) return;
+    const query = destination.trim().split(",")[0].trim();
+    if (!query) return;
+    setSearching(true); setNoResults(false); setGeoResults([]);
     try {
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=5&language=en&format=json`);
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
       const json = await res.json();
-      setGeoResults(json.results ?? []);
+      const results: GeoResult[] = json.results ?? [];
+      setGeoResults(results);
+      setNoResults(results.length === 0);
     } catch { setError("Could not search for destination."); }
+    finally { setSearching(false); }
   }
 
   async function generate() {
@@ -54,24 +61,31 @@ export default function Packing() {
           <div className="flex gap-2">
             <input
               value={destination}
-              onChange={e => { setDestination(e.target.value); setSelected(null); }}
+              onChange={e => { setDestination(e.target.value); setSelected(null); setGeoResults([]); setNoResults(false); }}
               onKeyDown={e => e.key === "Enter" && search()}
               placeholder="Paris, Tokyo, New York…"
               className="flex-1 rounded-xl px-4 py-3 text-base text-white outline-none border"
               style={{ background: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.15)" }}
             />
-            <button onClick={search} className="w-12 h-12 rounded-xl flex items-center justify-center bg-brand text-white text-lg flex-shrink-0">🔍</button>
+            <button onClick={search} disabled={searching}
+              className="w-12 h-12 rounded-xl flex items-center justify-center bg-brand text-white text-lg flex-shrink-0">
+              {searching ? "⏳" : "🔍"}
+            </button>
           </div>
 
           {geoResults.length > 0 && !selected && (
             <div className="flex flex-col divide-y" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
               {geoResults.map((r, i) => (
-                <button key={i} onClick={() => { setSelected(r); setDestination(`${r.name}, ${r.country}`); setGeoResults([]); }}
+                <button key={i} onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
                   className="flex items-center gap-2 py-2.5 text-sm text-white text-left">
                   <span>📍</span> {r.name}{r.admin1 ? `, ${r.admin1}` : ""}, {r.country}
                 </button>
               ))}
             </div>
+          )}
+
+          {noResults && !selected && (
+            <p className="text-sm text-center py-1" style={{ color: "rgba(255,255,255,0.45)" }}>No destinations found — try a different spelling.</p>
           )}
 
           <label className="text-xs font-bold uppercase tracking-wider mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>Trip length (days)</label>

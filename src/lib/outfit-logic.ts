@@ -84,9 +84,9 @@ export function getOutfitRecommendation(opts: {
     outfit = "heavy_coat";
   }
 
-  // Rain override
+  // Rain override — only escalate to full rain gear when it's also cold
   if (isRainy && calibration.rain_tolerance !== "high") {
-    if (isHeavyRain) {
+    if (isHeavyRain && effectiveFeelsLike < 75) {
       outfit = "rain_heavy";
     } else if (outfit === "shorts_tshirt" || outfit === "pants_tshirt") {
       outfit = "rain_light";
