@@ -92,7 +92,10 @@ export function getOutfitRecommendation(opts: {
     }
   }
 
-  const umbrella = precipProb > 60 && calibration.rain_tolerance !== "high";
+  const umbrella =
+    outfit === "rain_light" ||
+    outfit === "rain_heavy" ||
+    (precipProb > 60 && calibration.rain_tolerance !== "high");
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
   const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie = effectiveFeelsLike < 30 || isSnowy;
