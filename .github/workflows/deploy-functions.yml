@@ -45,14 +45,37 @@ jobs:
             echo "::error::Add at https://github.com/otherken-pixel/weartoday/settings/secrets/actions"
             exit 1
           fi
+          case "$SUPABASE_ACCESS_TOKEN" in
+            sbp_*)
+              ;;
+            *)
+              echo "::error::SUPABASE_ACCESS_TOKEN must be a Personal Access Token (starts with sbp_)."
+              echo "::error::Create one: https://supabase.com/dashboard/account/tokens"
+              echo "::error::Do NOT use the anon key, service_role JWT, or project reference ID here."
+              if [ "${SUPABASE_ACCESS_TOKEN#eyJ}" != "$SUPABASE_ACCESS_TOKEN" ]; then
+                echo "::error::Detected a JWT — that belongs in VITE_SUPABASE_ANON_KEY, not SUPABASE_ACCESS_TOKEN."
+              fi
+              exit 1
+              ;;
+          esac
           if [ -z "$SUPABASE_PROJECT_REF" ]; then
-            echo "::error::Missing project ref. Add a repository secret named exactly SUPABASE_PROJECT_ID"
-            echo "::error::(Supabase → Project Settings → General → Reference ID, ~20 chars)."
-            echo "::error::Also accepted: SUPABASE_PROJECT_REF, or VITE_SUPABASE_URL=https://<ref>.supabase.co"
+            echo "::error::Missing project ref. Add SUPABASE_PROJECT_ID or SUPABASE_PROJECT_REF (~20-char ref from Supabase Settings → General)."
             echo "::error::See docs/SUPABASE_DEPLOY.md"
             exit 1
           fi
-          echo "Supabase token present; project ref length=${#SUPABASE_PROJECT_REF}"
+          case "$SUPABASE_PROJECT_REF" in
+            sbp_*)
+              echo "::error::SUPABASE_PROJECT_REF looks like an access token (sbp_...). Swap secrets:"
+              echo "::error::  SUPABASE_ACCESS_TOKEN = personal token (sbp_...)"
+              echo "::error::  SUPABASE_PROJECT_REF or SUPABASE_PROJECT_ID = project reference id"
+              exit 1
+              ;;
+            eyJ*)
+              echo "::error::SUPABASE_PROJECT_REF looks like a JWT API key. Use the project Reference ID instead."
+              exit 1
+              ;;
+          esac
+          echo "Supabase token OK; project ref length=${#SUPABASE_PROJECT_REF}"
 
       - uses: supabase/setup-cli@v2
         with:
