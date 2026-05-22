@@ -1,3 +1,4 @@
+import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
@@ -88,31 +89,21 @@ export default function OutfitFlatLay({
     }
   })();
 
-  const bottomGarment =
-    outfit === "shorts_tshirt" ? (
-      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Shorts size={sz} />
-      </motion.div>
-    ) : (
-      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Pants size={sz} />
-      </motion.div>
-    );
-
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
 
-  // Rain outfits lead with umbrella; all others lead with flip flops
-  const accessories = isRainOutfit
+  const accessories: React.ReactNode[] = isRainOutfit
     ? [
         <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
           <Umbrella size={accSz} />
         </motion.div>,
       ]
-    : [
+    : outfit === "shorts_tshirt"
+    ? [
         <motion.div key="shoes" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
           <Sneakers size={accSz} />
         </motion.div>,
-      ];
+      ]
+    : [];
 
   if (!isRainOutfit && umbrella) {
     accessories.push(
@@ -143,6 +134,20 @@ export default function OutfitFlatLay({
     );
   }
 
+  const hasAccessories = accessories.length > 0;
+  const btmSz = hasAccessories ? sz : compact ? 90 : 130;
+
+  const bottomGarment =
+    outfit === "shorts_tshirt" ? (
+      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
+        <Shorts size={btmSz} />
+      </motion.div>
+    ) : (
+      <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
+        <Pants size={btmSz} />
+      </motion.div>
+    );
+
   return (
     <div className="flex flex-col gap-3">
       {/* Top zone – full width */}
@@ -159,20 +164,25 @@ export default function OutfitFlatLay({
         </motion.div>
       </AnimatePresence>
 
-      {/* Bottom zone – two column */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Bottom garment */}
+      {/* Bottom zone – two column when accessories present, full-width otherwise */}
+      {hasAccessories ? (
+        <div className="grid grid-cols-2 gap-3">
+          <AnimatePresence mode="wait">
+            <motion.div key={`btm-${outfit}`} className="flex justify-center items-center">
+              {bottomGarment}
+            </motion.div>
+          </AnimatePresence>
+          <div className="flex flex-wrap gap-2 justify-center items-start content-start">
+            <AnimatePresence>{accessories}</AnimatePresence>
+          </div>
+        </div>
+      ) : (
         <AnimatePresence mode="wait">
           <motion.div key={`btm-${outfit}`} className="flex justify-center items-center">
             {bottomGarment}
           </motion.div>
         </AnimatePresence>
-
-        {/* Accessories grid */}
-        <div className="flex flex-wrap gap-2 justify-center items-start content-start">
-          <AnimatePresence>{accessories}</AnimatePresence>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
