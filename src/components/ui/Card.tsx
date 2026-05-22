@@ -4,11 +4,22 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   padding?: string;
-  /** "dark" (default) = white-glass for dark backgrounds; "light" = dark-glass for light backgrounds */
-  mode?: "dark" | "light";
+  /** "dark" = white-glass; "light" = dark-glass; "weather" = solid white card */
+  mode?: "dark" | "light" | "weather";
 }
 
 export function Card({ children, className = "", padding = "p-5", mode = "dark" }: CardProps) {
+  if (mode === "weather") {
+    return (
+      <div
+        className={[padding, className].filter(Boolean).join(" ")}
+        style={{ background: "#FFFFFF", borderRadius: 24, boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}
+      >
+        {children}
+      </div>
+    );
+  }
+
   const glass =
     mode === "light"
       ? "bg-black/[0.10] border-black/[0.18]"

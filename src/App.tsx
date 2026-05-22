@@ -9,7 +9,6 @@ import Register from "@/pages/auth/Register";
 import Onboarding from "@/pages/onboarding/Onboarding";
 import AppLayout from "@/components/layout/AppLayout";
 import Home from "@/pages/app/Home";
-import Forecast from "@/pages/app/Forecast";
 import Packing from "@/pages/app/Packing";
 import Settings from "@/pages/app/Settings";
 
@@ -76,7 +75,6 @@ export default function App() {
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Navigate to="home" replace />} />
               <Route path="home" element={<Home />} />
-              <Route path="forecast" element={<Forecast />} />
               <Route path="packing" element={<Packing />} />
               <Route path="settings" element={<Settings />} />
             </Route>

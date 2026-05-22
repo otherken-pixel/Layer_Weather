@@ -1,5 +1,38 @@
 import type { WeatherCondition } from "@/types";
 
+// ── Solid sky color per condition (CARROT-style) ──────────────────────────────
+export function getSkyColor(condition: WeatherCondition, isDay: boolean): string {
+  if (!isDay) {
+    if (condition === "thunderstorm") return "#1a0d2e";
+    if (condition === "rain" || condition === "heavy_rain") return "#1a1f35";
+    return "#1a1a2e";
+  }
+  const map: Record<WeatherCondition, string> = {
+    clear: "#3A8EE6",
+    partly_cloudy: "#5B9BD5",
+    cloudy: "#7B8FA1",
+    foggy: "#8D9EAB",
+    drizzle: "#5A7A9A",
+    rain: "#4A5E78",
+    heavy_rain: "#2E3F58",
+    snow: "#9BBDD4",
+    thunderstorm: "#2E2550",
+  };
+  return map[condition] ?? "#3A8EE6";
+}
+
+export const CONDITION_LABEL: Record<WeatherCondition, string> = {
+  clear: "Clear Sky",
+  partly_cloudy: "Partly Cloudy",
+  cloudy: "Overcast",
+  foggy: "Foggy",
+  drizzle: "Light Drizzle",
+  rain: "Rainy",
+  heavy_rain: "Heavy Rain",
+  snow: "Snowing",
+  thunderstorm: "Thunderstorm",
+};
+
 // ── Brand palette ─────────────────────────────────────────────────────────────
 export const Colors = {
   brand: {
