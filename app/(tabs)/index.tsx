@@ -17,7 +17,6 @@ import { format } from "date-fns";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { Card } from "@/components/ui/Card";
-import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";

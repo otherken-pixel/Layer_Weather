@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   FadeInDown,
@@ -10,9 +10,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 import { Button } from "@/components/ui/Button";
-import { Colors } from "@/constants/colors";
 
-const { height } = Dimensions.get("window");
 
 export default function WelcomeScreen() {
   const router = useRouter();

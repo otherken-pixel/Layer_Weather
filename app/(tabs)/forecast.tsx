@@ -9,7 +9,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { format } from "date-fns";
-import { Ionicons } from "@expo/vector-icons";
 
 import { Card } from "@/components/ui/Card";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";

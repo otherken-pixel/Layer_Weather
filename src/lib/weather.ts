@@ -4,7 +4,6 @@ import type {
   HourlyForecast,
   DailyForecast,
   WeatherCondition,
-  LocationData,
 } from "@/types";
 
 // ── WMO code → app condition ──────────────────────────────────────────────────

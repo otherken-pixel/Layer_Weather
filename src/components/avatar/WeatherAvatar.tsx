@@ -10,7 +10,8 @@ import Svg, {
   LinearGradient,
   Stop,
 } from "react-native-svg";
-import type { PathProps } from "react-native-svg";
+import type { ComponentProps } from "react";
+type PathProps = ComponentProps<typeof Path>;
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

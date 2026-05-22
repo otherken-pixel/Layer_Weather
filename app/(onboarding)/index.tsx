@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -21,11 +20,10 @@ import { ThermalSlider } from "@/components/onboarding/ThermalSlider";
 import { Button } from "@/components/ui/Button";
 import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 
-import { upsertCalibration, upsertProfile } from "@/lib/supabase";
+import { upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity } from "@/types";
-import { Colors } from "@/constants/colors";
 
 type Step = "welcome" | "swipe" | "thermal" | "commute" | "location" | "done";
 
