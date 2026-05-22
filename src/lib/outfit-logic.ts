@@ -97,7 +97,6 @@ export function getOutfitRecommendation(opts: {
   // Cold people feel colder, hot people feel warmer → we shift their thresholds
   const adjustedThresholds = {
     shorts: calibration.shorts_min_temp + sensitivityShift,
-    pants: calibration.pants_max_temp + sensitivityShift,
     lightJacket: calibration.light_jacket_max_temp + sensitivityShift,
     heavyCoat: calibration.heavy_coat_max_temp + sensitivityShift,
   };
@@ -118,13 +117,14 @@ export function getOutfitRecommendation(opts: {
   const isWindy = windSpeed > 15;
   const isSnowy = weatherCode >= 71 && weatherCode <= 77;
 
-  // Base outfit from temperature
+  // Base outfit from temperature (hot → cold bands)
+  const lightJacketFloor = adjustedThresholds.heavyCoat + 15;
   let outfit: OutfitType;
   if (effectiveFeelsLike >= adjustedThresholds.shorts) {
     outfit = "shorts_tshirt";
-  } else if (effectiveFeelsLike >= adjustedThresholds.pants) {
-    outfit = "pants_tshirt";
   } else if (effectiveFeelsLike >= adjustedThresholds.lightJacket) {
+    outfit = "pants_tshirt";
+  } else if (effectiveFeelsLike >= lightJacketFloor) {
     outfit = "light_jacket";
   } else if (effectiveFeelsLike >= adjustedThresholds.heavyCoat) {
     outfit = "heavy_jacket";
@@ -137,11 +137,15 @@ export function getOutfitRecommendation(opts: {
     outfit = "heavy_coat";
   }
 
-  // Rain override — only escalate to full rain gear when it's also cold
+  // Rain override — escalate base layers; heavy rain + cold → full rain gear
   if (isRainy && calibration.rain_tolerance !== "high") {
     if (isHeavyRain && effectiveFeelsLike < 75) {
       outfit = "rain_heavy";
-    } else if (outfit === "shorts_tshirt" || outfit === "pants_tshirt") {
+    } else if (
+      outfit === "shorts_tshirt" ||
+      outfit === "pants_tshirt" ||
+      outfit === "light_jacket"
+    ) {
       outfit = "rain_light";
     }
   }
@@ -172,7 +176,14 @@ export function getOutfitRecommendation(opts: {
     effectiveFeelsLike,
     outfit,
     commuteStart,
-    commuteEnd
+    commuteEnd,
+    {
+      weatherCode,
+      windSpeed,
+      precipProb,
+      humidity,
+      calibration,
+    },
   );
 
   return {
@@ -247,12 +258,21 @@ function getAvatarCondition(
   return "cloudy";
 }
 
+interface CommuteRecalcOpts {
+  weatherCode: number;
+  windSpeed: number;
+  precipProb: number;
+  humidity: number;
+  calibration: UserCalibration;
+}
+
 function buildCommuteAlert(
   hourly: HourlyForecast[],
   currentFeelsLike: number,
   currentOutfit: OutfitType,
   commuteStart?: string | null,
-  commuteEnd?: string | null
+  commuteEnd?: string | null,
+  recalc?: CommuteRecalcOpts,
 ): CommuteAlert | null {
   if (!commuteStart && !commuteEnd) return null;
 
@@ -264,9 +284,22 @@ function buildCommuteAlert(
     target.setHours(h, m, 0, 0);
     if (target < now) return null;
 
-    const closest = hourly.find((h) => Math.abs(h.time.getTime() - target.getTime()) < 30 * 60 * 1000);
+    const closest = hourly.find((hr) => Math.abs(hr.time.getTime() - target.getTime()) < 30 * 60 * 1000);
     if (!closest) return null;
-    return { feelsLike: closest.feelsLike, outfit: currentOutfit };
+
+    const outfitAtCommute = recalc
+      ? getOutfitRecommendation({
+          feelsLike: closest.feelsLike,
+          weatherCode: closest.weatherCode,
+          windSpeed: closest.windSpeed,
+          precipProb: closest.precipProb,
+          humidity: recalc.humidity,
+          calibration: recalc.calibration,
+          hourly,
+        }).outfit
+      : currentOutfit;
+
+    return { feelsLike: closest.feelsLike, outfit: outfitAtCommute };
   };
 
   if (commuteStart) {
@@ -337,11 +370,14 @@ export function computeCalibrationFromSwipes(
     }
   }
 
+  lightJacketMax = Math.min(lightJacketMax, shortsMin - 3);
+  heavyCoatMax = Math.min(heavyCoatMax, lightJacketMax - 10);
+
   return {
     shorts_min_temp: shortsMin,
-    pants_max_temp: shortsMin + 3,
-    light_jacket_max_temp: Math.min(lightJacketMax, shortsMin - 5),
-    heavy_coat_max_temp: Math.max(heavyCoatMax, 30),
+    pants_max_temp: shortsMin - 1,
+    light_jacket_max_temp: Math.max(lightJacketMax, 40),
+    heavy_coat_max_temp: Math.max(heavyCoatMax, 20),
   };
 }
 

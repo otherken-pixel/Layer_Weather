@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       countryCode = u.searchParams.get("countryCode") ?? "US";
     }
 
-    if (!lat || !lon) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return new Response(JSON.stringify({ error: "lat and lon required" }), {
         status: 400,
         headers: { ...CORS, "Content-Type": "application/json" },
@@ -124,8 +124,10 @@ Deno.serve(async (req) => {
       `&timezone=${encodeURIComponent(timezone)}` +
       `&countryCode=${encodeURIComponent(countryCode)}`;
 
+    const WEATHERKIT_TIMEOUT_MS = 10_000;
     const wkRes = await fetch(wkUrl, {
       headers: { Authorization: `Bearer ${jwt}` },
+      signal: AbortSignal.timeout(WEATHERKIT_TIMEOUT_MS),
     });
 
     if (!wkRes.ok) {

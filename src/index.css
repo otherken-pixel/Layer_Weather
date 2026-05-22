@@ -242,7 +242,8 @@
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .swipe-card:active {

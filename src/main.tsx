@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import App from "./App";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
 
 async function initNativeShell() {
@@ -19,6 +20,8 @@ initNativeShell().catch(console.warn);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
