@@ -36,21 +36,28 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
   const leftOpacity = useTransform(x, [-160, -50, 0], [1, 0.3, 0]);
   const rightOpacity = useTransform(x, [0, 50, 160], [0, 0.3, 1]);
   const cardScale = useTransform(x, [-200, 0, 200], [0.97, 1, 0.97]);
+  const cardOpacity = useMotionValue(1);
 
   function handleSwipe(dir: SwipeDirection) {
     const scenario = SCENARIOS[index];
     const next = [...swipes, { temp: scenario.temp, direction: dir }];
     setSwipes(next);
-    x.set(dir === "left" ? -400 : 400);
+
+    if (dir === "center") {
+      animate(cardOpacity, 0, { duration: 0.2 });
+    } else {
+      x.set(dir === "left" ? -400 : 400);
+    }
 
     setTimeout(() => {
+      cardOpacity.set(1);
       if (index + 1 >= SCENARIOS.length) {
         onComplete(next);
       } else {
         setIndex((i) => i + 1);
         animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
       }
-    }, 200);
+    }, 220);
   }
 
   const scenario = SCENARIOS[index];
@@ -67,7 +74,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
           How does this feel?
         </h2>
         <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>
-          Swipe left if you'd be cold · swipe right if too warm
+          Swipe left if cold · tap if just right · swipe right if warm
         </p>
       </div>
 
@@ -132,6 +139,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             x,
             rotate,
             scale: cardScale,
+            opacity: cardOpacity,
             width: "100%",
             height: 320,
             position: "absolute",
@@ -144,6 +152,7 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             else if (info.offset.x < -SWIPE_THRESHOLD) handleSwipe("left");
             else animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
           }}
+          onTap={() => handleSwipe("center")}
           className="rounded-3xl border flex flex-col items-center justify-center gap-4 p-5 swipe-card"
         >
           {/* Swipe direction labels */}
@@ -159,6 +168,14 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
           >
             <span className="text-sm font-bold text-white">🔥 Too Warm</span>
           </motion.div>
+
+          {/* Center "just right" hint — faint, always visible */}
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-2 rounded-xl"
+            style={{ background: "rgba(52,199,89,0.12)", border: "1px solid rgba(134,239,172,0.25)", opacity: 0.5 }}
+          >
+            <span className="text-sm font-bold text-white">✅ Just Right</span>
+          </div>
 
           {/* Flat Lay outfit display */}
           <OutfitFlatLay
@@ -185,13 +202,20 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
       </div>
 
       {/* Button row */}
-      <div className="flex gap-4 w-full">
+      <div className="flex gap-2 w-full">
         <button
           onClick={() => handleSwipe("left")}
           className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
           style={{ background: "rgba(59,130,246,0.2)", border: "1px solid rgba(147,197,253,0.4)" }}
         >
           🥶 Too Cold
+        </button>
+        <button
+          onClick={() => handleSwipe("center")}
+          className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-opacity active:opacity-70"
+          style={{ background: "rgba(52,199,89,0.18)", border: "1px solid rgba(134,239,172,0.45)" }}
+        >
+          ✅ Just Right
         </button>
         <button
           onClick={() => handleSwipe("right")}

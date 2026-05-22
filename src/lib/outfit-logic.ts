@@ -246,14 +246,14 @@ function formatTime(timeStr: string): string {
 // ── Calibration wizard logic ──────────────────────────────────────────────────
 export interface CalibrationSwipe {
   temp: number;
-  direction: "left" | "right"; // left = too cold, right = too warm/fine
+  direction: "left" | "right" | "center"; // left = too cold, right = too warm, center = just right
 }
 
 export function computeCalibrationFromSwipes(
   swipes: CalibrationSwipe[]
 ): Partial<UserCalibration> {
-  // Each scenario tests a temperature. Left=cold, Right=warm/fine.
-  // We find the crossover points to set thresholds.
+  // Left=too cold, Right=too warm, Center=just right (neutral — confirms current threshold).
+  // Only left/right responses shift thresholds; center leaves them unchanged.
   const sorted = [...swipes].sort((a, b) => a.temp - b.temp);
 
   let shortsMin = 72;
@@ -261,6 +261,7 @@ export function computeCalibrationFromSwipes(
   let heavyCoatMax = 45;
 
   for (const s of sorted) {
+    if (s.direction === "center") continue;
     if (s.direction === "right" && s.temp < shortsMin) {
       shortsMin = s.temp;
     }
