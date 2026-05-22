@@ -57,33 +57,122 @@ function MapViewSync({ center }: { center: [number, number] }) {
   return null;
 }
 
+const RADAR_TILE_OPTS: L.TileLayerOptions = {
+  opacity: 0,
+  zIndex: 200,
+  tileSize: 256,
+  minZoom: 1,
+  maxZoom: RAINVIEWER_MAX_ZOOM,
+  maxNativeZoom: RAINVIEWER_MAX_ZOOM,
+  crossOrigin: "anonymous",
+  errorTileUrl:
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+};
+
+const FRAME_MS = 1000;
+const FADE_MS = 220;
+
+function waitForLayerTiles(layer: L.TileLayer, timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    let pending = 0;
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      layer.off("tileload", onLoad);
+      layer.off("tileloadstart", onStart);
+      layer.off("load", onLayerLoad);
+      layer.off("tileerror", onLoad);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onStart = () => { pending += 1; };
+    const onLoad = () => {
+      pending = Math.max(0, pending - 1);
+      if (pending === 0) done();
+    };
+    const onLayerLoad = () => done();
+    const timer = setTimeout(done, timeoutMs);
+    layer.on("tileloadstart", onStart);
+    layer.on("tileload", onLoad);
+    layer.on("tileerror", onLoad);
+    layer.on("load", onLayerLoad);
+    if ((layer as L.TileLayer & { _loading?: boolean })._loading === false) {
+      done();
+    }
+  });
+}
+
+/** Dual-buffer radar overlay with crossfade and tile-ready gating. */
 function RadarOverlay({ url }: { url: string }) {
   const map = useMap();
-  const layerRef = useRef<L.TileLayer | null>(null);
+  const layersRef = useRef<[L.TileLayer | null, L.TileLayer | null]>([null, null]);
+  const activeRef = useRef(0);
+  const urlRef = useRef(url);
+  const animRef = useRef(0);
 
   useEffect(() => {
-    if (layerRef.current) {
-      map.removeLayer(layerRef.current);
-      layerRef.current = null;
-    }
-    layerRef.current = L.tileLayer(url, {
-      opacity: 0.65,
-      zIndex: 200,
-      tileSize: 256,
-      minZoom: 1,
-      maxZoom: RAINVIEWER_MAX_ZOOM,
-      maxNativeZoom: RAINVIEWER_MAX_ZOOM,
-      crossOrigin: "anonymous",
-      errorTileUrl:
-        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-    }).addTo(map);
-    return () => {
-      if (layerRef.current) {
-        map.removeLayer(layerRef.current);
-        layerRef.current = null;
+    urlRef.current = url;
+    const animId = ++animRef.current;
+
+    async function transitionTo(nextUrl: string) {
+      const inactive = 1 - activeRef.current;
+      let layer = layersRef.current[inactive];
+      if (!layer) {
+        layer = L.tileLayer(nextUrl, { ...RADAR_TILE_OPTS }).addTo(map);
+        layersRef.current[inactive] = layer;
+      } else {
+        layer.setOpacity(0);
+        layer.setUrl(nextUrl);
       }
+
+      await waitForLayerTiles(layer, 900);
+      if (animId !== animRef.current || urlRef.current !== nextUrl) return;
+
+      const prev = layersRef.current[activeRef.current];
+      layer.setOpacity(0.65);
+      if (prev && prev !== layer) {
+        const start = performance.now();
+        const tick = (now: number) => {
+          if (animId !== animRef.current) return;
+          const t = Math.min(1, (now - start) / FADE_MS);
+          layer!.setOpacity(0.65 * t);
+          prev.setOpacity(0.65 * (1 - t));
+          if (t < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            prev.setOpacity(0);
+          }
+        };
+        requestAnimationFrame(tick);
+      } else {
+        layer.setOpacity(0.65);
+      }
+      activeRef.current = inactive;
+    }
+
+    const current = layersRef.current[activeRef.current];
+    if (!current) {
+      const layer = L.tileLayer(url, { ...RADAR_TILE_OPTS, opacity: 0.65 }).addTo(map);
+      layersRef.current[0] = layer;
+      activeRef.current = 0;
+    } else if (current.getUrl() !== url) {
+      void transitionTo(url);
+    }
+
+    return () => {
+      animRef.current += 1;
     };
   }, [url, map]);
+
+  useEffect(() => {
+    return () => {
+      layersRef.current.forEach((layer) => {
+        if (layer) map.removeLayer(layer);
+      });
+      layersRef.current = [null, null];
+    };
+  }, [map]);
 
   return null;
 }
@@ -121,11 +210,23 @@ export default function Radar() {
 
   useEffect(() => {
     if (!playing || allFrames.length === 0) return;
-    const id = setInterval(
-      () => setFrameIdx((prev) => (prev + 1) % allFrames.length),
-      500,
-    );
-    return () => clearInterval(id);
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const scheduleNext = () => {
+      if (cancelled) return;
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        setFrameIdx((prev) => (prev + 1) % allFrames.length);
+        scheduleNext();
+      }, FRAME_MS);
+    };
+
+    scheduleNext();
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
   }, [playing, allFrames.length]);
 
   const currentFrame = allFrames[frameIdx];
@@ -183,7 +284,7 @@ export default function Radar() {
         <span style={{ fontSize: 48 }}>📍</span>
         <p style={{ color: isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.6)", textAlign: "center", lineHeight: 1.5 }}>
           Location required for radar.
-          {"\n"}Add your city in Settings or complete onboarding.
+          {"\n"}Tap your city on Today or set it in Settings.
         </p>
       </div>
     );

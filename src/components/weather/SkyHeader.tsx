@@ -16,10 +16,11 @@ interface Props {
   today: DailyForecast | null;
   tempUnit: "F" | "C";
   onRefresh: () => void;
+  onLocationPress?: () => void;
   isRefreshing?: boolean;
 }
 
-export function SkyHeader({ weather, today, tempUnit, onRefresh, isRefreshing = false }: Props) {
+export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress, isRefreshing = false }: Props) {
   const temp = toUnit(weather.temp, tempUnit);
   const hiTemp = today ? toUnit(today.tempMax, tempUnit) : null;
   const loTemp = today ? toUnit(today.tempMin, tempUnit) : null;
@@ -82,19 +83,40 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, isRefreshing = 
         </svg>
       </button>
 
-      <span
-        className="truncate max-w-full px-12 text-center"
-        style={{
-          fontSize: 13,
-          fontWeight: 500,
-          color: "rgba(255,255,255,0.85)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-        }}
-        title={locationLabel}
-      >
-        {locationLabel}
-      </span>
+      {onLocationPress ? (
+        <button
+          type="button"
+          onClick={onLocationPress}
+          className="truncate max-w-full px-12 text-center border-0 bg-transparent cursor-pointer"
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.85)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            textDecoration: "underline",
+            textUnderlineOffset: 3,
+          }}
+          title={`${locationLabel} — tap to change`}
+          aria-label={`Location: ${locationLabel}. Tap to change.`}
+        >
+          {locationLabel}
+        </button>
+      ) : (
+        <span
+          className="truncate max-w-full px-12 text-center"
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.85)",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+          }}
+          title={locationLabel}
+        >
+          {locationLabel}
+        </span>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
         <span style={{ fontSize: 72, lineHeight: 1, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" }}>

@@ -11,8 +11,11 @@ export interface Profile {
   fcm_token: string | null;
   last_latitude: number | null;
   last_longitude: number | null;
+  last_city: string | null;
   updated_at: string;
 }
+
+export type RainTolerance = "low" | "moderate" | "high";
 
 // ── Calibration ───────────────────────────────────────────────────────────────
 
@@ -23,8 +26,9 @@ export interface UserCalibration {
   pants_max_temp: number;      // default 75°F
   light_jacket_max_temp: number; // default 65°F
   heavy_coat_max_temp: number;   // default 45°F
-  rain_tolerance: "low" | "moderate" | "high";
-  humidity_sensitivity?: boolean; // not in DB schema; default true in logic
+  rain_tolerance: RainTolerance;
+  humidity_sensitivity: boolean;
+  updated_at?: string;
 }
 
 export type ThermalSensitivity = -2 | -1 | 0 | 1 | 2;

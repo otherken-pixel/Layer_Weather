@@ -25,7 +25,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 function mapWeatherError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "Could not load weather data.";
   if (/denied|permission/i.test(msg)) {
-    return "Location permission denied. Add your city in Settings, or enable location in device Settings.";
+    return "Location permission denied. Tap your city on Today to set a location, or enable GPS in device Settings.";
   }
   if (/timeout|timed out/i.test(msg)) {
     return msg.includes("timed out") ? msg : "Request timed out. Check your connection and try again.";
@@ -104,16 +104,23 @@ export function useWeather() {
           const { latitude, longitude } = await resolveCoordinates(force, location, profile);
           if (generation !== refreshGeneration.current) return;
 
-          const city = await withTimeout(
-            reverseGeocode(latitude, longitude),
-            GEOCODE_TIMEOUT_MS,
-            "Location lookup",
-          );
+          let city = location?.city || profile?.last_city || "";
+          if (force || !city) {
+            city = await withTimeout(
+              reverseGeocode(latitude, longitude),
+              GEOCODE_TIMEOUT_MS,
+              "Location lookup",
+            );
+          }
           if (generation !== refreshGeneration.current) return;
 
           setLocation({ latitude, longitude, city, region: "", country: "" });
           if (userId) {
-            upsertProfile(userId, { last_latitude: latitude, last_longitude: longitude }).catch(console.error);
+            upsertProfile(userId, {
+              last_latitude: latitude,
+              last_longitude: longitude,
+              last_city: city,
+            }).catch(console.error);
           }
 
           const data = await withTimeout(

@@ -82,7 +82,7 @@ export function useAuth() {
       setLocation({
         latitude: prof.last_latitude,
         longitude: prof.last_longitude,
-        city: cached?.weather.current.location ?? "",
+        city: prof.last_city ?? cached?.weather.current.location ?? "",
         region: "",
         country: "",
       });
