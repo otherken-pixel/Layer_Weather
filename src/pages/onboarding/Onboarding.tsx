@@ -10,7 +10,9 @@ import { WeatherAvatar } from "@/components/avatar/WeatherAvatar";
 import { upsertCalibration, upsertProfile } from "@/lib/supabase";
 import { computeCalibrationFromSwipes } from "@/lib/outfit-logic";
 import { useAppStore } from "@/store";
-import type { ThermalSensitivity, SwipeDirection } from "@/types";
+import type { ThermalSensitivity, SwipeDirection, UserCalibration } from "@/types";
+
+const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
 
 type Step = "welcome" | "swipe" | "thermal" | "location" | "done";
 const STEPS: Step[] = ["welcome", "swipe", "thermal", "location", "done"];
@@ -23,15 +25,26 @@ const GRADIENTS: Record<Step, string> = {
   done:     "linear-gradient(135deg,#56ab2f,#a8e063)",
 };
 
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 async function requestBrowserLocation(): Promise<{ latitude: number; longitude: number } | null> {
   if (!navigator.geolocation) return null;
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => resolve(null),
-      { enableHighAccuracy: false, timeout: 10000 }
-    );
-  });
+  return withTimeout(
+    new Promise<{ latitude: number; longitude: number } | null>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
+      );
+    }),
+    22000,
+    null
+  );
 }
 
 export default function Onboarding() {
@@ -41,6 +54,7 @@ export default function Onboarding() {
   const [swipeResults, setSwipeResults] = useState<{ temp: number; direction: SwipeDirection }[]>([]);
   const [thermal, setThermal] = useState<ThermalSensitivity>(0);
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState("");
 
   const stepIdx = STEPS.indexOf(step);
@@ -49,15 +63,19 @@ export default function Onboarding() {
   function next() { setStep(STEPS[stepIdx + 1]); }
 
   async function handleFinish() {
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setLoadingStatus("Getting your location…");
     try {
-      // 1. Get location — triggers browser permission dialog on web
+      // 1. Get location with generous timeout — iOS GPS can be slow on first fix
       let coords: { latitude: number; longitude: number } | null = null;
       if (Capacitor.isNativePlatform()) {
         const { location: perm } = await Geolocation.requestPermissions();
         if (perm === "granted") {
-          const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 10000 });
-          coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          const pos = await withTimeout(
+            Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 20000 }),
+            22000,
+            null
+          );
+          if (pos) coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
         }
       } else {
         coords = await requestBrowserLocation();
@@ -66,15 +84,30 @@ export default function Onboarding() {
         setLocation({ ...coords, city: "", region: "", country: "" });
       }
 
-      // 2. Save calibration — must succeed so isOnboarded persists across sessions
+      // 2. Save calibration — non-fatal with pending flag for retry on next session
+      setLoadingStatus("Saving preferences…");
       const derived = computeCalibrationFromSwipes(swipeResults);
       const payload = { ...derived, thermal_sensitivity: thermal, rain_tolerance: "moderate" as const, humidity_sensitivity: true };
+
       if (userId) {
-        const saved = await upsertCalibration(userId, payload);
-        if (saved) setCalibration(saved);
-        // Save location to profile so it restores on next session (fire-and-forget)
-        if (coords) {
-          upsertProfile(userId, { last_latitude: coords.latitude, last_longitude: coords.longitude }).catch(console.error);
+        try {
+          const saved = await withTimeout(upsertCalibration(userId, payload), 12000, null);
+          if (saved) {
+            setCalibration(saved);
+            localStorage.removeItem(CALIBRATION_PENDING_KEY);
+          } else {
+            // Timed out — store locally and retry on next load
+            localStorage.setItem(CALIBRATION_PENDING_KEY, JSON.stringify({ userId, payload }));
+            setCalibration({ user_id: userId, ...payload, updated_at: new Date().toISOString() } as UserCalibration);
+          }
+          // Save location to profile (fire-and-forget, columns may not exist yet)
+          if (coords) {
+            upsertProfile(userId, { last_latitude: coords.latitude, last_longitude: coords.longitude }).catch(() => {});
+          }
+        } catch {
+          // Save failed — store locally and retry on next load
+          localStorage.setItem(CALIBRATION_PENDING_KEY, JSON.stringify({ userId, payload }));
+          setCalibration({ user_id: userId, ...payload, updated_at: new Date().toISOString() } as UserCalibration);
         }
       }
 
@@ -82,8 +115,11 @@ export default function Onboarding() {
       setStep("done");
     } catch (err) {
       console.error("Onboarding finish error:", err);
-      setError("Could not save your preferences. Check your connection and try again.");
-    } finally { setLoading(false); }
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+      setLoadingStatus("");
+    }
   }
 
   return (
@@ -94,7 +130,6 @@ export default function Onboarding() {
       transition={{ duration: 0.5 }}
       className="flex flex-col min-h-full px-6 py-8 pt-safe"
     >
-      {/* Progress bar */}
       {step !== "done" && (
         <div className="w-full h-1 rounded-full mb-6" style={{ background: "rgba(255,255,255,0.2)" }}>
           <motion.div className="h-full rounded-full bg-white" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
@@ -147,8 +182,18 @@ export default function Onboarding() {
                   WearToday needs your location to fetch local weather. We never store your precise coordinates.
                 </p>
               </div>
+              {loadingStatus && (
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>{loadingStatus}</p>
+              )}
               {error && <p className="text-red-300 text-sm">{error}</p>}
-              <Button label="Allow Location Access" onPress={handleFinish} loading={loading} variant="secondary" size="lg" fullWidth />
+              <Button
+                label={loading ? loadingStatus || "Working…" : "Allow Location Access"}
+                onPress={handleFinish}
+                loading={loading}
+                variant="secondary"
+                size="lg"
+                fullWidth
+              />
             </div>
           )}
 

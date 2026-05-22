@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { supabase, getProfile, getCalibration } from "@/lib/supabase";
+import { supabase, getProfile, getCalibration, upsertCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
+
+const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
@@ -30,8 +32,33 @@ export function useAuth() {
     setUserId(id);
     const [prof, cal] = await Promise.all([getProfile(id), getCalibration(id)]);
     setProfile(prof);
-    setCalibration(cal);
-    setIsOnboarded(cal !== null);
+
+    if (cal) {
+      setCalibration(cal);
+      setIsOnboarded(true);
+      localStorage.removeItem(CALIBRATION_PENDING_KEY);
+    } else {
+      // Retry a calibration save that timed out during onboarding
+      const pending = localStorage.getItem(CALIBRATION_PENDING_KEY);
+      if (pending) {
+        try {
+          const { payload } = JSON.parse(pending);
+          const saved = await upsertCalibration(id, payload);
+          if (saved) {
+            setCalibration(saved);
+            setIsOnboarded(true);
+            localStorage.removeItem(CALIBRATION_PENDING_KEY);
+          }
+        } catch {
+          // Still failing — keep pending flag, don't mark as onboarded
+          setIsOnboarded(false);
+        }
+      } else {
+        setIsOnboarded(false);
+      }
+    }
+
+    // Restore last known location into store
     if (prof?.last_latitude && prof?.last_longitude) {
       useAppStore.getState().setLocation({
         latitude: prof.last_latitude,
