@@ -146,7 +146,7 @@ export interface CalibrationScenario {
   description: string;  // "65°F – T-shirt and shorts"
 }
 
-export type SwipeDirection = "left" | "right"; // left = too cold, right = too warm/fine
+export type SwipeDirection = "left" | "right" | "center"; // left = too cold, right = too warm, center = just right
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 
