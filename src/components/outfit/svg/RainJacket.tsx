@@ -1,27 +1,17 @@
-import { OutfitIcon } from "./OutfitIcon";
-
 interface Props {
+  size?: number;
   className?: string;
 }
 
-export default function RainJacket({ className }: Props) {
+export default function RainJacket({ size = 100, className }: Props) {
   return (
-    <OutfitIcon label="Rain jacket" className={className}>
-      <path
-        d="M38 35c-8 0-13 3-21 13l7 7c4-5 8-10 11-13M62 35c8 0 13 3 21 13l-7 7c-4-5-8-10-11-13"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M31 40c0 15 2 25 0 38q20 4 40 0c-2-13 0-23 0-38 0-5-5-8-10-8H41c-5 0-10 3-10 8z"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-      <path d="M50 32v46" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx="50" cy="28" r="14" stroke="currentColor" strokeWidth="2.5" />
-    </OutfitIcon>
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Rain jacket">
+      <path d="M 38 35 C 30 35 25 38 14 56 L 22 63 C 28 55 33 50 35 44 Z" fill="#3375E0" />
+      <path d="M 62 35 C 70 35 75 38 86 56 L 78 63 C 72 55 67 50 65 44 Z" fill="#3375E0" />
+      <path d="M 31 40 C 31 55 33 65 30 78 Q 50 82 70 78 C 67 65 69 55 69 40 C 69 35 65 32 60 32 L 40 32 C 35 32 31 35 31 40 Z" fill="#3375E0" />
+      <rect x="48" y="32" width="4" height="46" fill="#255BAE" />
+      <circle cx="50" cy="28" r="16" fill="#3375E0" />
+      <circle cx="50" cy="30" r="11" fill="#1D2638" />
+    </svg>
   );
 }

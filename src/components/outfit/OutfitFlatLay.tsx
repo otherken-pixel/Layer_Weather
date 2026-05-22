@@ -25,6 +25,7 @@ interface Props {
   scarf: boolean;
   beanie: boolean;
   footwear?: FootwearKind | null;
+  /** Kept for call-site compatibility — icons use their own colors */
   colorScheme?: "dark" | "light";
   compact?: boolean;
 }
@@ -37,16 +38,16 @@ const ITEM_ANIM = {
 
 const STAGGER = 0.06;
 
-function FootwearIcon({ kind, className }: { kind: FootwearKind; className: string }) {
+function FootwearIcon({ kind, size }: { kind: FootwearKind; size: number }) {
   switch (kind) {
     case "flip_flops":
-      return <FlipFlops className={className} />;
+      return <FlipFlops size={size} />;
     case "sneakers":
-      return <Sneakers className={className} />;
+      return <Sneakers size={size} />;
     case "snow_boots":
-      return <SnowBoots className={className} />;
+      return <SnowBoots size={size} />;
     case "rain_boots":
-      return <RainBoots className={className} />;
+      return <RainBoots size={size} />;
   }
 }
 
@@ -57,15 +58,13 @@ export default function OutfitFlatLay({
   scarf,
   beanie,
   footwear = null,
-  colorScheme = "light",
   compact = false,
 }: Props) {
-  const iconClass = colorScheme === "dark" ? "text-white/90" : "text-neutral-800";
-  const garmentSize = compact ? "min(72px, 22vw)" : "min(100px, 28vw)";
-  const accessorySize = compact ? "min(52px, 16vw)" : "min(72px, 20vw)";
+  const sz = compact ? 72 : 100;
+  const accSz = compact ? 52 : 72;
 
-  const wrap = (node: React.ReactNode, delay: number, size: string) => (
-    <motion.div {...ITEM_ANIM} transition={{ delay }} style={{ width: size, height: size }}>
+  const wrap = (node: React.ReactNode, delay: number) => (
+    <motion.div {...ITEM_ANIM} transition={{ delay }}>
       {node}
     </motion.div>
   );
@@ -73,62 +72,47 @@ export default function OutfitFlatLay({
   const topGarment = (() => {
     switch (outfit) {
       case "shorts_tshirt":
-        return wrap(<TShirt className={`w-full h-full ${iconClass}`} />, 0 * STAGGER, garmentSize);
+        return wrap(<TShirt size={sz} />, 0 * STAGGER);
       case "pants_tshirt":
-        return wrap(<LongSleeve className={`w-full h-full ${iconClass}`} />, 0 * STAGGER, garmentSize);
+        return wrap(<LongSleeve size={sz} />, 0 * STAGGER);
       case "light_jacket":
-        return wrap(<Jacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
+        return wrap(<Jacket size={sz} />, 0);
       case "heavy_jacket":
-        return wrap(<HeavyJacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
+        return wrap(<HeavyJacket size={sz} />, 0);
       case "heavy_coat":
-        return wrap(<HeavyCoat className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
+        return wrap(<HeavyCoat size={sz} />, 0);
       case "rain_light":
       case "rain_heavy":
-        return wrap(<RainJacket className={`w-full h-full ${iconClass}`} />, 0, garmentSize);
+        return wrap(<RainJacket size={sz} />, 0);
     }
   })();
 
   const bottomGarment =
     outfit === "shorts_tshirt"
-      ? wrap(<Shorts className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize)
-      : wrap(<Pants className={`w-full h-full ${iconClass}`} />, 1 * STAGGER, garmentSize);
+      ? wrap(<Shorts size={sz} />, 1 * STAGGER)
+      : wrap(<Pants size={sz} />, 1 * STAGGER);
 
   const accessories: React.ReactNode[] = [];
   let delay = 2;
 
   if (footwear) {
-    accessories.push(
-      wrap(
-        <FootwearIcon kind={footwear} className={`w-full h-full ${iconClass}`} />,
-        delay * STAGGER,
-        accessorySize,
-      ),
-    );
+    accessories.push(wrap(<FootwearIcon kind={footwear} size={accSz} />, delay * STAGGER));
     delay += 1;
   }
-
   if (umbrella) {
-    accessories.push(
-      wrap(<Umbrella className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
-    );
+    accessories.push(wrap(<Umbrella size={accSz} />, delay * STAGGER));
     delay += 1;
   }
   if (sunglasses) {
-    accessories.push(
-      wrap(<Sunglasses className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
-    );
+    accessories.push(wrap(<Sunglasses size={accSz} />, delay * STAGGER));
     delay += 1;
   }
   if (scarf) {
-    accessories.push(
-      wrap(<Scarf className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
-    );
+    accessories.push(wrap(<Scarf size={accSz} />, delay * STAGGER));
     delay += 1;
   }
   if (beanie) {
-    accessories.push(
-      wrap(<Beanie className={`w-full h-full ${iconClass}`} />, delay * STAGGER, accessorySize),
-    );
+    accessories.push(wrap(<Beanie size={accSz} />, delay * STAGGER));
   }
 
   const collapseBottomRow = accessories.length <= 1;

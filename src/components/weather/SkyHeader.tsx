@@ -1,6 +1,6 @@
 import React from "react";
 import type { CurrentWeather, DailyForecast } from "@/types";
-import { CONDITION_LABEL, isLightBackground } from "@/constants/colors";
+import { CONDITION_LABEL } from "@/constants/colors";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -16,16 +16,13 @@ interface Props {
   today: DailyForecast | null;
   tempUnit: "F" | "C";
   onRefresh: () => void;
+  isRefreshing?: boolean;
 }
 
-export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
+export function SkyHeader({ weather, today, tempUnit, onRefresh, isRefreshing = false }: Props) {
   const temp = toUnit(weather.temp, tempUnit);
   const hiTemp = today ? toUnit(today.tempMax, tempUnit) : null;
   const loTemp = today ? toUnit(today.tempMin, tempUnit) : null;
-  const lightBg = isLightBackground(weather.condition, weather.isDay);
-  const primaryText = lightBg ? "#111827" : "#FFFFFF";
-  const secondaryText = lightBg ? "rgba(17,24,39,0.85)" : "rgba(255,255,255,0.9)";
-  const mutedText = lightBg ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.7)";
   const locationLabel = weather.location || "Your Location";
 
   return (
@@ -41,66 +38,76 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
         flexDirection: "column",
         alignItems: "center",
         gap: 2,
-        maxWidth: "100%",
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        aria-label="Refresh weather"
+        aria-busy={isRefreshing}
         style={{
+          position: "absolute",
+          top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+          right: 16,
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          border: "none",
+          cursor: isRefreshing ? "wait" : "pointer",
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          maxWidth: "100%",
-          width: "100%",
           justifyContent: "center",
+          background: "rgba(255,255,255,0.2)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          opacity: isRefreshing ? 0.65 : 1,
+          transition: "opacity 0.2s",
         }}
       >
-        <span
-          className="truncate max-w-[calc(100%-52px)]"
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: secondaryText,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
-          title={locationLabel}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className={isRefreshing ? "animate-spin" : undefined}
         >
-          {locationLabel}
-        </span>
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="flex-shrink-0 inline-flex items-center justify-center min-w-[44px] min-h-[44px] rounded-full"
-          style={{
-            background: lightBg ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.2)",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 16,
-          }}
-          aria-label="Refresh weather"
-        >
-          🔄
-        </button>
-      </div>
+          <path d="M21 12a9 9 0 1 1-3-6.7" />
+          <polyline points="21 3 21 9 15 9" />
+        </svg>
+      </button>
+
+      <span
+        className="truncate max-w-full px-12 text-center"
+        style={{
+          fontSize: 13,
+          fontWeight: 500,
+          color: "rgba(255,255,255,0.85)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+        title={locationLabel}
+      >
+        {locationLabel}
+      </span>
 
       <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
-        <span
-          style={{
-            fontSize: "clamp(48px, 18vw, 72px)",
-            lineHeight: 1,
-            filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))",
-          }}
-        >
+        <span style={{ fontSize: 72, lineHeight: 1, filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.2))" }}>
           {CONDITION_EMOJI[weather.condition] ?? "🌤️"}
         </span>
         <span
           style={{
-            fontSize: "clamp(64px, 24vw, 96px)",
+            fontSize: 96,
             fontWeight: 700,
-            color: primaryText,
+            color: "white",
             lineHeight: 1,
-            letterSpacing: "-0.04em",
-            textShadow: lightBg ? "none" : "0 2px 16px rgba(0,0,0,0.15)",
+            letterSpacing: "-4px",
+            textShadow: "0 2px 16px rgba(0,0,0,0.15)",
             fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
           }}
         >
@@ -108,12 +115,12 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh }: Props) {
         </span>
       </div>
 
-      <span style={{ fontSize: 17, fontWeight: 400, color: secondaryText, letterSpacing: "0.02em", marginTop: 4 }}>
+      <span style={{ fontSize: 17, fontWeight: 400, color: "rgba(255,255,255,0.9)", letterSpacing: "0.02em", marginTop: 4 }}>
         {CONDITION_LABEL[weather.condition]}
       </span>
 
       {hiTemp !== null && loTemp !== null && (
-        <span style={{ fontSize: 13, color: mutedText, fontWeight: 400, marginTop: 2 }}>
+        <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", fontWeight: 400, marginTop: 2 }}>
           H: {hiTemp}° · L: {loTemp}°
         </span>
       )}
