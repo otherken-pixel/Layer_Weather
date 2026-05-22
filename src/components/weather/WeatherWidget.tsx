@@ -2,20 +2,6 @@ import React from "react";
 import type { CurrentWeather } from "@/types";
 import { getHairForecast } from "@/lib/hair-forecast";
 
-function toUnit(f: number, unit: "F" | "C") {
-  return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
-}
-
-function comfortLabel(feelsLikeF: number): string {
-  if (feelsLikeF >= 80) return "Warm & humid";
-  if (feelsLikeF >= 70) return "Warm & pleasant";
-  if (feelsLikeF >= 60) return "Comfortable";
-  if (feelsLikeF >= 50) return "Cool";
-  if (feelsLikeF >= 40) return "Cold";
-  if (feelsLikeF >= 30) return "Very cold";
-  return "Dangerously cold";
-}
-
 function uvLabel(uv: number): string {
   if (uv <= 2) return "lo";
   if (uv <= 5) return "mod";

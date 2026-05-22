@@ -6,7 +6,7 @@ The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/dep
 
 | Secret | Required | How to get it |
 |--------|----------|----------------|
-| `SUPABASE_ACCESS_TOKEN` | **Yes** | [Supabase Dashboard → Account → Access Tokens](https://supabase.com/dashboard/account/tokens) — create a token with access to your org/project |
+| `SUPABASE_ACCESS_TOKEN` | **Yes** | [Account → Access Tokens](https://supabase.com/dashboard/account/tokens) — must start with **`sbp_`** (not the anon key, not `service_role`, not the project ref) |
 
 ## Project reference (one of these)
 
@@ -21,6 +21,8 @@ The secret name must match **exactly** (GitHub is case-sensitive):
 **Common mistake:** naming the secret `SUPABASE_PROJECT_REF` while the workflow only read `SUPABASE_PROJECT_ID` — both are now supported.
 
 **Do not** use the anon key, service role key, or full dashboard URL as the project ref (unless it is `VITE_SUPABASE_URL`, which is parsed automatically).
+
+**Swapped secrets?** If deploy says `Invalid access token format`, your `SUPABASE_ACCESS_TOKEN` is not an `sbp_` token — often the project ref and token were entered in the wrong fields.
 
 ## Add secrets in GitHub
 
