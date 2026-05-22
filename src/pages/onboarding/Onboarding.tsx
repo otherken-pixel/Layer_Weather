@@ -49,18 +49,25 @@ async function requestBrowserLocation(): Promise<{ latitude: number; longitude: 
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { userId, setCalibration, setIsOnboarded, setLocation } = useAppStore();
-  const [step, setStep] = useState<Step>("welcome");
+  const { userId, calibration, setCalibration, setIsOnboarded, setLocation } = useAppStore();
+
+  // Lock in mode at mount — calibration may update during the flow so we can't derive this reactively
+  const [isRecalibration] = useState(calibration !== null);
+  const ACTIVE_STEPS: Step[] = isRecalibration
+    ? ["swipe", "thermal", "location", "done"]
+    : STEPS;
+
+  const [step, setStep] = useState<Step>(ACTIVE_STEPS[0]);
   const [swipeResults, setSwipeResults] = useState<{ temp: number; direction: SwipeDirection }[]>([]);
   const [thermal, setThermal] = useState<ThermalSensitivity>(0);
   const [loading, setLoading] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState("");
   const [error, setError] = useState("");
 
-  const stepIdx = STEPS.indexOf(step);
-  const progress = ((stepIdx + 1) / (STEPS.length - 1)) * 100;
+  const stepIdx = ACTIVE_STEPS.indexOf(step);
+  const progress = ((stepIdx + 1) / (ACTIVE_STEPS.length - 1)) * 100;
 
-  function next() { setStep(STEPS[stepIdx + 1]); }
+  function next() { setStep(ACTIVE_STEPS[stepIdx + 1]); }
 
   async function handleFinish() {
     setLoading(true); setError(""); setLoadingStatus("Getting your location…");
@@ -131,8 +138,20 @@ export default function Onboarding() {
       className="flex flex-col min-h-full px-6 py-8 pt-safe"
     >
       {step !== "done" && (
-        <div className="w-full h-1 rounded-full mb-6" style={{ background: "rgba(255,255,255,0.2)" }}>
-          <motion.div className="h-full rounded-full bg-white" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-1 rounded-full" style={{ background: "rgba(255,255,255,0.2)" }}>
+            <motion.div className="h-full rounded-full bg-white" animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
+          </div>
+          {isRecalibration && (
+            <button
+              onClick={() => navigate("/app/settings")}
+              className="w-8 h-8 flex items-center justify-center rounded-full text-white flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.15)", fontSize: 16 }}
+              aria-label="Cancel recalibration"
+            >
+              ✕
+            </button>
+          )}
         </div>
       )}
 
@@ -216,7 +235,7 @@ export default function Onboarding() {
           {step === "done" && (
             <div className="flex flex-col items-center text-center gap-6 max-w-xs">
               <div className="flex flex-col items-center gap-3">
-                <span style={{ fontSize: 56 }}>☀️</span>
+                <span style={{ fontSize: 56 }}>{isRecalibration ? "🎯" : "☀️"}</span>
                 <div
                   className="rounded-3xl p-5"
                   style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.15)" }}
@@ -233,12 +252,22 @@ export default function Onboarding() {
                 </div>
               </div>
               <div>
-                <h1 className="text-4xl font-black text-white">You're all set! ☀️</h1>
+                <h1 className="text-4xl font-black text-white">
+                  {isRecalibration ? "Preferences updated!" : "You're all set! ☀️"}
+                </h1>
                 <p className="text-base mt-3 max-w-[240px] mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  WearToday is calibrated to your personal temperature comfort. Let's see what to wear.
+                  {isRecalibration
+                    ? "Your temperature profile has been recalibrated."
+                    : "WearToday is calibrated to your personal temperature comfort. Let's see what to wear."}
                 </p>
               </div>
-              <Button label="See Today's Outfit →" onPress={() => navigate("/app/home")} variant="secondary" size="lg" fullWidth />
+              <Button
+                label={isRecalibration ? "Back to Settings" : "See Today's Outfit →"}
+                onPress={() => navigate(isRecalibration ? "/app/settings" : "/app/home")}
+                variant="secondary"
+                size="lg"
+                fullWidth
+              />
             </div>
           )}
         </motion.div>
