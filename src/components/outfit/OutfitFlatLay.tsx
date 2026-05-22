@@ -5,6 +5,7 @@ import LongSleeve from "./svg/LongSleeve";
 import Pants from "./svg/Pants";
 import Shorts from "./svg/Shorts";
 import Jacket from "./svg/Jacket";
+import HeavyJacket from "./svg/HeavyJacket";
 import HeavyCoat from "./svg/HeavyCoat";
 import RainJacket from "./svg/RainJacket";
 import Umbrella from "./svg/Umbrella";
@@ -20,7 +21,7 @@ interface Props {
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
-  /** Controls icon stroke color. Defaults to white (dark mode). */
+  /** No longer affects rendering — icons carry their own colors. Kept for call-site compatibility. */
   colorScheme?: "dark" | "light";
   /** Compact mode for use in small cards (e.g. onboarding swipe cards) */
   compact?: boolean;
@@ -36,69 +37,52 @@ const STAGGER = 0.06;
 
 export default function OutfitFlatLay({
   outfit,
-  rainGear,
   umbrella,
   sunglasses,
   scarf,
   beanie,
-  colorScheme = "dark",
   compact = false,
 }: Props) {
-  const strokeColor =
-    colorScheme === "dark"
-      ? "rgba(255,255,255,0.92)"
-      : "rgba(26,26,46,0.88)";
-
   const sz = compact ? 72 : 100;
   const accSz = compact ? 52 : 72;
 
-  // Determine which top-layer and bottom garment to render
   const topGarment = (() => {
     switch (outfit) {
       case "shorts_tshirt":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
-            <TShirt stroke={strokeColor} size={sz} />
+            <TShirt size={sz} />
           </motion.div>
         );
       case "pants_tshirt":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 * STAGGER }}>
-            <LongSleeve stroke={strokeColor} size={sz} />
+            <LongSleeve size={sz} />
           </motion.div>
         );
       case "light_jacket":
         return (
-          <motion.div
-            style={{ display: "grid", width: sz, height: sz }}
-            {...ITEM_ANIM}
-            transition={{ delay: 0 }}
-          >
-            <div style={{ gridArea: "1/1", opacity: 0.4 }}>
-              <LongSleeve stroke={strokeColor} size={sz} />
-            </div>
-            <div style={{ gridArea: "1/1" }}>
-              <Jacket stroke={strokeColor} size={sz} />
-            </div>
+          <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
+            <Jacket size={sz} />
           </motion.div>
         );
       case "heavy_jacket":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <Jacket stroke={strokeColor} size={sz} />
+            <HeavyJacket size={sz} />
           </motion.div>
         );
       case "heavy_coat":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <HeavyCoat stroke={strokeColor} size={sz} />
+            <HeavyCoat size={sz} />
           </motion.div>
         );
       case "rain_light":
       case "rain_heavy":
         return (
           <motion.div {...ITEM_ANIM} transition={{ delay: 0 }}>
-            <RainJacket stroke={strokeColor} size={sz} rainActive={rainGear} />
+            <RainJacket size={sz} />
           </motion.div>
         );
     }
@@ -107,54 +91,54 @@ export default function OutfitFlatLay({
   const bottomGarment =
     outfit === "shorts_tshirt" ? (
       <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Shorts stroke={strokeColor} size={sz} />
+        <Shorts size={sz} />
       </motion.div>
     ) : (
       <motion.div {...ITEM_ANIM} transition={{ delay: 1 * STAGGER }}>
-        <Pants stroke={strokeColor} size={sz} />
+        <Pants size={sz} />
       </motion.div>
     );
 
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
 
-  // Rain outfits lead with umbrella; all others lead with sneakers
+  // Rain outfits lead with umbrella; all others lead with flip flops
   const accessories = isRainOutfit
     ? [
         <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
-          <Umbrella stroke={strokeColor} size={accSz} rainActive />
+          <Umbrella size={accSz} />
         </motion.div>,
       ]
     : [
         <motion.div key="shoes" {...ITEM_ANIM} transition={{ delay: 2 * STAGGER }}>
-          <Sneakers stroke={strokeColor} size={accSz} />
+          <Sneakers size={accSz} />
         </motion.div>,
       ];
 
   if (!isRainOutfit && umbrella) {
     accessories.push(
       <motion.div key="umbrella" {...ITEM_ANIM} transition={{ delay: 3 * STAGGER }}>
-        <Umbrella stroke={strokeColor} size={accSz} rainActive />
+        <Umbrella size={accSz} />
       </motion.div>
     );
   }
   if (sunglasses) {
     accessories.push(
       <motion.div key="sunglasses" {...ITEM_ANIM} transition={{ delay: 4 * STAGGER }}>
-        <Sunglasses stroke={strokeColor} size={accSz} />
+        <Sunglasses size={accSz} />
       </motion.div>
     );
   }
   if (scarf) {
     accessories.push(
       <motion.div key="scarf" {...ITEM_ANIM} transition={{ delay: 5 * STAGGER }}>
-        <Scarf stroke={strokeColor} size={accSz} />
+        <Scarf size={accSz} />
       </motion.div>
     );
   }
   if (beanie) {
     accessories.push(
       <motion.div key="beanie" {...ITEM_ANIM} transition={{ delay: 6 * STAGGER }}>
-        <Beanie stroke={strokeColor} size={accSz} />
+        <Beanie size={accSz} />
       </motion.div>
     );
   }
