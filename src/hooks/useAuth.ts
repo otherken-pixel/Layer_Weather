@@ -17,7 +17,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
-  const isLoadingUser = useRef(false);
+  // Promise dequeue: second caller awaits the same running promise instead of
+  // returning early and calling setIsLoading(false) while loadUser is mid-flight.
+  const loadUserPromise = useRef<Promise<void> | null>(null);
   const {
     userId,
     profile,
@@ -36,16 +38,17 @@ export function useAuth() {
   useEffect(() => {
     const authTimeout = setTimeout(() => setIsLoading(false), AUTH_LOADING_TIMEOUT_MS);
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        await loadUser(session.user.id);
-      }
-      clearTimeout(authTimeout);
-      setIsLoading(false);
-    });
-
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
+      if (event === "INITIAL_SESSION") {
+        // Fires once on startup with the stored session (or null). Single path
+        // for page-reload auth — no race with getSession().
+        if (session?.user) {
+          await loadUser(session.user.id);
+        }
+        clearTimeout(authTimeout);
+        setIsLoading(false);
+      } else if (event === "SIGNED_IN" && session?.user) {
+        // Fires only on explicit sign-in (not on page reload).
         setIsLoading(true);
         await loadUser(session.user.id);
         setIsLoading(false);
@@ -61,15 +64,15 @@ export function useAuth() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function loadUser(id: string) {
-    // Prevent concurrent loadUser calls from racing each other
-    if (isLoadingUser.current) return;
-    isLoadingUser.current = true;
+  async function loadUser(id: string): Promise<void> {
+    // If already running, await the same promise so both callers finish together.
+    if (loadUserPromise.current) {
+      return loadUserPromise.current;
+    }
 
-    try {
+    const run = async () => {
       setUserId(id);
 
-      // Apply localStorage fast-path so returning users never see onboarding on reload
       if (localStorage.getItem(IS_ONBOARDED_KEY)) {
         setIsOnboarded(true);
       }
@@ -107,14 +110,12 @@ export function useAuth() {
               localStorage.removeItem(CALIBRATION_PENDING_KEY);
             }
           } catch {
-            // Pending sync failed; keep isOnboarded state from localStorage fast-path
+            // Pending sync failed; keep isOnboarded from localStorage fast-path.
           }
         } else if (!localStorage.getItem(IS_ONBOARDED_KEY)) {
-          // No calibration in DB, no pending, never onboarded — send to onboarding
           setIsOnboarded(false);
         }
-        // If localStorage says onboarded but DB returned null (network timeout),
-        // we trust localStorage and leave isOnboarded as true.
+        // DB timed out (result === null) and localStorage says onboarded → trust it.
       }
 
       if (prof?.last_latitude != null && prof?.last_longitude != null) {
@@ -126,9 +127,13 @@ export function useAuth() {
           country: "",
         });
       }
-    } finally {
-      isLoadingUser.current = false;
-    }
+    };
+
+    loadUserPromise.current = run().finally(() => {
+      loadUserPromise.current = null;
+    });
+
+    return loadUserPromise.current;
   }
 
   return { userId, profile, isAuthenticated: !!userId, isLoading };
