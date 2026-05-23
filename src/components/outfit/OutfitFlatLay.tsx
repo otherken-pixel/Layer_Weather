@@ -86,9 +86,9 @@ export default function OutfitFlatLay({
   compact = false,
 }: Props) {
   /** Reference icons are 70×70px — scale proportionally by role */
-  const topSz = compact ? 64 : 80;
-  const bottomSz = compact ? 52 : 68;
-  const accSz = compact ? 44 : 56;
+  const topSz = compact ? 90 : 80;
+  const bottomSz = compact ? 74 : 68;
+  const accSz = compact ? 62 : 56;
 
   const wrap = (node: React.ReactNode, delay: number) => (
     <motion.div
@@ -108,7 +108,7 @@ export default function OutfitFlatLay({
     <motion.div
       layout
       className="mx-auto w-full overflow-hidden"
-      style={{ maxWidth: compact ? 220 : 280 }}
+      style={{ maxWidth: compact ? 260 : 280 }}
       aria-label="Outfit flat lay"
     >
       <AnimatePresence mode="wait">
