@@ -39,7 +39,7 @@ export function getHairForecast(
     };
   }
 
-  if (tempF >= 90 && precipProb < 35) {
+  if (tempF >= 90) {
     return {
       shortTitle: "Heat styling stress",
       actionableAdvice: `Near ${displayTemp} with little rain — UV and sweat beat most products; buns, braids, or a hat-friendly style win.`,
