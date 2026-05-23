@@ -1,8 +1,8 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
-import type { FootwearKind, OutfitRecommendation as OutfitRec } from "@/types";
+import type { FootwearKind, OutfitFeedbackValue, OutfitRecommendation as OutfitRec } from "@/types";
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
   flip_flops: { label: "Flip flops", emoji: "🩴", color: "#1E40AF", bg: "#EFF6FF" },
@@ -15,6 +15,7 @@ interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
+  onFeedback?: (value: OutfitFeedbackValue) => void;
   onRecalibrate?: () => void;
 }
 
@@ -24,8 +25,15 @@ const URGENCY_COLORS = {
   info: { bg: "#EFF6FF", border: "#BFDBFE", icon: "ℹ️", text: "#1D4ED8" },
 };
 
-export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onRecalibrate }: Props) {
+export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onFeedback, onRecalibrate }: Props) {
   const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } = recommendation;
+  const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
+
+  function handleVote(value: OutfitFeedbackValue) {
+    if (voted) return;
+    setVoted(value);
+    onFeedback?.(value);
+  }
 
   const displayFeelsLike =
     tempUnit === "C"
@@ -75,6 +83,36 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           <p style={{ fontSize: 14, color: "#4B5563", lineHeight: 1.55, marginTop: 14 }}>
             {description}
           </p>
+
+          {/* Thumbs feedback */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+            <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>
+              {voted ? "Thanks for the feedback!" : "Wearing this today?"}
+            </span>
+            <AnimatePresence>
+              {!voted && (
+                <motion.div
+                  key="buttons"
+                  initial={{ opacity: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  style={{ display: "flex", gap: 6 }}
+                >
+                  <ThumbButton icon="👍" label="Yes" onClick={() => handleVote("thumbs_up")} active={false} />
+                  <ThumbButton icon="👎" label="No" onClick={() => handleVote("thumbs_down")} active={false} />
+                </motion.div>
+              )}
+              {voted && (
+                <motion.span
+                  key="check"
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  style={{ fontSize: 18 }}
+                >
+                  {voted === "thumbs_up" ? "👍" : "👎"}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Accessories pills */}
           {(umbrella || sunglasses || scarf || beanie || gloves || footwear) && (
@@ -138,6 +176,25 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
         </motion.button>
       )}
     </div>
+  );
+}
+
+function ThumbButton({ icon, label, onClick, active }: { icon: string; label: string; onClick: () => void; active: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: 36, height: 36, borderRadius: 10,
+        border: `1.5px solid ${active ? "#6C63FF" : "#E5E7EB"}`,
+        background: active ? "#EDE9FE" : "#F9FAFB",
+        cursor: "pointer", fontSize: 18, transition: "all 0.15s",
+      }}
+    >
+      {icon}
+    </button>
   );
 }
 

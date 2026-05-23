@@ -154,6 +154,21 @@ export interface LocationData {
   country: string;
 }
 
+// ── Outfit Feedback ───────────────────────────────────────────────────────────
+
+export type OutfitFeedbackValue = "thumbs_up" | "thumbs_down";
+
+export interface OutfitFeedbackRecord {
+  id?: string;
+  user_id: string;
+  outfit_type: OutfitType;
+  feels_like_temp: number;
+  weather_code: number;
+  wind_speed: number;
+  feedback: OutfitFeedbackValue;
+  created_at?: string;
+}
+
 // ── Onboarding ────────────────────────────────────────────────────────────────
 
 export interface CalibrationScenario {

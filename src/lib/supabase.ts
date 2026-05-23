@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration } from "@/types";
+import type { Profile, UserCalibration, OutfitFeedbackRecord } from "@/types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -60,6 +60,39 @@ export async function upsertCalibration(
     .single();
   if (error) throw error;
   return data as UserCalibration;
+}
+
+export async function createDefaultCalibration(userId: string): Promise<UserCalibration | null> {
+  return upsertCalibration(userId, {
+    thermal_sensitivity: 0,
+    shorts_min_temp: 72,
+    pants_max_temp: 75,
+    light_jacket_max_temp: 65,
+    heavy_coat_max_temp: 45,
+    rain_tolerance: "moderate",
+    humidity_sensitivity: true,
+  });
+}
+
+// ── Outfit Feedback ───────────────────────────────────────────────────────────
+
+export async function saveOutfitFeedback(
+  record: Omit<OutfitFeedbackRecord, "id" | "created_at">
+): Promise<void> {
+  await supabase.from("outfit_feedback").insert(record);
+}
+
+export async function getRecentFeedback(
+  userId: string,
+  limit = 30
+): Promise<OutfitFeedbackRecord[]> {
+  const { data } = await supabase
+    .from("outfit_feedback")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as OutfitFeedbackRecord[];
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
