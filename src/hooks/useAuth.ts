@@ -46,9 +46,10 @@ export function useAuth() {
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
+        setIsLoading(true);
         await loadUser(session.user.id);
+        setIsLoading(false);
       } else if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
-        localStorage.removeItem(IS_ONBOARDED_KEY);
         reset();
         await clearWeatherCache();
       }
