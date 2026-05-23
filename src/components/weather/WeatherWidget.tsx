@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
-  const hairForecast = getHairForecast(weather);
+  const hairForecast = getHairForecast(weather, { tempUnit });
 
   return (
     <div

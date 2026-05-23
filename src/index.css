@@ -128,11 +128,8 @@
 
 .wx-rain-drop {
   position: absolute;
-  width: 2px;
-  border-radius: 1px;
-  background: #90CAF9;
-  animation: wx-rain-fall linear infinite;
   will-change: transform, opacity;
+  animation: wx-rain-fall linear infinite;
 }
 
 .wx-snowflake {

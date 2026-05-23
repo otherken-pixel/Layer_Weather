@@ -3,13 +3,25 @@ export interface HairForecast {
   actionableAdvice: string;
 }
 
-export function getHairForecast(weather: {
-  humidity: number;
-  windSpeed: number;
-  precipProb: number;
-  temp: number;
-}): HairForecast {
-  const { humidity, windSpeed, precipProb } = weather;
+function formatTemp(tempF: number, unit: "F" | "C"): string {
+  if (unit === "C") {
+    return `${Math.round(((tempF - 32) * 5) / 9)}°C`;
+  }
+  return `${Math.round(tempF)}°F`;
+}
+
+export function getHairForecast(
+  weather: {
+    humidity: number;
+    windSpeed: number;
+    precipProb: number;
+    temp: number;
+  },
+  opts?: { tempUnit?: "F" | "C" },
+): HairForecast {
+  const { humidity, windSpeed, precipProb, temp: tempF } = weather;
+  const unit = opts?.tempUnit ?? "F";
+  const displayTemp = formatTemp(tempF, unit);
 
   // Priority 1: Rain
   if (precipProb > 30) {
@@ -24,6 +36,13 @@ export function getHairForecast(weather: {
     return {
       shortTitle: "Tangle Warning",
       actionableAdvice: "Tie it up! Strong winds will knot loose hair fast.",
+    };
+  }
+
+  if (tempF >= 90 && precipProb < 35) {
+    return {
+      shortTitle: "Heat styling stress",
+      actionableAdvice: `Near ${displayTemp} with little rain — UV and sweat beat most products; buns, braids, or a hat-friendly style win.`,
     };
   }
 
@@ -52,6 +71,6 @@ export function getHairForecast(weather: {
   // Priority 4: Ideal conditions
   return {
     shortTitle: "Great Hair Day!",
-    actionableAdvice: "Conditions are ideal — wear it down and own it.",
+    actionableAdvice: `Conditions around ${displayTemp} look ideal — wear it down and own it.`,
   };
 }

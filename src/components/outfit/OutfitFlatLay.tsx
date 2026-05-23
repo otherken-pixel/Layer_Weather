@@ -100,6 +100,7 @@ function iconSizesForWidth(compact: boolean, containerWidth: number | null) {
 
 export default function OutfitFlatLay({
   outfit,
+  rainGear,
   umbrella,
   sunglasses,
   scarf,
@@ -138,6 +139,11 @@ export default function OutfitFlatLay({
 
   const hasAccessories = Boolean(footwear || umbrella || sunglasses || scarf || beanie || gloves);
   const row3 = scarf || gloves;
+  const stackFootwearUmbrella = Boolean(footwear && umbrella);
+  const col3Sunglasses =
+    sunglasses &&
+    !beanie &&
+    (stackFootwearUmbrella || (footwear && !umbrella));
 
   return (
     <motion.div
@@ -156,6 +162,9 @@ export default function OutfitFlatLay({
             gridTemplateRows: row3 ? "auto auto auto" : "auto auto",
             gap: compact ? 2 : 4,
             alignItems: "end",
+            outline: rainGear ? "1px solid rgba(59, 130, 246, 0.35)" : undefined,
+            outlineOffset: rainGear ? 2 : undefined,
+            borderRadius: rainGear ? 12 : undefined,
           }}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -184,57 +193,31 @@ export default function OutfitFlatLay({
                 <BottomGarment outfit={outfit} size={bottomSz} />
               </motion.div>
 
-              {footwear && (
+              {/* Center column: stack footwear + umbrella when both; else single accessory */}
+              {(footwear || umbrella || (!footwear && !umbrella && sunglasses)) && (
                 <div
-                  className="flex justify-center items-end"
+                  className="flex flex-col justify-end items-center gap-0.5"
                   style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
                 >
-                  {wrap(<FootwearIcon kind={footwear} size={accSz} />, 2 * STAGGER)}
+                  {stackFootwearUmbrella && (
+                    <>
+                      {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
+                      {wrap(<FootwearIcon kind={footwear} size={accSz} />, 3 * STAGGER)}
+                    </>
+                  )}
+                  {footwear && !umbrella && wrap(<FootwearIcon kind={footwear} size={accSz} />, 2 * STAGGER)}
+                  {!footwear && umbrella && wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
+                  {!footwear && !umbrella && sunglasses && wrap(<Sunglasses size={accSz} />, 2 * STAGGER)}
                 </div>
               )}
 
-              {!footwear && umbrella && (
-                <div
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
-                >
-                  {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
-                </div>
-              )}
-
-              {!footwear && !umbrella && sunglasses && (
-                <div
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
-                >
-                  {wrap(<Sunglasses size={accSz} />, 2 * STAGGER)}
-                </div>
-              )}
-
-              {beanie && (
+              {(beanie || col3Sunglasses) && (
                 <div
                   className="flex justify-center items-end"
                   style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
                 >
-                  {wrap(<Beanie size={accSz} />, 3 * STAGGER)}
-                </div>
-              )}
-
-              {footwear && umbrella && (
-                <div
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
-                >
-                  {!beanie && wrap(<Umbrella size={accSz} />, 4 * STAGGER)}
-                </div>
-              )}
-
-              {footwear && sunglasses && !umbrella && (
-                <div
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
-                >
-                  {!beanie && wrap(<Sunglasses size={accSz} />, 4 * STAGGER)}
+                  {beanie && wrap(<Beanie size={accSz} />, 3 * STAGGER)}
+                  {!beanie && col3Sunglasses && wrap(<Sunglasses size={accSz} />, 3 * STAGGER)}
                 </div>
               )}
 
@@ -262,14 +245,6 @@ export default function OutfitFlatLay({
                       }}
                     >
                       {wrap(<Gloves size={accSz} />, 6 * STAGGER)}
-                    </div>
-                  )}
-                  {!scarf && !gloves && umbrella && sunglasses && (
-                    <div
-                      className="flex justify-center items-start"
-                      style={{ gridColumn: 2, gridRow: 3, justifySelf: "center" }}
-                    >
-                      {wrap(<Sunglasses size={accSz} />, 4 * STAGGER)}
                     </div>
                   )}
                 </>

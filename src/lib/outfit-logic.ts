@@ -19,10 +19,17 @@ export function resolveFootwear(opts: {
   isRainy: boolean;
   isSnowy: boolean;
   outfit: OutfitType;
+  /** When `"high"`, do not force rain boots for ambient rain alone (aligns with outfit rain override). */
+  rainTolerance?: UserCalibration["rain_tolerance"];
 }): FootwearKind {
   const { effectiveFeelsLike, isRainy, isSnowy, outfit } = opts;
+  const tol = opts.rainTolerance ?? "moderate";
+  const insistRainBoots =
+    outfit === "rain_heavy" ||
+    outfit === "rain_light" ||
+    (isRainy && tol !== "high");
 
-  if (isRainy || outfit === "rain_light" || outfit === "rain_heavy") {
+  if (insistRainBoots) {
     return "rain_boots";
   }
 
@@ -53,6 +60,7 @@ export function resolveFootwearForScenario(temp: number, outfit: OutfitType): Fo
     isRainy: isRainOutfit,
     isSnowy,
     outfit,
+    rainTolerance: "moderate",
   });
 }
 
@@ -163,6 +171,7 @@ export function getOutfitRecommendation(opts: {
     isRainy,
     isSnowy,
     outfit,
+    rainTolerance: calibration.rain_tolerance,
   });
 
   const avatarCondition = getAvatarCondition(

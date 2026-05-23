@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
-import { fetchWeatherData, reverseGeocode } from "@/lib/weather";
+import { fetchWeatherData, reverseGeocodePlace } from "@/lib/weather";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
@@ -105,16 +105,29 @@ export function useWeather() {
           if (generation !== refreshGeneration.current) return;
 
           let city = location?.city || profile?.last_city || "";
+          let countryCode: string | undefined =
+            location?.country?.trim() || undefined;
+
           if (force || !city) {
-            city = await withTimeout(
-              reverseGeocode(latitude, longitude),
+            const place = await withTimeout(
+              reverseGeocodePlace(latitude, longitude),
               GEOCODE_TIMEOUT_MS,
               "Location lookup",
             );
+            if (place) {
+              city = place.city;
+              countryCode = place.countryCode;
+            }
           }
           if (generation !== refreshGeneration.current) return;
 
-          setLocation({ latitude, longitude, city, region: "", country: "" });
+          setLocation({
+            latitude,
+            longitude,
+            city,
+            region: "",
+            country: countryCode ?? "",
+          });
           if (userId) {
             upsertProfile(userId, {
               last_latitude: latitude,
@@ -124,7 +137,7 @@ export function useWeather() {
           }
 
           const data = await withTimeout(
-            fetchWeatherData(latitude, longitude),
+            fetchWeatherData(latitude, longitude, { countryCode }),
             WEATHER_TIMEOUT_MS,
             "Weather fetch",
           );
