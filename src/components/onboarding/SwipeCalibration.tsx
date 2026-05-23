@@ -200,14 +200,13 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             </p>
           </div>
 
-          {/* Icon area — white card so colored icons pop */}
+          {/* Icon area — grows with card height so flat lay can use available space */}
           <div
-            className="w-full rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
+            className="w-full rounded-2xl flex flex-1 min-h-0 items-center justify-center overflow-hidden"
             style={{
               background: "#F0F2F6",
-              padding: "16px 12px",
-              minHeight: 230,
-              maxHeight: 260,
+              padding: "14px 12px",
+              minHeight: 200,
             }}
           >
             <OutfitFlatLay

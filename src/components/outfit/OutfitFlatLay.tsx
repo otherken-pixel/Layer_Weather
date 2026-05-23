@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
@@ -29,6 +30,10 @@ interface Props {
   footwear?: FootwearKind | null;
   /** Kept for call-site compatibility — icons use their own colors */
   colorScheme?: "dark" | "light";
+  /**
+   * Denser layout: narrower `maxWidth`, tighter grid `gap`, and **smaller** base icon sizes
+   * than the default weather card (e.g. swipe calibration preview stacks).
+   */
   compact?: boolean;
 }
 
@@ -75,6 +80,24 @@ function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
   return outfit === "shorts_tshirt" ? <Shorts size={size} /> : <Pants size={size} />;
 }
 
+/** Layout width (px) the base sizes below are tuned for — scaling uses measured container width / this value. */
+const LAYOUT_REF_WIDTH = 280;
+const SCALE_MIN = 0.72;
+const SCALE_MAX = 1.28;
+
+function iconSizesForWidth(compact: boolean, containerWidth: number | null) {
+  const base = compact
+    ? { top: 70, bottom: 60, acc: 50 }
+    : { top: 80, bottom: 68, acc: 56 };
+  const w = containerWidth ?? LAYOUT_REF_WIDTH;
+  const scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, w / LAYOUT_REF_WIDTH));
+  return {
+    topSz: Math.round(base.top * scale),
+    bottomSz: Math.round(base.bottom * scale),
+    accSz: Math.round(base.acc * scale),
+  };
+}
+
 export default function OutfitFlatLay({
   outfit,
   umbrella,
@@ -85,10 +108,22 @@ export default function OutfitFlatLay({
   footwear = null,
   compact = false,
 }: Props) {
-  /** Reference icons are 70×70px — scale proportionally by role */
-  const topSz = compact ? 90 : 80;
-  const bottomSz = compact ? 74 : 68;
-  const accSz = compact ? 62 : 56;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const { topSz, bottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
 
   const wrap = (node: React.ReactNode, delay: number) => (
     <motion.div
@@ -106,6 +141,7 @@ export default function OutfitFlatLay({
 
   return (
     <motion.div
+      ref={containerRef}
       layout
       className="mx-auto w-full overflow-hidden"
       style={{ maxWidth: compact ? 260 : 280 }}
