@@ -17,7 +17,7 @@ import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
-  drizzle: "🌦️", rain: "🌧️", heavy_rain: "⛈️", snow: "❄️", thunderstorm: "⛈️",
+  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
 };
 
 function toUnit(f: number, unit: "F" | "C") {
@@ -40,7 +40,9 @@ export default function Home() {
 
   async function handleUnitChange(unit: "F" | "C") {
     if (!userId) return;
-    setProfile({ ...(profile!), temp_unit: unit });
+    const p = useAppStore.getState().profile;
+    if (!p) return;
+    setProfile({ ...p, temp_unit: unit });
     upsertProfile(userId, { temp_unit: unit }).catch(console.error);
   }
 

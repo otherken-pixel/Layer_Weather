@@ -49,7 +49,7 @@ export default function Login() {
 
   return (
     <div
-      className="relative flex flex-col min-h-full overflow-hidden"
+      className="relative flex flex-col min-h-full"
       style={{ background: "linear-gradient(160deg,#1a1a2e 0%,#2d1b4e 55%,#162033 100%)" }}
     >
       {/* Background glow blobs */}
@@ -78,7 +78,7 @@ export default function Login() {
         transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
-      <div className="relative flex flex-col gap-6 px-7 pt-safe mt-8 pb-10 max-w-sm w-full mx-auto">
+      <div className="relative flex flex-col gap-6 px-7 pt-safe mt-8 pb-10 max-w-sm w-full mx-auto min-h-0 flex-1 overflow-y-auto">
         <button
           onClick={() => navigate("/welcome")}
           className="w-11 h-11 rounded-full flex items-center justify-center text-white self-start"

@@ -11,19 +11,31 @@ interface Props {
 
 export function WeatherAnimationLayer({ condition, isDay }: Props) {
   const [lightningOn, setLightningOn] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const outerFlashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const innerFlashTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (condition !== "thunderstorm") return;
-    function flash() {
+    let cancelled = false;
+    function scheduleNextFlash() {
+      if (cancelled) return;
       const delay = 4000 + Math.random() * 7000;
-      timerRef.current = setTimeout(() => {
+      outerFlashTimerRef.current = setTimeout(() => {
+        if (cancelled) return;
         setLightningOn(true);
-        setTimeout(() => { setLightningOn(false); flash(); }, 180);
+        innerFlashTimerRef.current = setTimeout(() => {
+          if (cancelled) return;
+          setLightningOn(false);
+          scheduleNextFlash();
+        }, 180);
       }, delay);
     }
-    flash();
-    return () => clearTimeout(timerRef.current);
+    scheduleNextFlash();
+    return () => {
+      cancelled = true;
+      if (outerFlashTimerRef.current !== undefined) clearTimeout(outerFlashTimerRef.current);
+      if (innerFlashTimerRef.current !== undefined) clearTimeout(innerFlashTimerRef.current);
+    };
   }, [condition]);
 
   const rainDrops = useMemo(() => {
@@ -178,13 +190,21 @@ export function WeatherAnimationLayer({ condition, isDay }: Props) {
             style={{
               left: `${d.left}%`,
               top: -24,
-              height: d.height,
-              opacity: d.opacity,
               animationDelay: `${d.delay}s`,
               animationDuration: `${d.duration}s`,
-              transform: tilt,
             }}
-          />
+          >
+            <div
+              style={{
+                width: 2,
+                height: d.height,
+                borderRadius: 1,
+                background: "#90CAF9",
+                opacity: d.opacity,
+                transform: tilt,
+              }}
+            />
+          </div>
         ))}
       </div>
     );
@@ -222,14 +242,21 @@ export function WeatherAnimationLayer({ condition, isDay }: Props) {
             style={{
               left: `${d.left}%`,
               top: -24,
-              height: d.height,
-              opacity: d.opacity,
               animationDelay: `${d.delay}s`,
               animationDuration: `${d.duration}s`,
-              transform: "rotate(-15deg)",
-              background: "#A8C8E8",
             }}
-          />
+          >
+            <div
+              style={{
+                width: 2,
+                height: d.height,
+                borderRadius: 1,
+                background: "#A8C8E8",
+                opacity: d.opacity,
+                transform: "rotate(-15deg)",
+              }}
+            />
+          </div>
         ))}
         <div style={{
           position: "absolute",

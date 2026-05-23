@@ -115,19 +115,29 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
   };
 }
 
+export interface ReverseGeocodePlace {
+  city: string;
+  /** ISO 3166-1 alpha-2, upper-case (e.g. US, GB). */
+  countryCode: string;
+}
+
 // ── Primary: WeatherKit via Supabase Edge Function ────────────────────────────
 async function fetchFromEdgeFunction(
   latitude: number,
   longitude: number,
+  countryCodeHint?: string,
 ): Promise<WeatherData> {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  // countryCode is required by WeatherKit for forecastNextHour in many regions.
-  // Intl.Locale is widely supported; fall back to "US" if unavailable.
   let countryCode = "US";
-  try {
-    const locale = new Intl.Locale(navigator.language);
-    if (locale.region) countryCode = locale.region;
-  } catch { /* keep default */ }
+  const trimmedHint = countryCodeHint?.trim();
+  if (trimmedHint) {
+    countryCode = trimmedHint.length >= 2 ? trimmedHint.slice(0, 2).toUpperCase() : trimmedHint;
+  } else {
+    try {
+      const locale = new Intl.Locale(navigator.language);
+      if (locale.region) countryCode = locale.region;
+    } catch { /* keep US */ }
+  }
 
   const body = await withRetry(async () => {
     const { data, error } = await supabase.functions.invoke("weather", {
@@ -233,9 +243,10 @@ async function fetchFromOpenMeteo(
 export async function fetchWeatherData(
   latitude: number,
   longitude: number,
+  opts?: { countryCode?: string },
 ): Promise<WeatherData> {
   try {
-    return await fetchFromEdgeFunction(latitude, longitude);
+    return await fetchFromEdgeFunction(latitude, longitude, opts?.countryCode);
   } catch (err) {
     console.warn("WeatherKit edge function unavailable, using Open-Meteo fallback:", err);
     return fetchFromOpenMeteo(latitude, longitude);
@@ -243,20 +254,31 @@ export async function fetchWeatherData(
 }
 
 // ── Reverse geocode via Nominatim ─────────────────────────────────────────────
-export async function reverseGeocode(lat: number, lon: number): Promise<string> {
+export async function reverseGeocodePlace(lat: number, lon: number): Promise<ReverseGeocodePlace> {
   try {
     const res = await fetchWithTimeout(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
       { headers: { "Accept-Language": "en" } },
       8_000,
     );
-    if (!res.ok) return "Your Location";
+    if (!res.ok) return { city: "Your Location", countryCode: "US" };
     const json = await res.json();
-    const addr = json.address;
-    return addr.city || addr.town || addr.village || addr.county || "Your Location";
+    const addr = json.address as Record<string, string> | undefined;
+    const city =
+      addr?.city || addr?.town || addr?.village || addr?.county || "Your Location";
+    const rawCc = addr?.country_code;
+    const countryCode =
+      typeof rawCc === "string" && rawCc.length >= 2 ? rawCc.slice(0, 2).toUpperCase() : "US";
+    return { city, countryCode };
   } catch {
-    return "Your Location";
+    return { city: "Your Location", countryCode: "US" };
   }
+}
+
+/** @deprecated Prefer reverseGeocodePlace for country-aware weather. */
+export async function reverseGeocode(lat: number, lon: number): Promise<string> {
+  const { city } = await reverseGeocodePlace(lat, lon);
+  return city;
 }
 
 // ── Significant change detection (used for commute alerts) ────────────────────

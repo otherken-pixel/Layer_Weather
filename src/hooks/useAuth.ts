@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase, getProfile, getCalibration, upsertCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { loadWeatherCache, clearWeatherCache } from "@/lib/cache";
+import { resetPushNotificationSession } from "@/lib/notifications";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
 const IS_ONBOARDED_KEY = "wt_is_onboarded";
@@ -34,7 +35,6 @@ export function useAuth() {
     reset,
   } = useAppStore();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const authTimeout = setTimeout(() => setIsLoading(false), AUTH_LOADING_TIMEOUT_MS);
 
@@ -53,6 +53,12 @@ export function useAuth() {
         await loadUser(session.user.id);
         setIsLoading(false);
       } else if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+        localStorage.removeItem(CALIBRATION_PENDING_KEY);
+        localStorage.removeItem(IS_ONBOARDED_KEY);
+        localStorage.removeItem("wt_last_outfit_alert");
+        localStorage.removeItem("wt_today_event_type");
+        localStorage.removeItem("wt_today_event_date");
+        await resetPushNotificationSession();
         reset();
         await clearWeatherCache();
       }

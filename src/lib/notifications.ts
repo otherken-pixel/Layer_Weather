@@ -4,6 +4,8 @@ import { upsertProfile } from "./supabase";
 
 let listenersAttached = false;
 let tokenSavedForUser: string | null = null;
+/** User id for whom push registration callbacks should persist tokens (updated on every register call). */
+let activePushUserId: string | null = null;
 
 async function saveToken(userId: string, token: string): Promise<void> {
   const key = `${userId}:${token}`;
@@ -12,13 +14,15 @@ async function saveToken(userId: string, token: string): Promise<void> {
   tokenSavedForUser = key;
 }
 
-function attachListeners(userId: string): void {
+function attachListeners(): void {
   if (listenersAttached) return;
   listenersAttached = true;
 
   PushNotifications.addListener("registration", async (token) => {
+    const uid = activePushUserId;
+    if (!uid) return;
     try {
-      await saveToken(userId, token.value);
+      await saveToken(uid, token.value);
     } catch (err) {
       console.warn("Failed to save FCM token:", err);
     }
@@ -40,16 +44,34 @@ function attachListeners(userId: string): void {
 }
 
 /**
+ * Clears native push listeners and in-module flags so the next sign-in re-binds
+ * with the correct user id. Call on sign-out.
+ */
+export async function resetPushNotificationSession(): Promise<void> {
+  activePushUserId = null;
+  tokenSavedForUser = null;
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await PushNotifications.removeAllListeners();
+  } catch {
+    /* non-fatal */
+  }
+  listenersAttached = false;
+}
+
+/**
  * Requests push notification permission and registers the device.
  * Saves the FCM/APNs token to the user's profile for server-side delivery.
  */
 export async function registerPushNotifications(userId: string): Promise<boolean> {
+  activePushUserId = userId;
+
   if (!Capacitor.isNativePlatform()) {
     await registerWebNotifications(userId);
     return false;
   }
 
-  attachListeners(userId);
+  attachListeners();
 
   const { receive } = await PushNotifications.requestPermissions();
   if (receive !== "granted") return false;

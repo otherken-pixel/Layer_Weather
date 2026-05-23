@@ -321,9 +321,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function WhiteCard({ children, padding = "p-4" }: { children: React.ReactNode; padding?: string }) {
-  void padding;
   return (
-    <div style={{ background: "#FFFFFF", borderRadius: 20, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className={`rounded-[20px] bg-white ${padding}`} style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
       {children}
     </div>
   );
