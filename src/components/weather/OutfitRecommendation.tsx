@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
@@ -15,7 +15,7 @@ interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
-  onFeedback?: (value: OutfitFeedbackValue) => void;
+  onFeedback?: (value: OutfitFeedbackValue) => void | Promise<void>;
   onRecalibrate?: () => void;
 }
 
@@ -29,10 +29,18 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
   const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } = recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
 
-  function handleVote(value: OutfitFeedbackValue) {
+  useEffect(() => {
+    setVoted(null);
+  }, [recommendation.outfit, feelsLike]);
+
+  async function handleVote(value: OutfitFeedbackValue) {
     if (voted) return;
-    setVoted(value);
-    onFeedback?.(value);
+    try {
+      await onFeedback?.(value);
+      setVoted(value);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   const displayFeelsLike =

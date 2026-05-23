@@ -26,7 +26,14 @@ export function computeCalibrationFromFeedback(
   feedback: OutfitFeedbackRecord[],
   current: UserCalibration
 ): Partial<Omit<UserCalibration, "user_id" | "updated_at">> {
-  const thumbsDown = feedback.filter((f) => f.feedback === "thumbs_down");
+  // Only count thumbs-down since the last calibration write; otherwise old
+  // votes stay in the window and re-trigger the same adjustment forever.
+  const since = current.updated_at;
+  const thumbsDown = feedback.filter(
+    (f) =>
+      f.feedback === "thumbs_down" &&
+      (!since || !f.created_at || f.created_at > since)
+  );
 
   const countByOutfit = (type: OutfitType) =>
     thumbsDown.filter((f) => f.outfit_type === type).length;

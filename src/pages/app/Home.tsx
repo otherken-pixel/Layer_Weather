@@ -43,7 +43,7 @@ export default function Home() {
       weather_code: weather.current.weatherCode,
       wind_speed: weather.current.windSpeed,
       feedback: value,
-    }).catch(console.error);
+    });
 
     if (value === "thumbs_down") {
       const recent = await getRecentFeedback(userId, 30).catch(() => []);
