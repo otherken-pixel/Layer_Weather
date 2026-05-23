@@ -199,7 +199,7 @@ export default function OutfitFlatLay({
                   className="flex flex-col justify-end items-center gap-0.5"
                   style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
                 >
-                  {stackFootwearUmbrella && (
+                  {stackFootwearUmbrella && footwear && (
                     <>
                       {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
                       {wrap(<FootwearIcon kind={footwear} size={accSz} />, 3 * STAGGER)}
