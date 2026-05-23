@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useAppStore } from "@/store";
 
 import Welcome from "@/pages/auth/Welcome";
 import Login from "@/pages/auth/Login";
@@ -28,7 +27,6 @@ function useHashError() {
 
 export default function App() {
   const { isAuthenticated, isLoading } = useAuth();
-  const { isOnboarded } = useAppStore();
   const hashError = useHashError();
 
   if (hashError) {
@@ -73,11 +71,6 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="*" element={<Navigate to="/welcome" replace />} />
-          </>
-        ) : !isOnboarded ? (
-          <>
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="*" element={<Navigate to="/onboarding" replace />} />
           </>
         ) : (
           <>

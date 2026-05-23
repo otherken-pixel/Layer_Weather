@@ -12,8 +12,10 @@ import { useAppStore } from "@/store";
 import { getSkyColor } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
-import { upsertProfile } from "@/lib/supabase";
+import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
+import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
+import type { OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -26,10 +28,32 @@ function toUnit(f: number, unit: "F" | "C") {
 
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile, userId, setProfile } = useAppStore();
+  const { profile, userId, calibration, setProfile, setCalibration } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+
+  async function handleOutfitFeedback(value: OutfitFeedbackValue) {
+    if (!userId || !outfit || !weather || !calibration) return;
+
+    await saveOutfitFeedback({
+      user_id: userId,
+      outfit_type: outfit.outfit,
+      feels_like_temp: weather.current.feelsLike,
+      weather_code: weather.current.weatherCode,
+      wind_speed: weather.current.windSpeed,
+      feedback: value,
+    }).catch(console.error);
+
+    if (value === "thumbs_down") {
+      const recent = await getRecentFeedback(userId, 30).catch(() => []);
+      const updates = computeCalibrationFromFeedback(recent, calibration);
+      if (Object.keys(updates).length > 0) {
+        const updated = await upsertCalibration(userId, updates).catch(() => null);
+        if (updated) setCalibration(updated);
+      }
+    }
+  }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh(); }, []);
@@ -164,6 +188,7 @@ export default function Home() {
               recommendation={outfit}
               tempUnit={tempUnit}
               feelsLike={weather.current.feelsLike}
+              onFeedback={handleOutfitFeedback}
             />
 
             {/* Calendar style hint */}

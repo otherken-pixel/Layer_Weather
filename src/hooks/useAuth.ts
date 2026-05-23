@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase, getProfile, getCalibration, upsertCalibration } from "@/lib/supabase";
+import { supabase, getProfile, getCalibration, upsertCalibration, createDefaultCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { loadWeatherCache, clearWeatherCache } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
@@ -119,7 +119,13 @@ export function useAuth() {
             // Pending sync failed; keep isOnboarded from localStorage fast-path.
           }
         } else if (!localStorage.getItem(IS_ONBOARDED_KEY)) {
-          setIsOnboarded(false);
+          // No calibration and no pending data — create defaults and go straight to app.
+          const defaultCal = await createDefaultCalibration(id).catch(() => null);
+          if (defaultCal) {
+            setCalibration(defaultCal);
+          }
+          setIsOnboarded(true);
+          localStorage.setItem(IS_ONBOARDED_KEY, "1");
         }
         // DB timed out (result === null) and localStorage says onboarded → trust it.
       }
