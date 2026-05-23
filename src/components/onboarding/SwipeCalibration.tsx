@@ -205,9 +205,9 @@ export function SwipeCalibration({ onComplete }: SwipeCalibrationProps) {
             className="w-full rounded-2xl flex items-center justify-center shrink-0 overflow-hidden"
             style={{
               background: "#F0F2F6",
-              padding: "10px 8px",
-              minHeight: 200,
-              maxHeight: 220,
+              padding: "16px 12px",
+              minHeight: 230,
+              maxHeight: 260,
             }}
           >
             <OutfitFlatLay
