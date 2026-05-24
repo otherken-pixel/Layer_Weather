@@ -25,7 +25,7 @@ const OUTFIT_WARMTH: Record<OutfitType, number> = {
   light_jacket: 3,
   rain_light: 3,
   heavy_jacket: 4,
-  rain_heavy: 5,
+  rain_heavy: 4,
   heavy_coat: 6,
 };
 

@@ -13,14 +13,14 @@ import { LocationTabs } from "@/components/weather/LocationTabs";
 import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
-import { getSkyColor } from "@/constants/colors";
+import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
+import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -54,8 +54,8 @@ export default function Home() {
   const isDark = useDarkMode(profile?.theme_preference ?? null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
-  const cardsBg = isDark ? "#1C1C1E" : "#F2F2F7";
-  const cardSurface = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
+  const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
   // Load saved locations on mount
   useEffect(() => {
@@ -64,46 +64,69 @@ export default function Home() {
   }, []);
 
   // Trigger weather refresh when location city changes (e.g. tab switch).
-  // `undefined` means we have not synced yet — skip the first non-null city so the
-  // initial `refresh()` is not duplicated when reverse-geocode sets city.
-  const prevCityRef = useRef<string | null | undefined>(undefined);
+  // prevCityRef is seeded from store so a persisted city does not look like a change.
+  // skipNextCityRefreshRef ignores the city update from the initial refresh() below.
+  const prevCityRef = useRef<string | null>(location?.city ?? null);
+  const skipNextCityRefreshRef = useRef(false);
   useEffect(() => {
     const city = location?.city ?? null;
-    if (city === null) return;
-    if (prevCityRef.current === undefined) {
+    if (city && city !== prevCityRef.current) {
       prevCityRef.current = city;
-      return;
-    }
-    if (city !== prevCityRef.current) {
-      prevCityRef.current = city;
-      refresh(true, false);
+      if (skipNextCityRefreshRef.current) {
+        skipNextCityRefreshRef.current = false;
+        return;
+      }
+      refresh(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
 
-  // Initial load
+  // Initial load (sets location.city via refresh — skip duplicate city-change fetch).
+  // If the profile already had the same city, the city-change effect never runs, so clear
+  // the skip flag here after refresh when the resolved city matches what we seeded.
+  useEffect(() => {
+    const norm = (c: string | null) => (c && c.trim()) || null;
+    const seededCity = norm(prevCityRef.current);
+    skipNextCityRefreshRef.current = true;
+    void (async () => {
+      try {
+        await refresh();
+      } finally {
+        const resolvedCity = norm(useAppStore.getState().location?.city ?? null);
+        if (resolvedCity === seededCity) {
+          skipNextCityRefreshRef.current = false;
+        }
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
+  }, []);
 
   // Geofence: trigger weather refresh when user moves significantly
   useEffect(() => {
     if (!location) return;
-    startGeofence({
-      currentLocation: location,
-      onSignificantMove: () => { refresh(true); },
-    }).catch(() => {});
+    let cancelled = false;
+    void (async () => {
+      await stopGeofence();
+      if (cancelled) return;
+      await startGeofence({
+        currentLocation: location,
+        onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
+      });
+    })().catch(() => {});
     return () => {
-      stopGeofence().catch(() => {});
+      cancelled = true;
+      void stopGeofence().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   async function handleLocationSaved() {
-    await refresh(true, false);
+    await refresh(true, { useDeviceLocation: false });
+    // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
     const loc = useAppStore.getState().location;
-    if (loc) {
-      const updated = await addSavedLocation(loc).catch(() => useAppStore.getState().savedLocations);
-      setSavedLocations(updated);
+    if (loc?.city) {
+      const updated = await addSavedLocation(loc).catch(() => null);
+      if (updated) setSavedLocations(updated);
     }
   }
 
@@ -121,7 +144,7 @@ export default function Home() {
       weather_code: weather.current.weatherCode,
       wind_speed: weather.current.windSpeed,
       feedback: value,
-    }).catch(console.error);
+    });
     if (value === "thumbs_down") {
       const recent = await getRecentFeedback(userId, 30).catch(() => []);
       const updates = computeCalibrationFromFeedback(recent, calibration);
@@ -191,8 +214,8 @@ export default function Home() {
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            {/* Text sits on cardsBg — #4B5563 on #F2F2F7 (6.76:1 ✓); #9BA4B4 on #1C1C1E (6.6:1 ✓) */}
-            <p className="text-center text-sm pt-2" style={{ color: isDark ? "#9BA4B4" : "#4B5563" }}>
+            {/* Light: mutedLabel on cardsBg (#F2F2F7); dark: textMuted on dark card — AA contrast ✓ */}
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? Colors.dark.textMuted : Colors.text.mutedLabel }}>
               Fetching your weather…
             </p>
           </div>
@@ -265,7 +288,7 @@ export default function Home() {
               today={weather.daily[0] ?? null}
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
-              onRefresh={() => refresh(true)}
+              onRefresh={() => refresh(true, { useDeviceLocation: true })}
               onLocationPress={() => setLocationPickerOpen(true)}
             />
             <LocationPickerSheet
@@ -406,7 +429,7 @@ function HourlyStrip({
   cardSurface: string;
 }) {
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const labelColor = isDark ? Colors.dark.textMuted : Colors.text.muted;
 
   return (
     <div style={{
@@ -414,7 +437,7 @@ function HourlyStrip({
       borderRadius: 24,
       padding: "20px",
       boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
-      border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+      border: isDark ? `1px solid ${Colors.dark.border}` : undefined,
     }}>
       <p style={{
         fontSize: 12, fontWeight: 700,
@@ -435,17 +458,17 @@ function HourlyStrip({
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                 minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
-                background: isNow ? "#7C3AED" : isDark ? "#3A3A3C" : "#F3F4F6",
+                background: isNow ? "#7C3AED" : isDark ? Colors.dark.cellBg : "#F3F4F6",
               }}
             >
               <span style={{
                 fontSize: 10, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "#9BA4B4" : "#6B7280",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : Colors.text.muted,
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F4F4F5" : "#111827" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
               <span style={{ fontSize: 10, fontWeight: 600, color: precipColor }}>

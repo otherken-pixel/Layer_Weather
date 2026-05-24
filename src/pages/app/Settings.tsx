@@ -10,6 +10,7 @@ import { useWeather } from "@/hooks/useWeather";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
 import type { LocationData } from "@/types";
+import { Colors } from "@/constants/colors";
 
 const ACCENT = "#7C3AED";
 
@@ -50,7 +51,7 @@ export default function Settings() {
   async function saveGpsLocation() {
     if (!userId) return;
     const result = await saveFromDevice();
-    if (result.ok) await refresh(true);
+    if (result.ok) await refresh(true, { useDeviceLocation: true });
   }
 
   async function saveSettings() {
@@ -81,7 +82,7 @@ export default function Settings() {
   // Email/secondary — #4B5563 on #F2F2F7 (6.76:1 ✓); #9BA4B4 on #1C1C1E (6.6:1 ✓)
   const emailColor = isDark ? "#9BA4B4" : "#4B5563";
   // Section labels — #4B5563 on gray bg (6.76:1 ✓); #9BA4B4 on dark (6.6:1 ✓)
-  const sectionLabelColor = isDark ? "#9BA4B4" : "#4B5563";
+  const sectionLabelColor = isDark ? Colors.dark.textMuted : Colors.text.mutedLabel;
   // Footnote text below cards
   const footnoteColor = isDark ? "#9BA4B4" : "#4B5563";
   // Card surface
@@ -93,12 +94,12 @@ export default function Settings() {
   // Primary text inside cards
   const rowTextColor = isDark ? "#F4F4F5" : "#111827";
   const rowSecondaryColor = isDark ? "#9BA4B4" : "#6B7280";
-  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
+  const dividerColor = isDark ? Colors.dark.divider : "#F3F4F6";
   const inputBg = isDark ? "#3A3A3C" : "#F3F4F6";
   const inputBorder = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
   const inputText = isDark ? "#F4F4F5" : "#111827";
   const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
-  const pillInactiveText = isDark ? "#D1D5DB" : "#4B5563";
+  const pillInactiveText = isDark ? Colors.dark.textSecondary : "#4B5563";
 
   return (
     <div style={{ minHeight: "100%", background: pageBg, display: "flex", flexDirection: "column" }}>
