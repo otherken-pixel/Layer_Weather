@@ -70,14 +70,12 @@ export async function startGeofence(opts: GeofenceOptions): Promise<void> {
 export async function stopGeofence(): Promise<void> {
   if (watchId === null) return;
 
-  if (Capacitor.isNativePlatform()) {
-    await Geolocation.clearWatch({ id: watchId });
-  } else {
-    navigator.geolocation.clearWatch(Number(watchId));
-  }
+  const id = watchId;
   watchId = null;
-}
 
-export function resetGeofenceCooldown(): void {
-  lastTriggerMs = 0;
+  if (Capacitor.isNativePlatform()) {
+    await Geolocation.clearWatch({ id });
+  } else {
+    navigator.geolocation.clearWatch(Number(id));
+  }
 }
