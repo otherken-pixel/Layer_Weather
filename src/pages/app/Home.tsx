@@ -20,7 +20,7 @@ import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { getSavedLocations } from "@/lib/saved-locations";
+import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -81,11 +81,24 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
 
-  // Initial load (sets location.city via refresh — skip duplicate city-change fetch)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Initial load (sets location.city via refresh — skip duplicate city-change fetch).
+  // If the profile already had the same city, the city-change effect never runs, so clear
+  // the skip flag here after refresh when the resolved city matches what we seeded.
   useEffect(() => {
+    const norm = (c: string | null) => (c && c.trim()) || null;
+    const seededCity = norm(prevCityRef.current);
     skipNextCityRefreshRef.current = true;
-    refresh();
+    void (async () => {
+      try {
+        await refresh();
+      } finally {
+        const resolvedCity = norm(useAppStore.getState().location?.city ?? null);
+        if (resolvedCity === seededCity) {
+          skipNextCityRefreshRef.current = false;
+        }
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Geofence: trigger weather refresh when user moves significantly
@@ -108,8 +121,13 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved() {
-    // Saved list is updated in LocationPickerSheet (getState().location). Refresh weather only.
     await refresh(true);
+    // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
+    const loc = useAppStore.getState().location;
+    if (loc?.city) {
+      const updated = await addSavedLocation(loc).catch(() => null);
+      if (updated) setSavedLocations(updated);
+    }
   }
 
   async function handleTabSelect(loc: LocationData) {
