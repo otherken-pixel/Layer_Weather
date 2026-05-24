@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { SkyHeader } from "@/components/weather/SkyHeader";
@@ -12,14 +13,14 @@ import { LocationTabs } from "@/components/weather/LocationTabs";
 import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
-import { getSkyColor } from "@/constants/colors";
+import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
+import { getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -31,23 +32,6 @@ const CONDITION_EMOJI: Record<string, string> = {
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
-}
-
-function useDarkMode(themePreference: string | null): boolean {
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const [isDark, setIsDark] = useState(
-    themePreference === "light" ? false : themePreference === "dark" ? true : systemDark,
-  );
-  useEffect(() => {
-    if (themePreference === "light") { setIsDark(false); return; }
-    if (themePreference === "dark") { setIsDark(true); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [themePreference]);
-  return isDark;
 }
 
 function formatTimeAgo(date: Date): string {
@@ -70,8 +54,8 @@ export default function Home() {
   const isDark = useDarkMode(profile?.theme_preference ?? null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
-  const cardsBg = isDark ? "#1C1C1E" : "#F2F2F7";
-  const cardSurface = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
+  const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
   // Load saved locations on mount
   useEffect(() => {
@@ -79,41 +63,53 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Trigger weather refresh when location city changes (e.g. tab switch)
-  const prevCityRef = useRef<string | null>(null);
+  // Trigger weather refresh when location city changes (e.g. tab switch).
+  // prevCityRef is seeded from store so a persisted city does not look like a change.
+  // skipNextCityRefreshRef ignores the city update from the initial refresh() below.
+  const prevCityRef = useRef<string | null>(location?.city ?? null);
+  const skipNextCityRefreshRef = useRef(false);
   useEffect(() => {
     const city = location?.city ?? null;
     if (city && city !== prevCityRef.current) {
       prevCityRef.current = city;
+      if (skipNextCityRefreshRef.current) {
+        skipNextCityRefreshRef.current = false;
+        return;
+      }
       refresh(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
 
-  // Initial load
+  // Initial load (sets location.city via refresh — skip duplicate city-change fetch)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    skipNextCityRefreshRef.current = true;
+    refresh();
+  }, []);
 
   // Geofence: trigger weather refresh when user moves significantly
   useEffect(() => {
     if (!location) return;
-    startGeofence({
-      currentLocation: location,
-      onSignificantMove: () => { refresh(true); },
-    }).catch(() => {});
+    let cancelled = false;
+    void (async () => {
+      await stopGeofence();
+      if (cancelled) return;
+      await startGeofence({
+        currentLocation: location,
+        onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
+      });
+    })().catch(() => {});
     return () => {
-      stopGeofence().catch(() => {});
+      cancelled = true;
+      void stopGeofence().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
   async function handleLocationSaved() {
+    // Saved list is updated in LocationPickerSheet (getState().location). Refresh weather only.
     await refresh(true);
-    // Add the newly active location to saved list
-    if (location) {
-      const updated = await addSavedLocation(location).catch(() => savedLocations);
-      setSavedLocations(updated);
-    }
   }
 
   async function handleTabSelect(loc: LocationData) {
@@ -130,7 +126,7 @@ export default function Home() {
       weather_code: weather.current.weatherCode,
       wind_speed: weather.current.windSpeed,
       feedback: value,
-    }).catch(console.error);
+    });
     if (value === "thumbs_down") {
       const recent = await getRecentFeedback(userId, 30).catch(() => []);
       const updates = computeCalibrationFromFeedback(recent, calibration);
@@ -200,7 +196,8 @@ export default function Home() {
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>
+            {/* Light: text on cardsBg (#F2F2F7); dark: text on dark card — AA contrast ✓ */}
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.65)" : Colors.text.muted }}>
               Fetching your weather…
             </p>
           </div>
@@ -273,7 +270,7 @@ export default function Home() {
               today={weather.daily[0] ?? null}
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
-              onRefresh={() => refresh(true)}
+              onRefresh={() => refresh(true, { useDeviceLocation: true })}
               onLocationPress={() => setLocationPickerOpen(true)}
             />
             <LocationPickerSheet
@@ -325,6 +322,7 @@ export default function Home() {
               feelsLikeExplanation={feelsLikeExplanation}
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
+              isDark={isDark}
             />
 
             {/* Calendar style hint */}
@@ -365,12 +363,12 @@ export default function Home() {
 
             {/* AQI card */}
             {weather.current.aqiIndex !== null && weather.current.aqiIndex !== undefined && (
-              <AQICard aqiIndex={weather.current.aqiIndex} />
+              <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
             )}
 
             {/* Nowcast */}
             {weather.nextHourPrecip && (
-              <NowcastCard data={weather.nextHourPrecip} />
+              <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
             )}
 
             {/* Hourly strip */}
@@ -382,6 +380,7 @@ export default function Home() {
                 daily={weather.daily}
                 tempUnit={tempUnit}
                 hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}
+                isDark={isDark}
               />
             )}
 
@@ -411,12 +410,21 @@ function HourlyStrip({
   isDark: boolean;
   cardSurface: string;
 }) {
+  // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
+  const labelColor = isDark ? Colors.dark.textMuted : Colors.text.muted;
+
   return (
-    <div style={{ background: cardSurface, borderRadius: 24, padding: "20px", boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}>
+    <div style={{
+      background: cardSurface,
+      borderRadius: 24,
+      padding: "20px",
+      boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
+      border: isDark ? `1px solid ${Colors.dark.border}` : undefined,
+    }}>
       <p style={{
-        fontSize: 11, fontWeight: 700,
-        color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
-        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12,
+        fontSize: 12, fontWeight: 700,
+        color: labelColor,
+        letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
       }}>
         Hourly Forecast
       </p>
@@ -424,26 +432,28 @@ function HourlyStrip({
         {hourly.map((h, i) => {
           const isNow = i === 0;
           const condKey = wmoToCondition(h.weatherCode);
+          // Precip %: #1D4ED8 on light cell #F3F4F6 (6.1:1 ✓); #60A5FA on dark cell #3A3A3C (4.5:1 ✓)
+          const precipColor = isNow ? "rgba(255,255,255,0.9)" : isDark ? "#60A5FA" : "#1D4ED8";
           return (
             <div
               key={i}
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                 minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
-                background: isNow ? "#7C3AED" : isDark ? "#3A3A3C" : "#F3F4F6",
+                background: isNow ? "#7C3AED" : isDark ? Colors.dark.cellBg : "#F3F4F6",
               }}
             >
               <span style={{
                 fontSize: 10, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "rgba(255,255,255,0.5)" : "#6B7280",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : Colors.text.muted,
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F9FAFB" : "#111827" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.75)" : "#3B82F6" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: precipColor }}>
                 {h.precipProb}%
               </span>
             </div>

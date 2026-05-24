@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface WeatherAlert {
@@ -13,13 +13,17 @@ interface Props {
 export function AlertBanner({ alerts }: Props) {
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
 
+  useEffect(() => {
+    setDismissed(new Set());
+  }, [alerts]);
+
   const visible = alerts.filter((_, i) => !dismissed.has(i));
   if (visible.length === 0) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <AnimatePresence>
-        {visible.map((alert, originalIdx) => {
+        {visible.map((alert, _originalIdx) => {
           const idx = alerts.indexOf(alert);
           return (
             <motion.div

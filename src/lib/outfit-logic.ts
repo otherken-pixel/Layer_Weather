@@ -18,20 +18,16 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
-/** Relative warmth / layering (higher = more layers). Matches temperature band order in `getOutfitRecommendation`. */
-const OUTFIT_WARMTH_RANK: Record<OutfitType, number> = {
-  shorts_tshirt: 0,
-  pants_tshirt: 1,
-  light_jacket: 2,
-  rain_light: 2,
+/** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
+const OUTFIT_WARMTH: Record<OutfitType, number> = {
+  shorts_tshirt: 1,
+  pants_tshirt: 2,
+  light_jacket: 3,
+  rain_light: 3,
   heavy_jacket: 4,
   rain_heavy: 4,
   heavy_coat: 6,
 };
-
-export function getOutfitWarmthRank(outfit: OutfitType): number {
-  return OUTFIT_WARMTH_RANK[outfit];
-}
 
 /** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
 export function getLayerChangeDirection(
@@ -39,7 +35,7 @@ export function getLayerChangeDirection(
   to: OutfitType
 ): "layer up" | "layer down" | null {
   if (from === to) return null;
-  const delta = getOutfitWarmthRank(to) - getOutfitWarmthRank(from);
+  const delta = OUTFIT_WARMTH[to] - OUTFIT_WARMTH[from];
   if (delta > 0) return "layer up";
   if (delta < 0) return "layer down";
   return null;
@@ -93,7 +89,6 @@ export function getOutfitReason(opts: {
   const isWindy = windSpeed > 15;
   const isSnowy = weatherCode >= 71 && weatherCode <= 77;
   const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
-  const isRainy = precipProb > 40 || (weatherCode >= 51 && weatherCode <= 82);
   const isHumid = humidity > 70 && feelsLike > 70;
 
   if (outfit === "rain_heavy") {
@@ -144,30 +139,20 @@ export function getFeelsLikeExplanation(opts: {
   const delta = Math.round(feelsLike - temp);
   if (Math.abs(delta) < 2) return null;
 
-  if (delta < -3 && windSpeed > 10) {
+  if (delta <= -2 && windSpeed > 10) {
     return `Wind chill (${Math.round(windSpeed)} mph) makes it feel ${Math.abs(delta)}° colder`;
   }
-  if (delta > 3 && humidity > 65 && temp > 70) {
+  if (delta >= 2 && humidity > 65 && temp > 70) {
     return `High humidity (${Math.round(humidity)}%) makes it feel ${delta}° warmer`;
   }
-  if (delta < -3) {
+  if (delta <= -2) {
     return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
   }
-  if (delta > 3) {
+  if (delta >= 2) {
     return `Conditions make it feel ${delta}° warmer than the thermometer`;
   }
   return null;
 }
-
-const OUTFIT_WARMTH: Record<OutfitType, number> = {
-  heavy_coat: 5,
-  heavy_jacket: 4,
-  rain_heavy: 4,
-  light_jacket: 3,
-  rain_light: 3,
-  pants_tshirt: 2,
-  shorts_tshirt: 1,
-};
 
 /**
  * Returns a smart layering tip when morning and afternoon outfits diverge.
@@ -537,7 +522,7 @@ function formatTime(timeStr: string): string {
 const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number }[] = [
   { label: "Morning", startHour: 6, endHour: 12 },
   { label: "Afternoon", startHour: 12, endHour: 18 },
-  { label: "Evening", startHour: 18, endHour: 23 },
+  { label: "Evening", startHour: 18, endHour: 24 },
 ];
 
 export function getDayOutfitTimeline(

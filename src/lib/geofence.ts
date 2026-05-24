@@ -28,9 +28,12 @@ export interface GeofenceOptions {
 
 let watchId: string | null = null;
 let lastTriggerMs = 0;
+/** Bumped on stop so in-flight startGeofence calls abandon before assigning watchId. */
+let startGeneration = 0;
 
 export async function startGeofence(opts: GeofenceOptions): Promise<void> {
-  if (watchId !== null) return;
+  await stopGeofence();
+  const gen = startGeneration;
 
   const handlePosition = (coords: { latitude: number; longitude: number }) => {
     const distance = haversineKm(opts.currentLocation, coords);
@@ -51,6 +54,10 @@ export async function startGeofence(opts: GeofenceOptions): Promise<void> {
         });
       },
     );
+    if (gen !== startGeneration) {
+      await Geolocation.clearWatch({ id });
+      return;
+    }
     watchId = id;
   } else {
     const id = navigator.geolocation.watchPosition(
@@ -63,21 +70,24 @@ export async function startGeofence(opts: GeofenceOptions): Promise<void> {
       undefined,
       { enableHighAccuracy: false },
     );
+    if (gen !== startGeneration) {
+      navigator.geolocation.clearWatch(id);
+      return;
+    }
     watchId = String(id);
   }
 }
 
 export async function stopGeofence(): Promise<void> {
+  startGeneration++;
   if (watchId === null) return;
 
-  if (Capacitor.isNativePlatform()) {
-    await Geolocation.clearWatch({ id: watchId });
-  } else {
-    navigator.geolocation.clearWatch(Number(watchId));
-  }
+  const id = watchId;
   watchId = null;
-}
 
-export function resetGeofenceCooldown(): void {
-  lastTriggerMs = 0;
+  if (Capacitor.isNativePlatform()) {
+    await Geolocation.clearWatch({ id });
+  } else {
+    navigator.geolocation.clearWatch(Number(id));
+  }
 }

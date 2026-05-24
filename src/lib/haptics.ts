@@ -20,16 +20,6 @@ export async function hapticLight(): Promise<void> {
   }
 }
 
-export async function hapticMedium(): Promise<void> {
-  const h = await getHapticsPlugin();
-  if (h) {
-    const { ImpactStyle } = await import("@capacitor/haptics");
-    await h.impact({ style: ImpactStyle.Medium }).catch(() => {});
-  } else {
-    try { navigator.vibrate?.(18); } catch { /* ignore */ }
-  }
-}
-
 export async function hapticSuccess(): Promise<void> {
   const h = await getHapticsPlugin();
   if (h) {

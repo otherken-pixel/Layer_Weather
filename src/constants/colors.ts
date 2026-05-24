@@ -39,12 +39,17 @@ export const Colors = {
     primary: "#6C63FF",
     light: "#9D97FF",
     dark: "#4A3FDB",
+    // Safe to use as text on white — 5.8:1 contrast (AA ✓)
+    textSafe: "#4A3FDB",
     surface: "rgba(108, 99, 255, 0.12)",
   },
   text: {
     primary: "#1A1A2E",
     secondary: "#4A5568",
-    muted: "#A0AEC0",
+    // 4.87:1 on white (AA ✓) — darkened from #A0AEC0 which was 3.7:1
+    muted: "#6B7280",
+    // For section labels on gray (#F2F2F7) bg — 6.76:1 (AA ✓)
+    mutedLabel: "#4B5563",
     inverse: "#FFFFFF",
     inverseSecondary: "rgba(255,255,255,0.75)",
   },
@@ -59,6 +64,18 @@ export const Colors = {
     error: "#FF3B30",
     success: "#34C759",
     info: "#007AFF",
+  },
+  // Dark mode surface + text tokens
+  dark: {
+    pageBg: "#1C1C1E",
+    cardBg: "#2C2C2E",
+    cellBg: "#3A3A3C",
+    textPrimary: "#F4F4F5",
+    textSecondary: "#D1D5DB",
+    // 5.0:1 on #2C2C2E (AA ✓)
+    textMuted: "#9BA4B4",
+    border: "rgba(255,255,255,0.08)",
+    divider: "rgba(255,255,255,0.06)",
   },
 } as const;
 

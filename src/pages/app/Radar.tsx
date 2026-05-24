@@ -1,35 +1,19 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 const RADAR_MAX_ZOOM = 12;
+/** RainViewer tiles are only served through zoom 7 (see rainviewer.com/api/weather-maps-api.html). */
+const RAINVIEWER_NATIVE_MAX_ZOOM = 7;
 const RADAR_DEFAULT_ZOOM = 8;
 
 interface RVFrame { time: number; path: string; }
 interface RVManifest {
   host: string;
   radar: { past: RVFrame[]; nowcast: RVFrame[] };
-}
-
-function useDarkMode(themePreference: string | null): boolean {
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const [isDark, setIsDark] = useState(
-    themePreference === "light" ? false : themePreference === "dark" ? true : systemDark
-  );
-
-  useEffect(() => {
-    if (themePreference === "light") { setIsDark(false); return; }
-    if (themePreference === "dark") { setIsDark(true); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [themePreference]);
-
-  return isDark;
 }
 
 function ZoomControls({ isDark }: { isDark: boolean }) {
@@ -99,7 +83,7 @@ const RADAR_TILE_OPTS: L.TileLayerOptions = {
   tileSize: 256,
   minZoom: 1,
   maxZoom: RADAR_MAX_ZOOM,
-  maxNativeZoom: RADAR_MAX_ZOOM,
+  maxNativeZoom: RAINVIEWER_NATIVE_MAX_ZOOM,
   crossOrigin: "anonymous",
   errorTileUrl:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -286,9 +270,15 @@ export default function Radar() {
       })
     : "Now";
 
-  const center: [number, number] = location
-    ? [location.latitude, location.longitude]
-    : [37.7749, -122.4194];
+  const lat = location?.latitude;
+  const lng = location?.longitude;
+  const center = useMemo<[number, number]>(
+    () =>
+      typeof lat === "number" && typeof lng === "number"
+        ? [lat, lng]
+        : [37.7749, -122.4194],
+    [lat, lng],
+  );
 
   const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
 
