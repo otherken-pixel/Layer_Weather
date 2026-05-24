@@ -18,7 +18,7 @@ import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
-import { getOutfitReason, getFeelsLikeExplanation } from "@/lib/outfit-logic";
+import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
 import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -165,6 +165,8 @@ export default function Home() {
     if (!weather) return [];
     return detectSignificantChanges(weather.hourly, weather.current.feelsLike);
   }, [weather]);
+
+  const layeringTip = useMemo(() => getLayeringTip(outfitTimeline), [outfitTimeline]);
 
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
@@ -321,6 +323,21 @@ export default function Home() {
               }}>
                 <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
                 <p style={{ fontSize: 13, color: isDark ? "#C4B5FD" : "#5B21B6", flex: 1 }}>{styleHint}</p>
+              </div>
+            )}
+
+            {/* Smart layering tip */}
+            {layeringTip && (
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "12px 16px", borderRadius: 20,
+                background: isDark ? "rgba(59,130,246,0.18)" : "#EFF6FF",
+                border: "1px solid #BFDBFE",
+              }}>
+                <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>🧥</span>
+                <p style={{ fontSize: 13, color: isDark ? "#93C5FD" : "#1D4ED8", flex: 1, lineHeight: 1.45 }}>
+                  {layeringTip}
+                </p>
               </div>
             )}
 

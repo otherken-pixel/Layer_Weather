@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration, OutfitFeedbackRecord } from "@/types";
+import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory } from "@/types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -93,6 +93,48 @@ export async function getRecentFeedback(
     .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as OutfitFeedbackRecord[];
+}
+
+// ── Wardrobe ──────────────────────────────────────────────────────────────────
+
+export async function getWardrobeItems(
+  userId: string,
+  category?: WardrobeCategory
+): Promise<WardrobeItem[]> {
+  let query = supabase
+    .from("user_wardrobe")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (category) query = query.eq("category", category);
+  const { data } = await query;
+  return (data ?? []) as WardrobeItem[];
+}
+
+export async function addWardrobeItem(
+  item: Omit<WardrobeItem, "id" | "created_at" | "updated_at">
+): Promise<WardrobeItem | null> {
+  const { data, error } = await supabase
+    .from("user_wardrobe")
+    .insert({ ...item, updated_at: new Date().toISOString() })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as WardrobeItem;
+}
+
+export async function updateWardrobeItem(
+  id: string,
+  updates: Partial<Omit<WardrobeItem, "id" | "user_id" | "created_at">>
+): Promise<void> {
+  await supabase
+    .from("user_wardrobe")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function deleteWardrobeItem(id: string): Promise<void> {
+  await supabase.from("user_wardrobe").delete().eq("id", id);
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
