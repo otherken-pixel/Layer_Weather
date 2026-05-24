@@ -73,10 +73,10 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
   const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
-  const unitColor = isDark ? "#9BA4B4" : "#6B7280";
+  const labelColor = isDark ? "#9BA4B4" : "#4B5563";
+  const unitColor = isDark ? "#9BA4B4" : "#4B5563";
   const trackColor = isDark ? "#3A3A3C" : "#F3F4F6";
-  const descColor = isDark ? "#9BA4B4" : "#6B7280";
+  const descColor = isDark ? "#9BA4B4" : "#4B5563";
   const badgeBg = isDark ? level.darkBg : level.bg;
   const badgeText = isDark ? level.darkTextColor : level.textColor;
 
@@ -95,7 +95,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
     >
       <p
         style={{
-          fontSize: 12, fontWeight: 700, color: labelColor,
+          fontSize: 14, fontWeight: 700, color: labelColor,
           letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
         }}
       >
@@ -107,7 +107,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
           <span style={{ fontSize: 36, fontWeight: 700, color: level.color, lineHeight: 1 }}>
             {aqiIndex}
           </span>
-          <span style={{ fontSize: 13, color: unitColor, marginLeft: 6 }}>US AQI</span>
+          <span style={{ fontSize: 15, color: unitColor, marginLeft: 6 }}>US AQI</span>
         </div>
         <div
           style={{
@@ -116,7 +116,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
             background: badgeBg,
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 700, color: badgeText }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: badgeText }}>
             {level.label}
           </span>
         </div>
@@ -136,7 +136,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
         />
       </div>
 
-      <p style={{ fontSize: 12, color: descColor, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 14, color: descColor, lineHeight: 1.5 }}>
         {level.description}
       </p>
     </motion.div>

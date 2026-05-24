@@ -33,14 +33,14 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
   const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
-  const dayNameColor = isDark ? "#F4F4F5" : "#374151";
+  const labelColor = isDark ? "#9BA4B4" : "#4B5563";
+  const dayNameColor = isDark ? "#F4F4F5" : "#111827";
   const hiTempColor = isDark ? "#F4F4F5" : "#111827";
-  // Lo temp — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark card (5.0:1 ✓)
-  const loTempColor = isDark ? "#9BA4B4" : "#6B7280";
+  // Lo temp — #4B5563 on white (7.4:1 ✓); #9BA4B4 on dark card (5.0:1 ✓)
+  const loTempColor = isDark ? "#9BA4B4" : "#4B5563";
   const barTrackColor = isDark ? "#3A3A3C" : "#E5E7EB";
   const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
-  const chevronColor = isDark ? "#9BA4B4" : "#6B7280";
+  const chevronColor = isDark ? "#9BA4B4" : "#4B5563";
   const rowHoverBg = isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB";
   // Precip % — #4338CA on white (9.5:1 ✓); #818CF8 on dark (5.5:1 ✓)
   const precipNormal = isDark ? "#60A5FA" : "#1D4ED8";
@@ -62,7 +62,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
     >
       <p
         style={{
-          fontSize: 12,
+          fontSize: 14,
           fontWeight: 700,
           color: labelColor,
           letterSpacing: "0.08em",
@@ -100,8 +100,8 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               style={{
                 display: "flex",
                 alignItems: "center",
-                paddingTop: 10,
-                paddingBottom: 10,
+                paddingTop: 13,
+                paddingBottom: 13,
                 cursor: hasHourly ? "pointer" : "default",
                 borderRadius: 10,
                 transition: "background 0.12s",
@@ -120,7 +120,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               {/* Day name */}
               <span
                 style={{
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: 600,
                   color: dayNameColor,
                   width: 44,
@@ -138,7 +138,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               {/* Precip % */}
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 600,
                   color: highPrecip ? precipHigh : precipNormal,
                   width: 34,
@@ -162,7 +162,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               >
                 <span
                   style={{
-                    fontSize: 13,
+                    fontSize: 16,
                     color: loTempColor,
                     fontWeight: 500,
                     width: 30,
@@ -194,7 +194,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
                 </div>
                 <span
                   style={{
-                    fontSize: 14,
+                    fontSize: 16,
                     color: hiTempColor,
                     fontWeight: 700,
                     width: 30,
@@ -256,7 +256,7 @@ function HourlyDrillDown({
   isDark: boolean;
 }) {
   const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
-  const timeColor = isDark ? "#9BA4B4" : "#6B7280";
+  const timeColor = isDark ? "#9BA4B4" : "#4B5563";
   const tempColor = isDark ? "#F4F4F5" : "#111827";
   // Precip % — #1D4ED8 on light pill (6.1:1 ✓); #60A5FA on dark pill (4.5:1 ✓)
   const precipColor = isDark ? "#60A5FA" : "#1D4ED8";
@@ -299,7 +299,7 @@ function HourlyDrillDown({
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: timeColor,
                   textTransform: "uppercase",
@@ -308,12 +308,12 @@ function HourlyDrillDown({
                 {h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 16 }}>{EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: tempColor }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: tempColor }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: precipColor,
                   opacity: showPrecip ? 1 : 0,
