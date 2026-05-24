@@ -53,6 +53,85 @@ export function resolveFootwear(opts: {
   return "sneakers";
 }
 
+/** One-line reasoning shown beneath the outfit label. */
+export function getOutfitReason(opts: {
+  feelsLike: number;
+  windSpeed: number;
+  precipProb: number;
+  humidity: number;
+  weatherCode: number;
+  outfit: OutfitType;
+}): string {
+  const { feelsLike, windSpeed, precipProb, humidity, weatherCode, outfit } = opts;
+  const isWindy = windSpeed > 15;
+  const isSnowy = weatherCode >= 71 && weatherCode <= 77;
+  const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+  const isRainy = precipProb > 40 || (weatherCode >= 51 && weatherCode <= 82);
+  const isHumid = humidity > 70 && feelsLike > 70;
+
+  if (outfit === "rain_heavy") {
+    return `${feelsLike}°F · heavy rain ${Math.round(precipProb)}% → full rain gear`;
+  }
+  if (outfit === "rain_light") {
+    return `${feelsLike}°F · rain ${Math.round(precipProb)}% → rain jacket`;
+  }
+  if (isSnowy) {
+    return `${feelsLike}°F · snow → winter coat`;
+  }
+  if (isHeavyRain) {
+    return `${feelsLike}°F · heavy rain → gear up`;
+  }
+  if (outfit === "heavy_coat") {
+    return isWindy
+      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph wind → bundle up`
+      : `${feelsLike}°F → winter coat territory`;
+  }
+  if (outfit === "heavy_jacket") {
+    return isWindy
+      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph gusts → warm jacket`
+      : `${feelsLike}°F → heavy jacket needed`;
+  }
+  if (outfit === "light_jacket") {
+    return isWindy
+      ? `${feelsLike}°F + breezy → light layer up`
+      : `${feelsLike}°F → light jacket recommended`;
+  }
+  if (outfit === "pants_tshirt") {
+    return isHumid
+      ? `${feelsLike}°F · ${humidity}% humidity → light long sleeves`
+      : `${feelsLike}°F → long sleeves & pants`;
+  }
+  return isHumid
+    ? `${feelsLike}°F · ${humidity}% humidity → light & breathable`
+    : `${feelsLike}°F → short sleeves & shorts`;
+}
+
+/** Short explanation of why feels-like differs from actual temp. */
+export function getFeelsLikeExplanation(opts: {
+  temp: number;
+  feelsLike: number;
+  windSpeed: number;
+  humidity: number;
+}): string | null {
+  const { temp, feelsLike, windSpeed, humidity } = opts;
+  const delta = Math.round(feelsLike - temp);
+  if (Math.abs(delta) < 2) return null;
+
+  if (delta < -3 && windSpeed > 10) {
+    return `Wind chill (${Math.round(windSpeed)} mph) makes it feel ${Math.abs(delta)}° colder`;
+  }
+  if (delta > 3 && humidity > 65 && temp > 70) {
+    return `High humidity (${Math.round(humidity)}%) makes it feel ${delta}° warmer`;
+  }
+  if (delta < -3) {
+    return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
+  }
+  if (delta > 3) {
+    return `Conditions make it feel ${delta}° warmer than the thermometer`;
+  }
+  return null;
+}
+
 /** Onboarding / swipe cards — infer rain & snow from outfit + temp */
 export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
