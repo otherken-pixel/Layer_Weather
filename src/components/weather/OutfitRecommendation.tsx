@@ -378,10 +378,10 @@ function TimelinePeriodDetail({
 
   const layerChange =
     prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
-      ? prevEntry.recommendation.outfit.includes("heavy") &&
-        !recommendation.outfit.includes("heavy")
-        ? "layer down"
-        : "layer up"
+      ? getLayerChangeDirection(
+          prevEntry.recommendation.outfit,
+          recommendation.outfit
+        )
       : null;
 
   return (
