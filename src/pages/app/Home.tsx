@@ -121,8 +121,6 @@ export default function Home() {
     // City path: sheet already called addSavedLocation with forward-geocoded name; refresh may
     // rename via reverse geocode — skip addSavedLocation so dedup by city string is not bypassed.
     if (ctx?.fromCitySave) return;
-  async function handleLocationSaved() {
-    await refresh(true, { useDeviceLocation: false });
     // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
     const loc = useAppStore.getState().location;
     if (loc?.city) {
