@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
+import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import type {
   FootwearKind,
   OutfitFeedbackValue,

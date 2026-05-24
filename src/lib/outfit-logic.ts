@@ -18,6 +18,33 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
+/** Relative warmth / layering (higher = more layers). Matches temperature band order in `getOutfitRecommendation`. */
+const OUTFIT_WARMTH_RANK: Record<OutfitType, number> = {
+  shorts_tshirt: 0,
+  pants_tshirt: 1,
+  light_jacket: 2,
+  rain_light: 3,
+  heavy_jacket: 4,
+  rain_heavy: 5,
+  heavy_coat: 6,
+};
+
+export function getOutfitWarmthRank(outfit: OutfitType): number {
+  return OUTFIT_WARMTH_RANK[outfit];
+}
+
+/** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
+export function getLayerChangeDirection(
+  from: OutfitType,
+  to: OutfitType
+): "layer up" | "layer down" | null {
+  if (from === to) return null;
+  const delta = getOutfitWarmthRank(to) - getOutfitWarmthRank(from);
+  if (delta > 0) return "layer up";
+  if (delta < 0) return "layer down";
+  return null;
+}
+
 export function resolveFootwear(opts: {
   effectiveFeelsLike: number;
   isRainy: boolean;
