@@ -5,6 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
 
 const RADAR_MAX_ZOOM = 12;
+/** RainViewer free tiles are only generated through zoom 7; higher map zooms upscale z7 tiles. */
+const RADAR_NATIVE_MAX_ZOOM = 7;
 const RADAR_DEFAULT_ZOOM = 8;
 
 interface RVFrame { time: number; path: string; }
@@ -99,7 +101,7 @@ const RADAR_TILE_OPTS: L.TileLayerOptions = {
   tileSize: 256,
   minZoom: 1,
   maxZoom: RADAR_MAX_ZOOM,
-  maxNativeZoom: RADAR_MAX_ZOOM,
+  maxNativeZoom: RADAR_NATIVE_MAX_ZOOM,
   crossOrigin: "anonymous",
   errorTileUrl:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",

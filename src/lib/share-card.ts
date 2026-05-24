@@ -1,3 +1,35 @@
+function wrapLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let idx = 0;
+  while (idx < words.length && lines.length < maxLines) {
+    let line = words[idx];
+    idx += 1;
+    while (idx < words.length) {
+      const trial = `${line} ${words[idx]}`;
+      if (ctx.measureText(trial).width > maxWidth) break;
+      line = trial;
+      idx += 1;
+    }
+    lines.push(line);
+  }
+  if (idx < words.length && lines.length > 0) {
+    let last = lines[lines.length - 1];
+    while (last.length > 0 && ctx.measureText(`${last}…`).width > maxWidth) {
+      if (last.includes(" ")) last = last.slice(0, last.lastIndexOf(" "));
+      else last = last.slice(0, -1);
+    }
+    lines[lines.length - 1] = `${last}…`;
+  }
+  return lines;
+}
+
 export async function generateShareCard(opts: {
   conditionEmoji: string;
   temp: number;
@@ -59,18 +91,30 @@ export async function generateShareCard(opts: {
   // Outfit label
   ctx.font = `700 15px ${fontFamily}`;
   ctx.fillStyle = "rgba(255,255,255,0.9)";
-  ctx.fillText(outfitLabel, 200, 158);
+  ctx.fillText(outfitLabel, 200, outfitDescription.trim() ? 152 : 158);
+
+  const cityLine = region ? `${city}, ${region}` : city;
+  let nextY = outfitDescription.trim() ? 166 : 178;
+  if (outfitDescription.trim()) {
+    ctx.font = `400 11px ${fontFamily}`;
+    ctx.fillStyle = "rgba(255,255,255,0.72)";
+    for (const ln of wrapLines(ctx, outfitDescription, 340, 2)) {
+      ctx.fillText(ln, 200, nextY);
+      nextY += 13;
+    }
+    nextY += 2;
+  }
 
   // City/region
-  const cityLine = region ? `${city}, ${region}` : city;
   ctx.font = `12px ${fontFamily}`;
   ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.fillText(cityLine, 200, 178);
+  ctx.fillText(cityLine, 200, nextY);
+  nextY += outfitDescription.trim() ? 18 : 22;
 
   // Branding
   ctx.font = `11px ${fontFamily}`;
   ctx.fillStyle = "rgba(255,255,255,0.4)";
-  ctx.fillText("WearToday", 200, 200);
+  ctx.fillText("WearToday", 200, outfitDescription.trim() ? nextY : 200);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {
