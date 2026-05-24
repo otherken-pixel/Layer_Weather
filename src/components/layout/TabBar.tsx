@@ -94,10 +94,30 @@ function IconSettings({ active }: { active: boolean }) {
   );
 }
 
+function IconWardrobe({ active }: { active: boolean }) {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={active ? "text-brand-dark" : "text-neutral-600"}
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z" />
+    </svg>
+  );
+}
+
 const TABS = [
   { path: "/app/home", label: "Today", Icon: IconToday },
   { path: "/app/radar", label: "Radar", Icon: IconRadar },
   { path: "/app/packing", label: "Packing", Icon: IconPacking },
+  { path: "/app/wardrobe", label: "Wardrobe", Icon: IconWardrobe },
   { path: "/app/settings", label: "Settings", Icon: IconSettings },
 ];
 

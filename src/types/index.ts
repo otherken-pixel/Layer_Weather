@@ -219,6 +219,26 @@ export type RootStackParamList = {
   "(tabs)/settings": undefined;
 };
 
+// ── Wardrobe ──────────────────────────────────────────────────────────────────
+
+export type WardrobeCategory = "tops" | "bottoms" | "outerwear" | "footwear" | "accessories";
+
+export type StyleTag = "casual" | "formal" | "activewear" | "outdoor" | "work" | "smart-casual";
+
+export interface WardrobeItem {
+  id: string;
+  user_id: string;
+  category: WardrobeCategory;
+  name: string;
+  warmth_rating: 1 | 2 | 3 | 4 | 5;
+  is_waterproof: boolean;
+  style_tags: StyleTag[];
+  color: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Packing ───────────────────────────────────────────────────────────────────
 
 export interface PackingTrip {
