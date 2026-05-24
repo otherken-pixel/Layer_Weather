@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, upsertProfile } from "@/lib/supabase";
@@ -7,12 +7,14 @@ import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
 import { useWeather } from "@/hooks/useWeather";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
+import { getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
+import type { LocationData } from "@/types";
 
 const ACCENT = "#7C3AED";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, calibration, userId, setProfile, location } = useAppStore();
+  const { profile, calibration, userId, setProfile, location, savedLocations, setSavedLocations } = useAppStore();
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
@@ -22,11 +24,20 @@ export default function Settings() {
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const label = location?.city || profile?.last_city;
     if (label) setCityQuery(label);
   }, [location?.city, profile?.last_city]);
+
+  useEffect(() => {
+    getSavedLocations().then((locs) => {
+      setLocalSavedLocations(locs);
+      setSavedLocations(locs);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function saveCity() {
     if (!userId || !cityQuery.trim()) return;
@@ -257,6 +268,50 @@ export default function Settings() {
             </div>
           </WhiteCard>
         </Section>
+
+        {/* Saved Locations */}
+        {localSavedLocations.length > 0 && (
+          <Section title="Saved Locations">
+            <WhiteCard>
+              {localSavedLocations.map((loc, i) => (
+                <div key={loc.city}>
+                  {i > 0 && <Divider />}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>📍</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{loc.city}</span>
+                      {loc.city === location?.city && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#EDE9FE", padding: "2px 8px", borderRadius: 999 }}>
+                          ACTIVE
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const updated = await removeSavedLocation(loc.city).catch(() => localSavedLocations);
+                        setLocalSavedLocations(updated);
+                        setSavedLocations(updated);
+                      }}
+                      aria-label={`Remove ${loc.city}`}
+                      style={{
+                        width: 32, height: 32, borderRadius: "50%",
+                        border: "none", background: "#FEE2E2", color: "#DC2626",
+                        fontSize: 16, cursor: "pointer", display: "flex",
+                        alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </WhiteCard>
+            <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6, paddingLeft: 4 }}>
+              Switch between locations from the Today tab. Max 5.
+            </p>
+          </Section>
+        )}
 
         {/* App info */}
         <Section title="App">
