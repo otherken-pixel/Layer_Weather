@@ -13,7 +13,7 @@ import { LocationTabs } from "@/components/weather/LocationTabs";
 import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
-import { getSkyColor } from "@/constants/colors";
+import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
@@ -54,8 +54,8 @@ export default function Home() {
   const isDark = useDarkMode(profile?.theme_preference ?? null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
-  const cardsBg = isDark ? "#1C1C1E" : "#F2F2F7";
-  const cardSurface = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
+  const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
   // Load saved locations on mount
   useEffect(() => {
@@ -190,8 +190,8 @@ export default function Home() {
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            {/* Loading bg is always #1a1a2e — use explicit colors for AA contrast ✓ */}
-            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#9CA3AF" }}>
+            {/* Light: text on cardsBg (#F2F2F7); dark: text on dark card — AA contrast ✓ */}
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.65)" : Colors.text.muted }}>
               Fetching your weather…
             </p>
           </div>
@@ -405,7 +405,7 @@ function HourlyStrip({
   cardSurface: string;
 }) {
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const labelColor = isDark ? Colors.dark.textMuted : Colors.text.muted;
 
   return (
     <div style={{
@@ -413,7 +413,7 @@ function HourlyStrip({
       borderRadius: 24,
       padding: "20px",
       boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
-      border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+      border: isDark ? `1px solid ${Colors.dark.border}` : undefined,
     }}>
       <p style={{
         fontSize: 12, fontWeight: 700,
@@ -434,17 +434,17 @@ function HourlyStrip({
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                 minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
-                background: isNow ? "#7C3AED" : isDark ? "#3A3A3C" : "#F3F4F6",
+                background: isNow ? "#7C3AED" : isDark ? Colors.dark.cellBg : "#F3F4F6",
               }}
             >
               <span style={{
                 fontSize: 10, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "#9BA4B4" : "#6B7280",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : Colors.text.muted,
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F4F4F5" : "#111827" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
               <span style={{ fontSize: 10, fontWeight: 600, color: precipColor }}>
