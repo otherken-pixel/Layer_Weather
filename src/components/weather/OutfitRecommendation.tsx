@@ -518,7 +518,7 @@ function TimelinePeriodDetail({
               color: layerChange === "layer up" ? "#1D4ED8" : "#92400E",
             }}
           >
-            ↑ {layerChange}
+            {layerChange === "layer up" ? "↑" : "↓"} {layerChange}
           </span>
         )}
       </div>
