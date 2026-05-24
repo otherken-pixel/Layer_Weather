@@ -107,7 +107,8 @@ export async function getWardrobeItems(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (category) query = query.eq("category", category);
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) throw error;
   return (data ?? []) as WardrobeItem[];
 }
 
@@ -134,7 +135,8 @@ export async function updateWardrobeItem(
 }
 
 export async function deleteWardrobeItem(id: string): Promise<void> {
-  await supabase.from("user_wardrobe").delete().eq("id", id);
+  const { error } = await supabase.from("user_wardrobe").delete().eq("id", id);
+  if (error) throw error;
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
