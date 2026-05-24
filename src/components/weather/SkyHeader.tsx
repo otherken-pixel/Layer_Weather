@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { CurrentWeather, DailyForecast } from "@/types";
 import { CONDITION_LABEL } from "@/constants/colors";
 
@@ -30,15 +30,24 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
   const loTemp = today ? toUnit(today.tempMin, tempUnit) : null;
   const locationLabel = weather.location || "Your Location";
 
-  // Sunrise/sunset progress (0–1)
+  const [sunNowMs, setSunNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!today) return;
+    const update = () => setSunNowMs(Date.now());
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, [today]);
+
+  // Sunrise/sunset progress (0–1), recomputed as time advances
   const sunProgress = useMemo(() => {
     if (!today) return null;
-    const now = Date.now();
+    const now = sunNowMs;
     const rise = today.sunrise.getTime();
     const set = today.sunset.getTime();
     if (now < rise || now > set) return null;
     return (now - rise) / (set - rise);
-  }, [today]);
+  }, [today, sunNowMs]);
 
   const textShadow = "0 1px 8px rgba(0,0,0,0.55), 0 0 24px rgba(0,0,0,0.3)";
 

@@ -7,7 +7,7 @@ import {
   deleteWardrobeItem,
 } from "@/lib/supabase";
 import type { WardrobeItem, WardrobeCategory, StyleTag } from "@/types";
-import { hapticLight, hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { hapticLight, hapticSuccess } from "@/lib/haptics";
 
 const CATEGORIES: { key: WardrobeCategory | "all"; label: string; emoji: string }[] = [
   { key: "all", label: "All", emoji: "👗" },
@@ -408,7 +408,7 @@ function ItemCard({ item, onDelete }: ItemCardProps) {
       </div>
       <button
         type="button"
-        onClick={() => { hapticMedium(); onDelete(item.id); }}
+        onClick={() => { hapticLight(); onDelete(item.id); }}
         aria-label={`Remove ${item.name}`}
         style={{
           width: 32,
