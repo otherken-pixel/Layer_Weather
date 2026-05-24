@@ -20,7 +20,7 @@ import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
+import { getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -64,26 +64,29 @@ export default function Home() {
   }, []);
 
   // Trigger weather refresh when location city changes (e.g. tab switch).
-  // `undefined` means we have not synced yet — skip the first non-null city so the
-  // initial `refresh()` is not duplicated when reverse-geocode sets city.
-  const prevCityRef = useRef<string | null | undefined>(undefined);
+  // prevCityRef is seeded from store so a persisted city does not look like a change.
+  // skipNextCityRefreshRef ignores the city update from the initial refresh() below.
+  const prevCityRef = useRef<string | null>(location?.city ?? null);
+  const skipNextCityRefreshRef = useRef(false);
   useEffect(() => {
     const city = location?.city ?? null;
-    if (city === null) return;
-    if (prevCityRef.current === undefined) {
+    if (city && city !== prevCityRef.current) {
       prevCityRef.current = city;
-      return;
-    }
-    if (city !== prevCityRef.current) {
-      prevCityRef.current = city;
+      if (skipNextCityRefreshRef.current) {
+        skipNextCityRefreshRef.current = false;
+        return;
+      }
       refresh(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
 
-  // Initial load
+  // Initial load (sets location.city via refresh — skip duplicate city-change fetch)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    skipNextCityRefreshRef.current = true;
+    refresh();
+  }, []);
 
   // Geofence: trigger weather refresh when user moves significantly
   useEffect(() => {
@@ -99,12 +102,8 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved() {
+    // Saved list is updated in LocationPickerSheet (getState().location). Refresh weather only.
     await refresh(true);
-    const loc = useAppStore.getState().location;
-    if (loc) {
-      const updated = await addSavedLocation(loc).catch(() => useAppStore.getState().savedLocations);
-      setSavedLocations(updated);
-    }
   }
 
   async function handleTabSelect(loc: LocationData) {
