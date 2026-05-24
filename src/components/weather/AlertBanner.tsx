@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface WeatherAlert {
@@ -12,6 +12,10 @@ interface Props {
 
 export function AlertBanner({ alerts }: Props) {
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setDismissed(new Set());
+  }, [alerts]);
 
   const visible = alerts.filter((_, i) => !dismissed.has(i));
   if (visible.length === 0) return null;
