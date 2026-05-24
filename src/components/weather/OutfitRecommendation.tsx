@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
@@ -54,7 +54,7 @@ interface Props {
   /** Short feels-like explanation string from getFeelsLikeExplanation() */
   feelsLikeExplanation?: string | null;
   timeline?: DayOutfitTimeline | null;
-  onFeedback?: (value: OutfitFeedbackValue) => void;
+  onFeedback?: (value: OutfitFeedbackValue) => void | Promise<void>;
   onRecalibrate?: () => void;
 }
 
@@ -97,12 +97,20 @@ export function OutfitRecommendationCard({
     : timeline?.[0]?.period.label ?? "Morning";
   const [activeTab, setActiveTab] = useState<DayPeriodLabel>(defaultPeriod);
 
-  function handleVote(value: OutfitFeedbackValue) {
+  useEffect(() => {
+    setVoted(null);
+  }, [recommendation.outfit, feelsLike]);
+
+  async function handleVote(value: OutfitFeedbackValue) {
     if (voted) return;
-    setVoted(value);
-    if (value === "thumbs_up") hapticSuccess();
-    else hapticLight();
-    onFeedback?.(value);
+    try {
+      if (value === "thumbs_up") hapticSuccess();
+      else hapticLight();
+      await onFeedback?.(value);
+      setVoted(value);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async function handleShare() {
