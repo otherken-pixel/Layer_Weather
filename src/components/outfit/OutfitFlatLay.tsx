@@ -124,7 +124,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
     return () => ro.disconnect();
   }, []);
 
-  const { topSz, bottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
+  const { topSz, bottomSz: baseBottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
 
   const wrap = (node: React.ReactNode, delay: number) => (
     <motion.div
@@ -138,6 +138,9 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   );
 
   const hasAccessories = Boolean(footwear || umbrella || sunglasses || scarf || beanie || gloves);
+  const bottomSz = hasAccessories
+    ? baseBottomSz
+    : Math.max(baseBottomSz, compact ? 90 : 130);
   const row3 = scarf || gloves;
   const stackFootwearUmbrella = Boolean(footwear && umbrella);
   const col3Sunglasses =
