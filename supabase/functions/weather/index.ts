@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
         location: "",
         updatedAt: new Date().toISOString(),
       },
-      hourly: hours.slice(0, 48).map((h) => ({
+      hourly: hours.slice(0, 168).map((h) => ({
         time: h.forecastStart,
         temp: cToF(h.temperature as number ?? 0),
         feelsLike: cToF(h.temperatureApparent as number ?? h.temperature as number ?? 0),

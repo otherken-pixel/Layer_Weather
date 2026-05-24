@@ -220,8 +220,7 @@ async function fetchFromOpenMeteo(
       windSpeed: Math.round((hourly.wind_speed_10m as number[])[i]),
       isDay: (hourly.is_day as number[])[i] === 1,
     }))
-    .filter((h) => h.time >= now)
-    .slice(0, 48);
+    .filter((h) => h.time >= now);
 
   const dailyData: DailyForecast[] = (daily.time as string[]).map((t, i) => ({
     date: new Date(t),
@@ -279,6 +278,29 @@ export async function reverseGeocodePlace(lat: number, lon: number): Promise<Rev
 export async function reverseGeocode(lat: number, lon: number): Promise<string> {
   const { city } = await reverseGeocodePlace(lat, lon);
   return city;
+}
+
+// ── Group hourly forecasts by calendar day ────────────────────────────────────
+
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export function groupHourlyByDay(
+  hourly: HourlyForecast[],
+  daily: DailyForecast[],
+): Record<string, HourlyForecast[]> {
+  const result: Record<string, HourlyForecast[]> = {};
+  for (const day of daily) {
+    result[localDateKey(day.date)] = [];
+  }
+  for (const h of hourly) {
+    const key = localDateKey(h.time);
+    if (key in result) {
+      result[key].push(h);
+    }
+  }
+  return result;
 }
 
 // ── Significant change detection (used for commute alerts) ────────────────────

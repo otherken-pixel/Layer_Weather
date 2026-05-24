@@ -6,6 +6,10 @@ import type {
   AvatarCondition,
   HourlyForecast,
   CommuteAlert,
+  WeatherCondition,
+  DayPeriodLabel,
+  DayPeriod,
+  DayOutfitTimeline,
 } from "@/types";
 
 /** Flip-flops at or above this feels-like (°F); sneakers below when dry */
@@ -349,6 +353,77 @@ function formatTime(timeStr: string): string {
   const d = new Date();
   d.setHours(h, m, 0, 0);
   return d.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" });
+}
+
+// ── Day outfit timeline ───────────────────────────────────────────────────────
+
+const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number }[] = [
+  { label: "Morning", startHour: 6, endHour: 12 },
+  { label: "Afternoon", startHour: 12, endHour: 18 },
+  { label: "Evening", startHour: 18, endHour: 23 },
+];
+
+export function getDayOutfitTimeline(
+  todayHourly: HourlyForecast[],
+  calibration: UserCalibration,
+): DayOutfitTimeline {
+  const result: DayOutfitTimeline = [];
+
+  for (const range of PERIOD_RANGES) {
+    const block = todayHourly.filter((h) => {
+      const hour = h.time.getHours();
+      return hour >= range.startHour && hour < range.endHour;
+    });
+
+    if (block.length === 0) continue;
+
+    const feelsLikes = block.map((h) => h.feelsLike);
+    const minFeelsLike = Math.min(...feelsLikes);
+    const maxFeelsLike = Math.max(...feelsLikes);
+    const avgFeelsLike = Math.round(feelsLikes.reduce((s, v) => s + v, 0) / feelsLikes.length);
+
+    // Pick the most frequent condition in the block
+    const conditionCounts = block.reduce<Record<string, number>>((acc, h) => {
+      acc[h.condition] = (acc[h.condition] ?? 0) + 1;
+      return acc;
+    }, {});
+    const condition = (Object.entries(conditionCounts)
+      .sort(([, a], [, b]) => b - a)[0][0]) as WeatherCondition;
+
+    // Use the weather code matching the dominant condition
+    const dominantHour = block.find((h) => h.condition === condition) ?? block[0];
+    const weatherCode = dominantHour.weatherCode;
+
+    const maxPrecipProb = Math.max(...block.map((h) => h.precipProb));
+    const avgWindSpeed = Math.round(block.reduce((s, h) => s + h.windSpeed, 0) / block.length);
+
+    const period: DayPeriod = {
+      label: range.label,
+      startHour: range.startHour,
+      endHour: range.endHour,
+      minFeelsLike,
+      maxFeelsLike,
+      avgFeelsLike,
+      condition,
+      precipProb: maxPrecipProb,
+      windSpeed: avgWindSpeed,
+      weatherCode,
+    };
+
+    const recommendation = getOutfitRecommendation({
+      feelsLike: avgFeelsLike,
+      weatherCode,
+      windSpeed: avgWindSpeed,
+      precipProb: maxPrecipProb,
+      humidity: 50, // hourly data has no per-hour humidity; neutral value avoids false adjustments
+      calibration,
+      hourly: [],
+    });
+
+    result.push({ period, recommendation });
+  }
+
+  return result;
 }
 
 // ── Calibration wizard logic ──────────────────────────────────────────────────

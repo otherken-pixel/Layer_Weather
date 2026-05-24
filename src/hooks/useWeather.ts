@@ -3,7 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
 import { fetchWeatherData, reverseGeocodePlace } from "@/lib/weather";
-import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
 import { saveWeatherCache } from "@/lib/cache";
@@ -85,7 +85,7 @@ export function useWeather() {
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
     profile, calibration, userId,
-    setWeather, setOutfit, setLocation, setWeatherLastFetched,
+    setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError,
   } = useAppStore();
 
@@ -160,6 +160,15 @@ export function useWeather() {
             commuteEnd: profile?.commute_end ?? null,
           });
           setOutfit(rec);
+
+          const today = new Date();
+          const todayHourly = data.hourly.filter(
+            (h) =>
+              h.time.getFullYear() === today.getFullYear() &&
+              h.time.getMonth() === today.getMonth() &&
+              h.time.getDate() === today.getDate(),
+          );
+          setOutfitTimeline(getDayOutfitTimeline(todayHourly, cal));
           saveWidgetSnapshot(data, rec).catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
