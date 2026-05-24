@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { useAppStore } from "@/store";
+import { useIsDark } from "@/hooks/useDarkMode";
 import { addSavedLocation } from "@/lib/saved-locations";
 
 interface LocationPickerSheetProps {
@@ -23,6 +24,7 @@ export function LocationPickerSheet({
   const setSavedLocations = useAppStore((s) => s.setSavedLocations);
   const [cityQuery, setCityQuery] = useState("");
   const { saveFromCity, saveFromDevice, saving, error, setError } = useSaveLocation();
+  const isDark = useIsDark();
 
   useEffect(() => {
     if (open) {
@@ -59,6 +61,22 @@ export function LocationPickerSheet({
     }
   }
 
+  // Sheet background adapts to dark mode; sky variant stays near-white in light mode
+  const sheetBg = isDark
+    ? "#2C2C2E"
+    : isSky ? "rgba(255,255,255,0.98)" : "#FFFFFF";
+  const handleBg = isDark ? "#4B5563" : "#D1D5DB";
+  const titleColor = isDark ? "#F4F4F5" : "#111827";
+  const subtitleColor = isDark ? "#9BA4B4" : "#6B7280";
+  const inputBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const inputBorder = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+  const inputText = isDark ? "#F4F4F5" : "#111827";
+  const secondaryBtnBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const secondaryBtnBorder = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+  const secondaryBtnText = isDark ? "#F4F4F5" : "#111827";
+  const cancelText = isDark ? "#9BA4B4" : "#6B7280";
+  const sheetBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+
   return (
     <AnimatePresence>
       {open && (
@@ -84,19 +102,20 @@ export function LocationPickerSheet({
             className="fixed left-0 right-0 bottom-0 z-[90] rounded-t-[28px] px-5 pt-5"
             style={{
               paddingBottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
-              background: isSky ? "rgba(255,255,255,0.98)" : "#FFFFFF",
+              background: sheetBg,
               boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
+              borderTop: sheetBorder,
             }}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
+            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: handleBg }} />
             <h2
               id="location-picker-title"
               className="text-lg font-bold text-center mb-1"
-              style={{ color: "#111827" }}
+              style={{ color: titleColor }}
             >
               Update location
             </h2>
-            <p className="text-sm text-center mb-4" style={{ color: "#6B7280" }}>
+            <p className="text-sm text-center mb-4" style={{ color: subtitleColor }}>
               Use your phone&apos;s location or search for a city.
             </p>
 
@@ -107,9 +126,9 @@ export function LocationPickerSheet({
               placeholder="e.g. Seattle, WA"
               className="w-full rounded-2xl px-4 py-3 text-base font-semibold mb-2"
               style={{
-                background: "#F3F4F6",
-                border: "1.5px solid #E5E7EB",
-                color: "#111827",
+                background: inputBg,
+                border: `1.5px solid ${inputBorder}`,
+                color: inputText,
                 outline: "none",
               }}
             />
@@ -135,9 +154,9 @@ export function LocationPickerSheet({
               onClick={handleGpsSave}
               className="w-full min-h-[48px] rounded-2xl font-bold cursor-pointer disabled:opacity-50"
               style={{
-                background: "#F3F4F6",
-                border: "1.5px solid #E5E7EB",
-                color: "#111827",
+                background: secondaryBtnBg,
+                border: `1.5px solid ${secondaryBtnBorder}`,
+                color: secondaryBtnText,
               }}
             >
               Use current location
@@ -147,7 +166,7 @@ export function LocationPickerSheet({
               type="button"
               onClick={onClose}
               className="w-full min-h-[44px] mt-2 border-0 bg-transparent text-sm font-semibold cursor-pointer"
-              style={{ color: "#6B7280" }}
+              style={{ color: cancelText }}
             >
               Cancel
             </button>

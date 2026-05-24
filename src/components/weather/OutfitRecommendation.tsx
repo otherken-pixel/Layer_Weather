@@ -49,19 +49,27 @@ interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
-  /** Short reasoning string from getOutfitReason() */
   outfitReason?: string | null;
-  /** Short feels-like explanation string from getFeelsLikeExplanation() */
   feelsLikeExplanation?: string | null;
   timeline?: DayOutfitTimeline | null;
   onFeedback?: (value: OutfitFeedbackValue) => void;
   onRecalibrate?: () => void;
+  isDark?: boolean;
 }
 
 const URGENCY_COLORS = {
-  warning: { bg: "#FEF3C7", border: "#F59E0B", icon: "⚠️", text: "#92400E" },
-  critical: { bg: "#FEE2E2", border: "#EF4444", icon: "🚨", text: "#991B1B" },
-  info: { bg: "#EFF6FF", border: "#BFDBFE", icon: "ℹ️", text: "#1D4ED8" },
+  warning: {
+    light: { bg: "#FEF3C7", border: "#F59E0B", icon: "⚠️", text: "#92400E" },
+    dark:  { bg: "rgba(245,158,11,0.15)", border: "#D97706", icon: "⚠️", text: "#FCD34D" },
+  },
+  critical: {
+    light: { bg: "#FEE2E2", border: "#EF4444", icon: "🚨", text: "#991B1B" },
+    dark:  { bg: "rgba(239,68,68,0.15)", border: "#DC2626", icon: "🚨", text: "#F87171" },
+  },
+  info: {
+    light: { bg: "#EFF6FF", border: "#BFDBFE", icon: "ℹ️", text: "#1D4ED8" },
+    dark:  { bg: "rgba(59,130,246,0.15)", border: "#3B82F6", icon: "ℹ️", text: "#60A5FA" },
+  },
 };
 
 function toUnit(f: number, unit: "F" | "C") {
@@ -84,6 +92,7 @@ export function OutfitRecommendationCard({
   timeline,
   onFeedback,
   onRecalibrate,
+  isDark = false,
 }: Props) {
   const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert, avatarCondition } =
     recommendation;
@@ -91,7 +100,6 @@ export function OutfitRecommendationCard({
   const [shared, setShared] = useState(false);
   const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
 
-  // Determine initial active tab: prefer the current period if it exists in the timeline
   const defaultPeriod = timeline?.find((e) => e.period.label === currentPeriodLabel())
     ? currentPeriodLabel()
     : timeline?.[0]?.period.label ?? "Morning";
@@ -131,6 +139,30 @@ export function OutfitRecommendationCard({
 
   const activeEntry = timeline?.find((e) => e.period.label === activeTab);
 
+  const primaryText = isDark ? "#F4F4F5" : "#111827";
+  const secondaryText = isDark ? "#D1D5DB" : "#4B5563";
+  const mutedText = isDark ? "#9BA4B4" : "#6B7280";
+  // Outfit reason purple — #7C3AED on white (5.3:1 ✓); #C4B5FD on dark (5.3:1 ✓)
+  const outfitReasonColor = isDark ? "#C4B5FD" : "#7C3AED";
+  // "ⓘ" hint icon — use mutedText
+  const infoIconColor = mutedText;
+  // Rain badge — blue on white (6.7:1 ✓); light blue on dark (4.5:1 ✓)
+  const rainBadgeBg = isDark ? "rgba(29,78,216,0.18)" : "#EFF6FF";
+  const rainBadgeText = isDark ? "#93C5FD" : "#1D4ED8";
+  // Section label (on white card) — #6B7280 (4.87:1 ✓)
+  const sectionLabelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const tabActiveBg = isDark ? "rgba(108,99,255,0.2)" : "#EDE9FE";
+  const tabActiveBorder = "#6C63FF";
+  const tabInactiveBg = isDark ? "#3A3A3C" : "#F9FAFB";
+  const tabInactiveBorder = isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB";
+  const tabActiveText = isDark ? "#A5B4FC" : "#6C63FF";
+  const tabInactiveText = isDark ? "#9BA4B4" : "#6B7280";
+  const periodPanelBg = isDark ? "#3A3A3C" : "#F9FAFB";
+  const periodPanelBorder = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
+  const thumbBtnBg = isDark ? "#3A3A3C" : "#F9FAFB";
+  const thumbBtnBorder = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
+  const feedbackText = isDark ? "#9BA4B4" : "#6B7280";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <motion.div
@@ -138,7 +170,7 @@ export function OutfitRecommendationCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 24 }}
       >
-        <Card mode="weather" padding="p-5">
+        <Card mode="weather" padding="p-5" isDark={isDark}>
           {/* Header */}
           <div
             style={{
@@ -153,7 +185,7 @@ export function OutfitRecommendationCard({
                 style={{
                   fontSize: 22,
                   fontWeight: 700,
-                  color: "#111827",
+                  color: primaryText,
                   letterSpacing: "-0.02em",
                   lineHeight: 1.15,
                 }}
@@ -161,7 +193,7 @@ export function OutfitRecommendationCard({
                 {label}
               </h2>
               {outfitReason && (
-                <p style={{ fontSize: 12, color: "#7C3AED", fontWeight: 500, marginTop: 3 }}>
+                <p style={{ fontSize: 12, color: outfitReasonColor, fontWeight: 500, marginTop: 3 }}>
                   {outfitReason}
                 </p>
               )}
@@ -175,7 +207,7 @@ export function OutfitRecommendationCard({
                 }}
                 style={{
                   fontSize: 13,
-                  color: "#6B7280",
+                  color: mutedText,
                   marginTop: 3,
                   background: "none",
                   border: "none",
@@ -190,7 +222,7 @@ export function OutfitRecommendationCard({
               >
                 Feels like {displayFeelsLike}
                 {feelsLikeExplanation && (
-                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                  <span style={{ fontSize: 11, color: infoIconColor }}>
                     {feelsLikeExpanded ? "▲" : "ⓘ"}
                   </span>
                 )}
@@ -201,7 +233,7 @@ export function OutfitRecommendationCard({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    style={{ fontSize: 12, color: "#4B5563", marginTop: 4, overflow: "hidden" }}
+                    style={{ fontSize: 12, color: secondaryText, marginTop: 4, overflow: "hidden" }}
                   >
                     {feelsLikeExplanation}
                   </motion.p>
@@ -215,8 +247,8 @@ export function OutfitRecommendationCard({
                   fontWeight: 700,
                   padding: "4px 12px",
                   borderRadius: 999,
-                  background: "#EFF6FF",
-                  color: "#1D4ED8",
+                  background: rainBadgeBg,
+                  color: rainBadgeText,
                 }}
               >
                 Rain
@@ -238,7 +270,7 @@ export function OutfitRecommendationCard({
           />
 
           {/* Description */}
-          <p style={{ fontSize: 14, color: "#4B5563", lineHeight: 1.55, marginTop: 14 }}>
+          <p style={{ fontSize: 14, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
             {description}
           </p>
 
@@ -247,9 +279,9 @@ export function OutfitRecommendationCard({
             <div style={{ marginTop: 18 }}>
               <p
                 style={{
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
-                  color: "#9CA3AF",
+                  color: sectionLabelColor,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
                   marginBottom: 10,
@@ -271,8 +303,8 @@ export function OutfitRecommendationCard({
                         flex: 1,
                         padding: "7px 4px",
                         borderRadius: 12,
-                        border: `1.5px solid ${isActive ? "#6C63FF" : "#E5E7EB"}`,
-                        background: isActive ? "#EDE9FE" : "#F9FAFB",
+                        border: `1.5px solid ${isActive ? tabActiveBorder : tabInactiveBorder}`,
+                        background: isActive ? tabActiveBg : tabInactiveBg,
                         cursor: "pointer",
                         display: "flex",
                         flexDirection: "column",
@@ -288,7 +320,7 @@ export function OutfitRecommendationCard({
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: isActive ? "#6C63FF" : "#6B7280",
+                          color: isActive ? tabActiveText : tabInactiveText,
                         }}
                       >
                         {entry.period.label}
@@ -308,15 +340,16 @@ export function OutfitRecommendationCard({
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.18 }}
                     style={{
-                      background: "#F9FAFB",
+                      background: periodPanelBg,
                       borderRadius: 16,
                       padding: "12px 14px",
-                      border: "1px solid #F3F4F6",
+                      border: `1px solid ${periodPanelBorder}`,
                     }}
                   >
                     <TimelinePeriodDetail
                       entry={activeEntry}
                       tempUnit={tempUnit}
+                      isDark={isDark}
                       prevEntry={
                         timeline.findIndex((e) => e.period.label === activeTab) > 0
                           ? timeline[timeline.findIndex((e) => e.period.label === activeTab) - 1]
@@ -331,7 +364,7 @@ export function OutfitRecommendationCard({
 
           {/* Thumbs feedback */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-            <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>
+            <span style={{ fontSize: 12, color: feedbackText, fontWeight: 500 }}>
               {voted ? "Thanks for the feedback!" : "Wearing this today?"}
             </span>
             <AnimatePresence>
@@ -346,13 +379,13 @@ export function OutfitRecommendationCard({
                     icon="👍"
                     label="Yes"
                     onClick={() => handleVote("thumbs_up")}
-                    active={false}
+                    isDark={isDark}
                   />
                   <ThumbButton
                     icon="👎"
                     label="No"
                     onClick={() => handleVote("thumbs_down")}
-                    active={false}
+                    isDark={isDark}
                   />
                 </motion.div>
               )}
@@ -378,8 +411,8 @@ export function OutfitRecommendationCard({
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                border: "1.5px solid #E5E7EB",
-                background: "#F9FAFB",
+                border: `1.5px solid ${thumbBtnBorder}`,
+                background: thumbBtnBg,
                 cursor: "pointer",
                 fontSize: 16,
                 transition: "all 0.15s",
@@ -399,15 +432,14 @@ export function OutfitRecommendationCard({
                   emoji={FOOTWEAR_PILLS[footwear].emoji}
                   color={FOOTWEAR_PILLS[footwear].color}
                   bg={FOOTWEAR_PILLS[footwear].bg}
+                  isDark={isDark}
                 />
               )}
-              {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
-              {sunglasses && (
-                <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />
-              )}
-              {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
-              {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
-              {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" />}
+              {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" isDark={isDark} />}
+              {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" isDark={isDark} />}
+              {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" isDark={isDark} />}
+              {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" isDark={isDark} />}
+              {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" isDark={isDark} />}
             </div>
           )}
 
@@ -419,8 +451,8 @@ export function OutfitRecommendationCard({
               transition={{ delay: 0.2 }}
               style={{
                 marginTop: 14,
-                background: URGENCY_COLORS[commuteAlert.urgency].bg,
-                border: `1px solid ${URGENCY_COLORS[commuteAlert.urgency].border}`,
+                background: URGENCY_COLORS[commuteAlert.urgency][isDark ? "dark" : "light"].bg,
+                border: `1px solid ${URGENCY_COLORS[commuteAlert.urgency][isDark ? "dark" : "light"].border}`,
                 borderRadius: 14,
                 padding: "10px 14px",
                 display: "flex",
@@ -429,12 +461,12 @@ export function OutfitRecommendationCard({
               }}
             >
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
-                {URGENCY_COLORS[commuteAlert.urgency].icon}
+                {URGENCY_COLORS[commuteAlert.urgency][isDark ? "dark" : "light"].icon}
               </span>
               <p
                 style={{
                   fontSize: 13,
-                  color: URGENCY_COLORS[commuteAlert.urgency].text,
+                  color: URGENCY_COLORS[commuteAlert.urgency][isDark ? "dark" : "light"].text,
                   lineHeight: 1.4,
                   flex: 1,
                 }}
@@ -457,7 +489,7 @@ export function OutfitRecommendationCard({
           className="min-h-[44px] w-full flex items-center justify-center gap-2 bg-transparent border-0 cursor-pointer"
         >
           <span style={{ fontSize: 12 }}>🔄</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF" }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#9BA4B4" : "#6B7280" }}>
             Not quite right? Recalibrate
           </span>
         </motion.button>
@@ -471,10 +503,12 @@ export function OutfitRecommendationCard({
 function TimelinePeriodDetail({
   entry,
   tempUnit,
+  isDark,
   prevEntry,
 }: {
   entry: OutfitTimelineEntry;
   tempUnit: "F" | "C";
+  isDark: boolean;
   prevEntry: OutfitTimelineEntry | null;
 }) {
   const { period, recommendation } = entry;
@@ -493,16 +527,19 @@ function TimelinePeriodDetail({
         )
       : null;
 
+  const primaryText = isDark ? "#F4F4F5" : "#111827";
+  const mutedText = isDark ? "#9BA4B4" : "#6B7280";
+
   return (
     <div>
       {/* Row: condition + temp range + outfit label */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: primaryText, lineHeight: 1.2 }}>
             {recommendation.label}
           </p>
-          <p style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+          <p style={{ fontSize: 12, color: mutedText, marginTop: 2 }}>
             {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
             {period.precipProb > 20 ? ` · ${period.precipProb}% rain` : ""}
           </p>
@@ -514,8 +551,12 @@ function TimelinePeriodDetail({
               fontWeight: 700,
               padding: "3px 8px",
               borderRadius: 999,
-              background: layerChange === "layer up" ? "#EFF6FF" : "#FEF9C3",
-              color: layerChange === "layer up" ? "#1D4ED8" : "#92400E",
+              background: isDark
+                ? (layerChange === "layer up" ? "rgba(29,78,216,0.18)" : "rgba(146,64,14,0.18)")
+                : (layerChange === "layer up" ? "#EFF6FF" : "#FEF9C3"),
+              color: isDark
+                ? (layerChange === "layer up" ? "#93C5FD" : "#FCD34D")
+                : (layerChange === "layer up" ? "#1D4ED8" : "#92400E"),
             }}
           >
             {layerChange === "layer up" ? "↑" : "↓"} {layerChange}
@@ -532,15 +573,14 @@ function TimelinePeriodDetail({
               emoji={FOOTWEAR_PILLS[footwear].emoji}
               color={FOOTWEAR_PILLS[footwear].color}
               bg={FOOTWEAR_PILLS[footwear].bg}
+              isDark={isDark}
             />
           )}
-          {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
-          {sunglasses && (
-            <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />
-          )}
-          {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
-          {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
-          {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" />}
+          {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" isDark={isDark} />}
+          {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" isDark={isDark} />}
+          {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" isDark={isDark} />}
+          {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" isDark={isDark} />}
+          {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" isDark={isDark} />}
         </div>
       )}
     </div>
@@ -553,12 +593,12 @@ function ThumbButton({
   icon,
   label,
   onClick,
-  active,
+  isDark,
 }: {
   icon: string;
   label: string;
   onClick: () => void;
-  active: boolean;
+  isDark: boolean;
 }) {
   return (
     <button
@@ -572,8 +612,8 @@ function ThumbButton({
         width: 36,
         height: 36,
         borderRadius: 10,
-        border: `1.5px solid ${active ? "#6C63FF" : "#E5E7EB"}`,
-        background: active ? "#EDE9FE" : "#F9FAFB",
+        border: `1.5px solid ${isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB"}`,
+        background: isDark ? "#3A3A3C" : "#F9FAFB",
         cursor: "pointer",
         fontSize: 18,
         transition: "all 0.15s",
@@ -589,27 +629,32 @@ function AccessoryPill({
   emoji,
   color,
   bg,
+  isDark = false,
 }: {
   label: string;
   emoji: string;
   color: string;
   bg: string;
+  isDark?: boolean;
 }) {
   return (
-    <span
+    <div
       style={{
-        fontSize: 11,
-        fontWeight: 600,
-        color,
-        background: bg,
-        padding: "4px 10px",
-        borderRadius: 999,
         display: "flex",
         alignItems: "center",
         gap: 4,
+        padding: "4px 10px",
+        borderRadius: 999,
+        // Dark mode: neutral pill so all accessory types are legible (D1D5DB on #3A3A3C = 8:1 ✓)
+        background: isDark ? "rgba(255,255,255,0.08)" : bg,
+        color: isDark ? "#D1D5DB" : color,
+        fontSize: 12,
+        fontWeight: 600,
+        flexShrink: 0,
       }}
     >
-      {emoji} {label}
-    </span>
+      <span style={{ fontSize: 13 }}>{emoji}</span>
+      {label}
+    </div>
   );
 }
