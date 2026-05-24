@@ -16,14 +16,15 @@ import { useAppStore } from "@/store";
 import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
-import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
+import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWardrobeItems } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
+import { matchWardrobeToOutfit, hasAnyMatch } from "@/lib/wardrobe-matching";
 import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
-import type { LocationData, OutfitFeedbackValue } from "@/types";
+import type { LocationData, OutfitFeedbackValue, WardrobeItem } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -56,6 +57,19 @@ export default function Home() {
 
   const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
   const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
+
+  const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
+
+  useEffect(() => {
+    if (!userId) return;
+    getWardrobeItems(userId).then(setWardrobeItems).catch(() => {});
+  }, [userId]);
+
+  const wardrobeMatch = useMemo(() => {
+    if (!outfit || wardrobeItems.length === 0) return null;
+    const match = matchWardrobeToOutfit(wardrobeItems, outfit);
+    return hasAnyMatch(match) ? match : null;
+  }, [outfit, wardrobeItems]);
 
   // Load saved locations on mount
   useEffect(() => {
@@ -369,6 +383,7 @@ export default function Home() {
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
               isDark={isDark}
+              wardrobeMatch={wardrobeMatch}
             />
 
             {/* Calendar style hint */}

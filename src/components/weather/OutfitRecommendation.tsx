@@ -7,6 +7,7 @@ import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
+import type { WardrobeMatch } from "@/lib/wardrobe-matching";
 import type {
   FootwearKind,
   OutfitFeedbackValue,
@@ -46,6 +47,14 @@ const AVATAR_CONDITION_EMOJI: Record<AvatarCondition, string> = {
   clear_night: "🌙",
 };
 
+const WARDROBE_CATEGORY_EMOJI: Record<string, string> = {
+  tops: "👕",
+  bottoms: "👖",
+  outerwear: "🧥",
+  footwear: "👟",
+  accessories: "🧣",
+};
+
 interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
@@ -56,6 +65,7 @@ interface Props {
   onFeedback?: (value: OutfitFeedbackValue) => void | Promise<void>;
   onRecalibrate?: () => void;
   isDark?: boolean;
+  wardrobeMatch?: WardrobeMatch | null;
 }
 
 const URGENCY_COLORS = {
@@ -94,6 +104,7 @@ export function OutfitRecommendationCard({
   onFeedback,
   onRecalibrate,
   isDark = false,
+  wardrobeMatch,
 }: Props) {
   const { profile } = useAppStore();
   const textOnly = profile?.outfit_display_mode === "text";
@@ -334,6 +345,53 @@ export function OutfitRecommendationCard({
           <p style={{ fontSize: 15, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
             {description}
           </p>
+
+          {/* From your wardrobe */}
+          {wardrobeMatch && isViewingNow && (() => {
+            const slots = [
+              wardrobeMatch.top,
+              wardrobeMatch.bottom,
+              wardrobeMatch.outerwear,
+              wardrobeMatch.footwear,
+              ...wardrobeMatch.accessories,
+            ].filter(Boolean) as NonNullable<typeof wardrobeMatch.top>[];
+            if (slots.length === 0) return null;
+            return (
+              <div style={{ marginTop: 14 }}>
+                <p style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: sectionLabelColor,
+                  marginBottom: 8,
+                }}>
+                  From your wardrobe
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {slots.map((item) => (
+                    <span
+                      key={item.id}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 4,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: isDark ? "rgba(124,58,237,0.18)" : "#F5F3FF",
+                        border: `1px solid ${isDark ? "rgba(167,139,250,0.25)" : "#DDD6FE"}`,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: isDark ? "#C4B5FD" : "#6D28D9",
+                      }}
+                    >
+                      {WARDROBE_CATEGORY_EMOJI[item.category] ?? "👗"} {item.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Outfit Timeline */}
           {timeline && timeline.length > 0 && (
