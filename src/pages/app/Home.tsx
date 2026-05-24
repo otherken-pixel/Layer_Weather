@@ -12,7 +12,6 @@ import { AQICard } from "@/components/weather/AQICard";
 import { LocationTabs } from "@/components/weather/LocationTabs";
 import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
-import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAppStore } from "@/store";
 import { getSkyColor } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
