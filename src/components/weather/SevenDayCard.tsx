@@ -228,18 +228,6 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
 
 // ── Hourly drill-down strip ───────────────────────────────────────────────────
 
-function wmoToCondition(code: number): string {
-  if (code === 0) return "clear";
-  if (code <= 2) return "partly_cloudy";
-  if (code <= 3) return "cloudy";
-  if (code <= 48) return "foggy";
-  if (code <= 57) return "drizzle";
-  if (code <= 67) return "rain";
-  if (code <= 77) return "snow";
-  if (code <= 82) return "rain";
-  return "thunderstorm";
-}
-
 function HourlyDrillDown({
   hourly,
   tempUnit,
@@ -266,7 +254,7 @@ function HourlyDrillDown({
         }}
       >
         {hourly.map((h, idx) => {
-          const condKey = wmoToCondition(h.weatherCode);
+          const condKey = h.condition;
           const showPrecip = h.precipProb > 5;
           return (
             <div
