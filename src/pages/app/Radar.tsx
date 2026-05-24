@@ -22,7 +22,7 @@ function MapViewSync({ center }: { center: [number, number] }) {
   useEffect(() => {
     const zoom = Math.min(map.getZoom(), RAINVIEWER_MAX_ZOOM);
     map.setView(center, zoom, { animate: false });
-  }, [center, map]);
+  }, [center[0], center[1], map]);
 
   useEffect(() => {
     const clampZoom = () => {
