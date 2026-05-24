@@ -9,6 +9,7 @@ const OUTFIT_LABELS: Record<OutfitType, { top: string; bottom: string; layer?: s
   heavy_coat:     { top: "Heavy coat",         bottom: "Pants",  layer: "Warm layers underneath" },
   rain_light:     { top: "Rain jacket",        bottom: "Pants",  layer: "Light layer underneath" },
   rain_heavy:     { top: "Heavy rain jacket",  bottom: "Pants",  layer: "Warm layer underneath" },
+  dress:          { top: "Dress",              bottom: "" },
 };
 
 const FOOTWEAR_LABELS: Record<FootwearKind, string> = {
@@ -57,8 +58,8 @@ export default function OutfitTextView({
   const accentText   = isDark ? "#C4B5FD" : "#6D28D9";
 
   const rows: { label: string; value: string }[] = [
-    { label: "Top",    value: top },
-    { label: "Bottom", value: bottom },
+    { label: outfit === "dress" ? "Outfit" : "Top", value: top },
+    ...(bottom ? [{ label: "Bottom", value: bottom }] : []),
     ...(layer ? [{ label: "Layering", value: layer }] : []),
     ...(accessories.length > 0 ? [{ label: "Accessories", value: accessories.join(", ") }] : []),
   ];

@@ -18,6 +18,7 @@ import FlipFlops from "./svg/FlipFlops";
 import Sneakers from "./svg/Sneakers";
 import SnowBoots from "./svg/SnowBoots";
 import RainBoots from "./svg/RainBoots";
+import Dress from "./svg/Dress";
 
 interface Props {
   outfit: OutfitType;
@@ -73,10 +74,13 @@ function TopGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
     case "rain_light":
     case "rain_heavy":
       return <RainJacket size={size} />;
+    case "dress":
+      return <Dress size={size} />;
   }
 }
 
 function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
+  if (outfit === "dress") return null;
   return outfit === "shorts_tshirt" ? <Shorts size={size} /> : <Pants size={size} />;
 }
 
@@ -188,14 +192,16 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
           {hasAccessories ? (
             <>
               {/* Bottom garment — lower left */}
-              <motion.div
-                {...ITEM_ANIM}
-                transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
-                className="flex justify-center items-end"
-                style={{ gridColumn: 1, gridRow: 2, justifySelf: "center" }}
-              >
-                <BottomGarment outfit={outfit} size={bottomSz} />
-              </motion.div>
+              {outfit !== "dress" && (
+                <motion.div
+                  {...ITEM_ANIM}
+                  transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
+                  className="flex justify-center items-end"
+                  style={{ gridColumn: 1, gridRow: 2, justifySelf: "center" }}
+                >
+                  <BottomGarment outfit={outfit} size={bottomSz} />
+                </motion.div>
+              )}
 
               {/* Center column: stack footwear + umbrella when both; else single accessory */}
               {(footwear || umbrella || (!footwear && !umbrella && sunglasses)) && (
@@ -254,7 +260,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                 </>
               )}
             </>
-          ) : (
+          ) : outfit !== "dress" ? (
             <motion.div
               {...ITEM_ANIM}
               transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
@@ -263,7 +269,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
             >
               <BottomGarment outfit={outfit} size={bottomSz} />
             </motion.div>
-          )}
+          ) : null}
         </motion.div>
       </AnimatePresence>
     </motion.div>
