@@ -20,14 +20,31 @@ interface Props {
   daily: DailyForecast[];
   tempUnit: "F" | "C";
   hourlyByDay?: Record<string, HourlyForecast[]>;
+  isDark?: boolean;
 }
 
-export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
+export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: Props) {
   const [selectedDay, setSelectedDay] = React.useState<number | null>(null);
 
   const allMin = Math.min(...daily.map((d) => toUnit(d.tempMin, tempUnit)));
   const allMax = Math.max(...daily.map((d) => toUnit(d.tempMax, tempUnit)));
   const range = allMax - allMin || 1;
+
+  const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
+  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const dayNameColor = isDark ? "#F4F4F5" : "#374151";
+  const hiTempColor = isDark ? "#F4F4F5" : "#111827";
+  // Lo temp — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark card (5.0:1 ✓)
+  const loTempColor = isDark ? "#9BA4B4" : "#6B7280";
+  const barTrackColor = isDark ? "#3A3A3C" : "#E5E7EB";
+  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
+  const chevronColor = isDark ? "#9BA4B4" : "#6B7280";
+  const rowHoverBg = isDark ? "rgba(255,255,255,0.04)" : "#F9FAFB";
+  // Precip % — #4338CA on white (9.5:1 ✓); #818CF8 on dark (5.5:1 ✓)
+  const precipNormal = isDark ? "#60A5FA" : "#1D4ED8";
+  const precipHigh = isDark ? "#818CF8" : "#4338CA";
 
   function toggleDay(i: number) {
     setSelectedDay((prev) => (prev === i ? null : i));
@@ -36,18 +53,19 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: cardBg,
         borderRadius: 24,
         padding: "20px",
-        boxShadow: "0 2px 20px rgba(0,0,0,0.07)",
+        boxShadow: cardShadow,
+        border: cardBorder,
       }}
     >
       <p
         style={{
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: 700,
-          color: "#9CA3AF",
-          letterSpacing: "0.1em",
+          color: labelColor,
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
           marginBottom: 14,
         }}
@@ -70,7 +88,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
           <div
             key={i}
             style={{
-              borderBottom: i < daily.slice(0, 7).length - 1 ? "1px solid #F3F4F6" : "none",
+              borderBottom: i < daily.slice(0, 7).length - 1 ? `1px solid ${dividerColor}` : "none",
             }}
           >
             {/* Day row — clickable */}
@@ -93,7 +111,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                 paddingRight: 6,
               }}
               onMouseEnter={(e) => {
-                if (hasHourly) (e.currentTarget as HTMLDivElement).style.background = "#F9FAFB";
+                if (hasHourly) (e.currentTarget as HTMLDivElement).style.background = rowHoverBg;
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLDivElement).style.background = "transparent";
@@ -104,7 +122,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                 style={{
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "#374151",
+                  color: dayNameColor,
                   width: 44,
                   flexShrink: 0,
                 }}
@@ -122,7 +140,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: highPrecip ? "#6366F1" : "#3B82F6",
+                  color: highPrecip ? precipHigh : precipNormal,
                   width: 34,
                   textAlign: "right",
                   flexShrink: 0,
@@ -145,7 +163,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                 <span
                   style={{
                     fontSize: 13,
-                    color: "#9CA3AF",
+                    color: loTempColor,
                     fontWeight: 500,
                     width: 30,
                     textAlign: "right",
@@ -157,7 +175,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                   style={{
                     flex: 1,
                     height: 5,
-                    background: "#E5E7EB",
+                    background: barTrackColor,
                     borderRadius: 3,
                     overflow: "hidden",
                     position: "relative",
@@ -177,7 +195,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                 <span
                   style={{
                     fontSize: 14,
-                    color: "#111827",
+                    color: hiTempColor,
                     fontWeight: 700,
                     width: 30,
                   }}
@@ -193,7 +211,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                   transition={{ duration: 0.2 }}
                   style={{
                     fontSize: 12,
-                    color: "#9CA3AF",
+                    color: chevronColor,
                     marginLeft: 6,
                     flexShrink: 0,
                     display: "inline-block",
@@ -215,7 +233,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
                   transition={{ duration: 0.22, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <HourlyDrillDown hourly={dayHourly} tempUnit={tempUnit} />
+                  <HourlyDrillDown hourly={dayHourly} tempUnit={tempUnit} isDark={isDark} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -231,10 +249,18 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay }: Props) {
 function HourlyDrillDown({
   hourly,
   tempUnit,
+  isDark,
 }: {
   hourly: HourlyForecast[];
   tempUnit: "F" | "C";
+  isDark: boolean;
 }) {
+  const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const timeColor = isDark ? "#9BA4B4" : "#6B7280";
+  const tempColor = isDark ? "#F4F4F5" : "#111827";
+  // Precip % — #1D4ED8 on light pill (6.1:1 ✓); #60A5FA on dark pill (4.5:1 ✓)
+  const precipColor = isDark ? "#60A5FA" : "#1D4ED8";
+
   return (
     <div
       style={{
@@ -268,30 +294,28 @@ function HourlyDrillDown({
                 padding: "8px 5px",
                 borderRadius: 14,
                 flexShrink: 0,
-                background: "#F3F4F6",
+                background: pillBg,
               }}
             >
               <span
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: "#6B7280",
+                  color: timeColor,
                   textTransform: "uppercase",
                 }}
               >
                 {h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 16 }}>{EMOJI[condKey] ?? "🌤️"}</span>
-              <span
-                style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}
-              >
+              <span style={{ fontSize: 13, fontWeight: 700, color: tempColor }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
               <span
                 style={{
                   fontSize: 10,
                   fontWeight: 600,
-                  color: "#3B82F6",
+                  color: precipColor,
                   opacity: showPrecip ? 1 : 0,
                 }}
               >

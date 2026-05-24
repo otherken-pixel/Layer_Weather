@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
+import { useIsDark } from "@/hooks/useDarkMode";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
 import { useWeather } from "@/hooks/useWeather";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
@@ -18,6 +19,7 @@ export default function Settings() {
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
+  const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
@@ -73,15 +75,40 @@ export default function Settings() {
     ? profile.display_name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
     : "W";
 
+  // Theme-dependent values
+  const pageBg = isDark ? "#1C1C1E" : "#F2F2F7";
+  const nameColor = isDark ? "#F4F4F5" : "#111827";
+  // Email/secondary — #4B5563 on #F2F2F7 (6.76:1 ✓); #9BA4B4 on #1C1C1E (6.6:1 ✓)
+  const emailColor = isDark ? "#9BA4B4" : "#4B5563";
+  // Section labels — #4B5563 on gray bg (6.76:1 ✓); #9BA4B4 on dark (6.6:1 ✓)
+  const sectionLabelColor = isDark ? "#9BA4B4" : "#4B5563";
+  // Footnote text below cards
+  const footnoteColor = isDark ? "#9BA4B4" : "#4B5563";
+  // Card surface
+  const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const cardShadow = isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)";
+  // Hint text inside white cards — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark (5.0:1 ✓)
+  const hintColor = isDark ? "#9BA4B4" : "#6B7280";
+  // Primary text inside cards
+  const rowTextColor = isDark ? "#F4F4F5" : "#111827";
+  const rowSecondaryColor = isDark ? "#9BA4B4" : "#6B7280";
+  const dividerColor = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
+  const inputBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const inputBorder = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+  const inputText = isDark ? "#F4F4F5" : "#111827";
+  const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const pillInactiveText = isDark ? "#D1D5DB" : "#4B5563";
+
   return (
-    <div style={{ minHeight: "100%", background: "#F2F2F7", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100%", background: pageBg, display: "flex", flexDirection: "column" }}>
 
       {/* ── Profile header ── */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: "#F2F2F7",
+          background: pageBg,
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)",
           paddingBottom: 24,
           display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
@@ -96,10 +123,10 @@ export default function Settings() {
           {initials}
         </div>
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", margin: 0 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: nameColor, letterSpacing: "-0.02em", margin: 0 }}>
             {profile?.display_name ?? "Weather Enthusiast"}
           </h2>
-          <p style={{ fontSize: 14, color: "#9CA3AF", marginTop: 2 }}>{profile?.email}</p>
+          <p style={{ fontSize: 14, color: emailColor, marginTop: 2 }}>{profile?.email}</p>
         </div>
       </motion.div>
 
@@ -107,9 +134,9 @@ export default function Settings() {
       <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 22 }}>
 
         {/* Location */}
-        <Section title="Location">
-          <WhiteCard>
-            <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10 }}>
+        <Section title="Location" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 10 }}>
               Used for weather and radar when GPS is off or denied.
             </p>
             <input
@@ -119,13 +146,13 @@ export default function Settings() {
               placeholder="e.g. Seattle, WA"
               style={{
                 width: "100%",
-                background: "#F3F4F6",
-                border: "1.5px solid #E5E7EB",
+                background: inputBg,
+                border: `1.5px solid ${inputBorder}`,
                 borderRadius: 12,
                 padding: "10px 12px",
                 fontSize: 15,
                 fontWeight: 600,
-                color: "#111827",
+                color: inputText,
                 outline: "none",
                 marginBottom: 8,
               }}
@@ -161,9 +188,9 @@ export default function Settings() {
                 width: "100%",
                 padding: "10px 0",
                 borderRadius: 12,
-                border: "1.5px solid #E5E7EB",
-                background: "#F3F4F6",
-                color: "#111827",
+                border: `1.5px solid ${inputBorder}`,
+                background: inputBg,
+                color: inputText,
                 fontWeight: 700,
                 fontSize: 14,
                 cursor: citySaving ? "not-allowed" : "pointer",
@@ -172,61 +199,87 @@ export default function Settings() {
             >
               Use current location
             </button>
-          </WhiteCard>
+          </ThemedCard>
         </Section>
 
         {/* Units */}
-        <Section title="Units">
-          <WhiteCard>
+        <Section title="Units" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: "#111827" }}>Temperature</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>Temperature</span>
               <PillToggle
                 options={["F", "C"] as const}
                 active={tempUnit}
                 onSelect={(u) => setTempUnit(u)}
                 format={(u) => `°${u}`}
+                pillBg={pillBg}
+                pillInactiveText={pillInactiveText}
               />
             </div>
-          </WhiteCard>
+          </ThemedCard>
         </Section>
 
         {/* Commute */}
-        <Section title="Commute">
-          <WhiteCard>
-            <TimeRow label="Morning departure" value={commuteStart} onChange={setCommuteStart} />
-            <Divider />
-            <TimeRow label="Evening return" value={commuteEnd} onChange={setCommuteEnd} />
-          </WhiteCard>
-          <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6, paddingLeft: 4 }}>
+        <Section title="Commute" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <TimeRow
+              label="Morning departure"
+              value={commuteStart}
+              onChange={setCommuteStart}
+              isDark={isDark}
+              rowTextColor={rowTextColor}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+            />
+            <Divider dividerColor={dividerColor} />
+            <TimeRow
+              label="Evening return"
+              value={commuteEnd}
+              onChange={setCommuteEnd}
+              isDark={isDark}
+              rowTextColor={rowTextColor}
+              inputBg={inputBg}
+              inputBorder={inputBorder}
+              inputText={inputText}
+            />
+          </ThemedCard>
+          <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
             WearToday warns you about temperature drops during your commute.
           </p>
         </Section>
 
         {/* Calibration */}
         {calibration && (
-          <Section title="Your Temperature Profile">
-            <WhiteCard>
-              <CalibRow label="Shorts from" value={`${calibration.shorts_min_temp}°F`} />
-              <Divider />
-              <CalibRow label="Light jacket below" value={`${calibration.light_jacket_max_temp}°F`} />
-              <Divider />
-              <CalibRow label="Heavy coat below" value={`${calibration.heavy_coat_max_temp}°F`} />
-              <Divider />
+          <Section title="Your Temperature Profile" labelColor={sectionLabelColor}>
+            <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+              <CalibRow label="Shorts from" value={`${calibration.shorts_min_temp}°F`} labelColor={rowSecondaryColor} valueColor={rowTextColor} />
+              <Divider dividerColor={dividerColor} />
+              <CalibRow label="Light jacket below" value={`${calibration.light_jacket_max_temp}°F`} labelColor={rowSecondaryColor} valueColor={rowTextColor} />
+              <Divider dividerColor={dividerColor} />
+              <CalibRow label="Heavy coat below" value={`${calibration.heavy_coat_max_temp}°F`} labelColor={rowSecondaryColor} valueColor={rowTextColor} />
+              <Divider dividerColor={dividerColor} />
               <CalibRow
                 label="Thermal sensitivity"
                 value={["Always Cold","Runs Cold","Average","Runs Warm","Always Warm"][calibration.thermal_sensitivity + 2]}
+                labelColor={rowSecondaryColor}
+                valueColor={rowTextColor}
               />
-              <Divider />
+              <Divider dividerColor={dividerColor} />
               <CalibRow
                 label="Rain tolerance"
                 value={{ low: "Avoids rain", moderate: "Moderate", high: "Doesn't mind" }[calibration.rain_tolerance]}
+                labelColor={rowSecondaryColor}
+                valueColor={rowTextColor}
               />
-            </WhiteCard>
+            </ThemedCard>
             <button
               onClick={() => navigate("/onboarding")}
               style={{
                 marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                background: "none", border: `1.5px solid ${ACCENT}`, borderRadius: 14,
+                background: "none",
+                border: `1.5px solid ${ACCENT}`,
+                borderRadius: 14,
                 padding: "10px 0", width: "100%", color: ACCENT, fontWeight: 600, fontSize: 14, cursor: "pointer",
               }}
             >
@@ -236,9 +289,9 @@ export default function Settings() {
         )}
 
         {/* Today's Agenda */}
-        <Section title="Today's Agenda">
-          <WhiteCard padding="p-3">
-            <p style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 10 }}>
+        <Section title="Today's Agenda" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow} padding="p-3">
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 10 }}>
               Set the event type so WearToday can tailor the outfit style.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -251,37 +304,45 @@ export default function Settings() {
                     style={{
                       display: "flex", alignItems: "center", gap: 12,
                       padding: "10px 12px", borderRadius: 14, textAlign: "left",
-                      background: active ? "#EDE9FE" : "#F9FAFB",
-                      border: `1.5px solid ${active ? ACCENT : "#F3F4F6"}`,
+                      background: active
+                        ? (isDark ? "rgba(109,40,217,0.25)" : "#EDE9FE")
+                        : (isDark ? "#3A3A3C" : "#F9FAFB"),
+                      border: `1.5px solid ${active ? ACCENT : (isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6")}`,
                       cursor: "pointer", width: "100%",
                     }}
                   >
                     <span style={{ fontSize: 20 }}>{info.emoji}</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? ACCENT : "#111827", margin: 0 }}>{info.label}</p>
-                      <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>{info.description}</p>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? (isDark ? "#C4B5FD" : ACCENT) : rowTextColor, margin: 0 }}>{info.label}</p>
+                      {/* Description — #4B5563 on both light bg types (passes AA ✓) */}
+                      <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>{info.description}</p>
                     </div>
-                    {active && <span style={{ color: ACCENT, fontSize: 16 }}>✓</span>}
+                    {active && <span style={{ color: isDark ? "#C4B5FD" : ACCENT, fontSize: 16 }}>✓</span>}
                   </button>
                 );
               })}
             </div>
-          </WhiteCard>
+          </ThemedCard>
         </Section>
 
         {/* Saved Locations */}
         {localSavedLocations.length > 0 && (
-          <Section title="Saved Locations">
-            <WhiteCard>
+          <Section title="Saved Locations" labelColor={sectionLabelColor}>
+            <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
               {localSavedLocations.map((loc, i) => (
                 <div key={loc.city}>
-                  {i > 0 && <Divider />}
+                  {i > 0 && <Divider dividerColor={dividerColor} />}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 16 }}>📍</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{loc.city}</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: rowTextColor }}>{loc.city}</span>
                       {loc.city === location?.city && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED", background: "#EDE9FE", padding: "2px 8px", borderRadius: 999 }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700,
+                          color: isDark ? "#C4B5FD" : "#7C3AED",
+                          background: isDark ? "rgba(109,40,217,0.2)" : "#EDE9FE",
+                          padding: "2px 8px", borderRadius: 999,
+                        }}>
                           ACTIVE
                         </span>
                       )}
@@ -296,7 +357,9 @@ export default function Settings() {
                       aria-label={`Remove ${loc.city}`}
                       style={{
                         width: 32, height: 32, borderRadius: "50%",
-                        border: "none", background: "#FEE2E2", color: "#DC2626",
+                        border: "none",
+                        background: isDark ? "rgba(239,68,68,0.15)" : "#FEE2E2",
+                        color: isDark ? "#F87171" : "#DC2626",
                         fontSize: 16, cursor: "pointer", display: "flex",
                         alignItems: "center", justifyContent: "center",
                       }}
@@ -306,16 +369,16 @@ export default function Settings() {
                   </div>
                 </div>
               ))}
-            </WhiteCard>
-            <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6, paddingLeft: 4 }}>
+            </ThemedCard>
+            <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
               Switch between locations from the Today tab. Max 5.
             </p>
           </Section>
         )}
 
         {/* App info */}
-        <Section title="App">
-          <WhiteCard>
+        <Section title="App" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
@@ -326,11 +389,12 @@ export default function Settings() {
                   <line x1="4" y1="20" x2="8" y2="20" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="32" y1="20" x2="36" y2="20" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#111827", letterSpacing: "-0.01em" }}>WearToday</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>WearToday</span>
               </div>
-              <span style={{ fontSize: 12, color: "#9CA3AF" }}>v1.0.0</span>
+              {/* Version — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark card (5.0:1 ✓) */}
+              <span style={{ fontSize: 12, color: hintColor }}>v1.0.0</span>
             </div>
-          </WhiteCard>
+          </ThemedCard>
         </Section>
 
         {/* Actions */}
@@ -351,7 +415,9 @@ export default function Settings() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="min-h-[44px] w-full bg-transparent border-0 text-red-500 text-[15px] font-semibold cursor-pointer"
+            className="min-h-[44px] w-full bg-transparent border-0 text-[15px] font-semibold cursor-pointer"
+            // #B91C1C on #F2F2F7 (5.8:1 ✓); #F87171 on #1C1C1E (5.7:1 ✓)
+            style={{ color: isDark ? "#F87171" : "#B91C1C" }}
           >
             Sign Out
           </button>
@@ -364,10 +430,10 @@ export default function Settings() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, labelColor }: { title: string; children: React.ReactNode; labelColor: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", paddingLeft: 4, margin: 0 }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: labelColor, letterSpacing: "0.1em", textTransform: "uppercase", paddingLeft: 4, margin: 0 }}>
         {title}
       </p>
       {children}
@@ -375,36 +441,61 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function WhiteCard({ children, padding = "p-4" }: { children: React.ReactNode; padding?: string }) {
+function ThemedCard({
+  children,
+  cardBg,
+  cardBorder,
+  cardShadow,
+  padding = "p-4",
+}: {
+  children: React.ReactNode;
+  cardBg: string;
+  cardBorder: string | undefined;
+  cardShadow: string;
+  padding?: string;
+}) {
   return (
-    <div className={`rounded-[20px] bg-white ${padding}`} style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div
+      className={`rounded-[20px] ${padding}`}
+      style={{ background: cardBg, border: cardBorder, boxShadow: cardShadow }}
+    >
       {children}
     </div>
   );
 }
 
-function Divider() {
-  return <div style={{ height: 1, background: "#F3F4F6", margin: "10px 0" }} />;
+function Divider({ dividerColor }: { dividerColor: string }) {
+  return <div style={{ height: 1, background: dividerColor, margin: "10px 0" }} />;
 }
 
-function PillToggle<T extends string>({ options, active, onSelect, format }: {
+function PillToggle<T extends string>({
+  options,
+  active,
+  onSelect,
+  format,
+  pillBg,
+  pillInactiveText,
+}: {
   options: readonly T[];
   active: T;
   onSelect: (v: T) => void;
   format: (v: T) => string;
+  pillBg: string;
+  pillInactiveText: string;
 }) {
   return (
-    <div className="flex bg-neutral-100 rounded-full p-1 gap-0.5">
+    <div className="flex rounded-full p-1 gap-0.5" style={{ background: pillBg }}>
       {options.map((o) => (
         <button
           key={o}
           type="button"
           onClick={() => onSelect(o)}
           aria-pressed={active === o}
-          className={`min-h-[44px] min-w-[44px] px-4 rounded-full text-sm font-bold border-0 cursor-pointer transition-colors ${
-            active === o ? "text-white" : "text-neutral-600"
-          }`}
-          style={{ background: active === o ? ACCENT : "transparent" }}
+          className="min-h-[44px] min-w-[44px] px-4 rounded-full text-sm font-bold border-0 cursor-pointer transition-colors"
+          style={{
+            background: active === o ? ACCENT : "transparent",
+            color: active === o ? "white" : pillInactiveText,
+          }}
         >
           {format(o)}
         </button>
@@ -413,29 +504,55 @@ function PillToggle<T extends string>({ options, active, onSelect, format }: {
   );
 }
 
-function TimeRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function TimeRow({
+  label,
+  value,
+  onChange,
+  isDark,
+  rowTextColor,
+  inputBg,
+  inputBorder,
+  inputText,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  isDark: boolean;
+  rowTextColor: string;
+  inputBg: string;
+  inputBorder: string;
+  inputText: string;
+}) {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-      <span style={{ fontSize: 15, fontWeight: 600, color: "#111827", flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, flex: 1 }}>{label}</span>
       <input
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{
-          background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12,
-          padding: "6px 12px", fontSize: 14, fontWeight: 700, color: "#111827",
-          outline: "none", width: 100, textAlign: "center", colorScheme: "light",
+          background: inputBg,
+          border: `1.5px solid ${inputBorder}`,
+          borderRadius: 12,
+          padding: "6px 12px",
+          fontSize: 14,
+          fontWeight: 700,
+          color: inputText,
+          outline: "none",
+          width: 100,
+          textAlign: "center",
+          colorScheme: isDark ? "dark" : "light",
         }}
       />
     </div>
   );
 }
 
-function CalibRow({ label, value }: { label: string; value: string }) {
+function CalibRow({ label, value, labelColor, valueColor }: { label: string; value: string; labelColor: string; valueColor: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: 14, color: "#6B7280" }}>{label}</span>
-      <span style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>{value}</span>
+      <span style={{ fontSize: 14, color: labelColor }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: valueColor }}>{value}</span>
     </div>
   );
 }
