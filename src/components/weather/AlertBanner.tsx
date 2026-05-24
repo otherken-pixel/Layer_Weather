@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface WeatherAlert {
@@ -23,7 +23,7 @@ export function AlertBanner({ alerts }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <AnimatePresence>
-        {visible.map((alert, originalIdx) => {
+        {visible.map((alert, _originalIdx) => {
           const idx = alerts.indexOf(alert);
           return (
             <motion.div

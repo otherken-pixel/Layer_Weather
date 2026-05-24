@@ -19,7 +19,6 @@ interface AppState {
   // UI
   isLoadingWeather: boolean;
   weatherError: string | null;
-  selectedForecastDay: number | null;
 
   // Actions
   setUserId: (id: string | null) => void;
@@ -34,7 +33,6 @@ interface AppState {
   setWeatherLastFetched: (d: Date | null) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
-  setSelectedForecastDay: (day: number | null) => void;
   reset: () => void;
 }
 
@@ -51,7 +49,6 @@ const initialState = {
   weatherLastFetched: null,
   isLoadingWeather: false,
   weatherError: null,
-  selectedForecastDay: null,
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -69,6 +66,5 @@ export const useAppStore = create<AppState>((set) => ({
   setWeatherLastFetched: (weatherLastFetched) => set({ weatherLastFetched }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
-  setSelectedForecastDay: (selectedForecastDay) => set({ selectedForecastDay }),
   reset: () => set(initialState),
 }));

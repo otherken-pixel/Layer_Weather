@@ -35,10 +35,11 @@ function mapWeatherError(err: unknown): string {
 
 async function resolveCoordinates(
   force: boolean,
+  preferGpsWhenForced: boolean,
   location: ReturnType<typeof useAppStore.getState>["location"],
   profile: ReturnType<typeof useAppStore.getState>["profile"],
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && Capacitor.isNativePlatform()) {
+  if (force && preferGpsWhenForced && Capacitor.isNativePlatform()) {
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm === "granted") {
       try {
@@ -54,11 +55,11 @@ async function resolveCoordinates(
   }
 
   const cached = useAppStore.getState().location;
-  if (location?.latitude != null && location?.longitude != null) {
-    return { latitude: location.latitude, longitude: location.longitude };
-  }
   if (cached?.latitude != null && cached?.longitude != null) {
     return { latitude: cached.latitude, longitude: cached.longitude };
+  }
+  if (location?.latitude != null && location?.longitude != null) {
+    return { latitude: location.latitude, longitude: location.longitude };
   }
   if (profile?.last_latitude != null && profile?.last_longitude != null) {
     return { latitude: profile.last_latitude, longitude: profile.last_longitude };
@@ -91,7 +92,7 @@ export function useWeather() {
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
-  const refresh = useCallback(async (force = false) => {
+  const refresh = useCallback(async (force = false, preferGpsWhenForced = true) => {
     if (!force && !isStale && weather) return;
 
     const generation = ++refreshGeneration.current;
@@ -101,7 +102,12 @@ export function useWeather() {
     try {
       await withTimeout(
         (async () => {
-          const { latitude, longitude } = await resolveCoordinates(force, location, profile);
+          const { latitude, longitude } = await resolveCoordinates(
+            force,
+            preferGpsWhenForced,
+            location,
+            profile,
+          );
           if (generation !== refreshGeneration.current) return;
 
           let city = location?.city || profile?.last_city || "";
