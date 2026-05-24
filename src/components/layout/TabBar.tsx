@@ -2,8 +2,9 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useIsDark } from "@/hooks/useDarkMode";
+import { Colors } from "@/constants/colors";
 
-function IconToday({ active }: { active: boolean }) {
+function IconToday() {
   return (
     <svg
       width="24"
@@ -30,7 +31,7 @@ function IconToday({ active }: { active: boolean }) {
   );
 }
 
-function IconRadar({ active }: { active: boolean }) {
+function IconRadar() {
   return (
     <svg
       width="24"
@@ -52,7 +53,7 @@ function IconRadar({ active }: { active: boolean }) {
   );
 }
 
-function IconPacking({ active }: { active: boolean }) {
+function IconPacking() {
   return (
     <svg
       width="24"
@@ -74,7 +75,7 @@ function IconPacking({ active }: { active: boolean }) {
   );
 }
 
-function IconSettings({ active }: { active: boolean }) {
+function IconSettings() {
   return (
     <svg
       width="24"
@@ -95,7 +96,7 @@ function IconSettings({ active }: { active: boolean }) {
   );
 }
 
-function IconWardrobe({ active }: { active: boolean }) {
+function IconWardrobe() {
   return (
     <svg
       width="24"
@@ -132,7 +133,7 @@ export function TabBar() {
       className="fixed bottom-0 left-0 right-0 z-50 pb-safe backdrop-blur-xl"
       style={{
         background: isDark ? "rgba(28,28,30,0.95)" : "rgba(255,255,255,0.95)",
-        borderTop: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #E5E7EB",
+        borderTop: isDark ? `1px solid ${Colors.dark.border}` : "1px solid #E5E7EB",
       }}
       role="tablist"
       aria-label="Main navigation"
@@ -150,15 +151,15 @@ export function TabBar() {
               className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[52px] px-2 py-1.5 rounded-2xl"
               style={{
                 color: active
-                  ? "#4A3FDB"
-                  : isDark ? "#9BA4B4" : "#6B7280",
+                  ? Colors.brand.textSafe
+                  : isDark ? Colors.dark.textMuted : Colors.text.muted,
               }}
             >
               <motion.div
                 animate={{ scale: active ? 1.08 : 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
               >
-                <Icon active={active} />
+                <Icon />
               </motion.div>
               <span className="text-xs font-semibold">{label}</span>
             </button>

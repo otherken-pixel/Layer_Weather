@@ -124,10 +124,11 @@ export async function updateWardrobeItem(
   id: string,
   updates: Partial<Omit<WardrobeItem, "id" | "user_id" | "created_at">>
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from("user_wardrobe")
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw error;
 }
 
 export async function deleteWardrobeItem(id: string): Promise<void> {
