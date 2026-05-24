@@ -191,8 +191,8 @@ export default function Home() {
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            {/* Loading bg is always #1a1a2e — use explicit colors for AA contrast ✓ */}
-            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#9CA3AF" }}>
+            {/* Text sits on cardsBg — #4B5563 on #F2F2F7 (6.76:1 ✓); #9BA4B4 on #1C1C1E (6.6:1 ✓) */}
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? "#9BA4B4" : "#4B5563" }}>
               Fetching your weather…
             </p>
           </div>
