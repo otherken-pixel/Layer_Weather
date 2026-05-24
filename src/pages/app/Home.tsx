@@ -19,7 +19,7 @@ import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
+import { getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
@@ -108,12 +108,8 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved() {
+    // Saved list is updated in LocationPickerSheet (getState().location). Refresh weather only.
     await refresh(true);
-    // Add the newly active location to saved list
-    if (location) {
-      const updated = await addSavedLocation(location).catch(() => savedLocations);
-      setSavedLocations(updated);
-    }
   }
 
   async function handleTabSelect(loc: LocationData) {
