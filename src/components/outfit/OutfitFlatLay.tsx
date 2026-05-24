@@ -2,7 +2,7 @@ import React, { memo, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
-import LongSleeve from "./svg/LongSleeve";
+import Sweater from "./svg/Sweater";
 import Pants from "./svg/Pants";
 import Shorts from "./svg/Shorts";
 import Jacket from "./svg/Jacket";
@@ -64,7 +64,7 @@ function TopGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
     case "shorts_tshirt":
       return <TShirt size={size} />;
     case "pants_tshirt":
-      return <LongSleeve size={size} />;
+      return <Sweater size={size} />;
     case "light_jacket":
       return <Jacket size={size} />;
     case "heavy_jacket":
