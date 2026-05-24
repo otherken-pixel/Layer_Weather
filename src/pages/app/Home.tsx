@@ -21,6 +21,7 @@ import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
 import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
+import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
@@ -92,6 +93,19 @@ export default function Home() {
   // Initial load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh(); }, []);
+
+  // Geofence: trigger weather refresh when user moves significantly
+  useEffect(() => {
+    if (!location) return;
+    startGeofence({
+      currentLocation: location,
+      onSignificantMove: () => { refresh(true); },
+    }).catch(() => {});
+    return () => {
+      stopGeofence().catch(() => {});
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
 
   async function handleLocationSaved() {
     await refresh(true);
