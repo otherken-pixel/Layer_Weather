@@ -79,13 +79,20 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Trigger weather refresh when location city changes (e.g. tab switch)
-  const prevCityRef = useRef<string | null>(null);
+  // Trigger weather refresh when location city changes (e.g. tab switch).
+  // `undefined` means we have not synced yet — skip the first non-null city so the
+  // initial `refresh()` is not duplicated when reverse-geocode sets city.
+  const prevCityRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     const city = location?.city ?? null;
-    if (city && city !== prevCityRef.current) {
+    if (city === null) return;
+    if (prevCityRef.current === undefined) {
       prevCityRef.current = city;
-      refresh(true);
+      return;
+    }
+    if (city !== prevCityRef.current) {
+      prevCityRef.current = city;
+      refresh(true, false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
@@ -108,10 +115,10 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved() {
-    await refresh(true);
-    // Add the newly active location to saved list
-    if (location) {
-      const updated = await addSavedLocation(location).catch(() => savedLocations);
+    await refresh(true, false);
+    const loc = useAppStore.getState().location;
+    if (loc) {
+      const updated = await addSavedLocation(loc).catch(() => useAppStore.getState().savedLocations);
       setSavedLocations(updated);
     }
   }
