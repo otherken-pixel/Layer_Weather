@@ -8,7 +8,6 @@ import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
 import type {
-  FootwearKind,
   OutfitFeedbackValue,
   OutfitRecommendation as OutfitRec,
   DayOutfitTimeline,
@@ -16,13 +15,6 @@ import type {
   OutfitTimelineEntry,
   AvatarCondition,
 } from "@/types";
-
-const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
-  flip_flops: { label: "Flip flops", emoji: "🩴", color: "#1E40AF", bg: "#EFF6FF" },
-  sneakers: { label: "Sneakers", emoji: "👟", color: "#374151", bg: "#F3F4F6" },
-  snow_boots: { label: "Snow boots", emoji: "🥾", color: "#166534", bg: "#F0FDF4" },
-  rain_boots: { label: "Rain boots", emoji: "🌧️", color: "#1D4ED8", bg: "#EFF6FF" },
-};
 
 const PERIOD_EMOJI: Record<DayPeriodLabel, string> = {
   Morning: "🌅",
@@ -625,40 +617,5 @@ function ThumbButton({
     >
       {icon}
     </button>
-  );
-}
-
-function AccessoryPill({
-  label,
-  emoji,
-  color,
-  bg,
-  isDark = false,
-}: {
-  label: string;
-  emoji: string;
-  color: string;
-  bg: string;
-  isDark?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "4px 10px",
-        borderRadius: 999,
-        // Dark mode: neutral pill so all accessory types are legible (D1D5DB on #3A3A3C = 8:1 ✓)
-        background: isDark ? "rgba(255,255,255,0.08)" : bg,
-        color: isDark ? "#D1D5DB" : color,
-        fontSize: 13,
-        fontWeight: 600,
-        flexShrink: 0,
-      }}
-    >
-      <span style={{ fontSize: 14 }}>{emoji}</span>
-      {label}
-    </div>
   );
 }
