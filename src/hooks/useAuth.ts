@@ -121,6 +121,7 @@ export function useAuth() {
         await resetPushNotificationSession();
         reset();
         await clearWeatherCache();
+        weatherCacheRef.current = loadWeatherCache();
       }
     });
 
@@ -146,10 +147,10 @@ export function useAuth() {
       // Restore cached profile and calibration so the home screen has real data
       // the moment the loading screen clears, with no skeleton states.
       const cachedProfile = loadProfileCache();
-      if (cachedProfile) setProfile(cachedProfile);
+      if (cachedProfile?.id === id) setProfile(cachedProfile);
 
       const cachedCalibration = loadCalibrationCache();
-      if (cachedCalibration) setCalibration(cachedCalibration);
+      if (cachedCalibration?.user_id === id) setCalibration(cachedCalibration);
 
       // Await the weather cache promise started at mount rather than a new read.
       const cached = await (weatherCacheRef.current ?? loadWeatherCache());
