@@ -7,14 +7,29 @@ interface Props {
 export default function Sneakers({ size = 100, className }: Props) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" className={className} aria-label="Sneakers">
-      <path d="M 12 72 C 12 62 18 58 26 55 L 34 50 L 40 50 C 42 50 44 52 44 55 L 44 72 Z" fill="#FFFFFF" />
-      <rect x="10" y="72" width="36" height="8" rx="3" fill="#E2E5EB" />
-      <path d="M 10 77 L 46 77 L 46 80 L 10 80 Z" fill="#9EA3B0" />
-      <path d="M 26 55 L 36 65 L 44 65 L 44 60 L 32 50 Z" fill="#DF6356" />
-      <path d="M 88 72 C 88 62 82 58 74 55 L 66 50 L 60 50 C 58 50 56 52 56 55 L 56 72 Z" fill="#FFFFFF" />
-      <rect x="54" y="72" width="36" height="8" rx="3" fill="#E2E5EB" />
-      <path d="M 54 77 L 90 77 L 90 80 L 54 80 Z" fill="#9EA3B0" />
-      <path d="M 74 55 L 64 65 L 56 65 L 56 60 L 68 50 Z" fill="#DF6356" />
+      {/* Sole */}
+      <path d="M 8 72 L 92 72 Q 94 72 94 75 L 94 80 Q 94 83 91 83 L 8 83 Q 5 83 5 80 L 5 75 Q 5 72 8 72 Z" fill="#E2E5EB" />
+      {/* Midsole accent line */}
+      <rect x="5" y="76" width="89" height="3" fill="#9EA3B0" />
+      {/* Upper body */}
+      <path d="M 12 72 L 12 48 Q 13 40 22 38 L 46 36 Q 52 35 55 38 L 72 55 L 88 62 Q 92 64 92 68 L 92 72 Z" fill="#FFFFFF" />
+      {/* Toe box curve */}
+      <path d="M 5 72 L 5 66 Q 6 58 12 55 L 12 72 Z" fill="#ECECEC" />
+      {/* Tongue */}
+      <path d="M 38 38 L 45 36 L 50 37 L 52 48 L 38 50 Z" fill="#F0F0F0" />
+      {/* Swoosh-style accent stripe */}
+      <path d="M 20 60 Q 38 48 62 52 L 72 55 Q 50 50 28 64 Z" fill="#DF6356" />
+      {/* Collar opening */}
+      <path d="M 12 48 Q 13 40 22 38 L 38 38 L 38 50 L 12 50 Z" fill="#E8E8E8" />
+      {/* Lace eyelets row */}
+      <circle cx="30" cy="43" r="2" fill="#CCCCCC" />
+      <circle cx="36" cy="41" r="2" fill="#CCCCCC" />
+      <circle cx="42" cy="39.5" r="2" fill="#CCCCCC" />
+      {/* Laces */}
+      <path d="M 30 43 L 36 41 M 36 41 L 42 39.5" stroke="#DDDDDD" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Heel tab */}
+      <path d="M 88 62 Q 94 63 94 68 L 94 72 L 88 72 Z" fill="#ECECEC" />
+      <rect x="89" y="64" width="3" height="6" rx="1" fill="#DF6356" />
     </svg>
   );
 }
