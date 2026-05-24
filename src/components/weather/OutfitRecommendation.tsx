@@ -409,7 +409,6 @@ export function OutfitRecommendationCard({
                   >
                     <TimelinePeriodDetail
                       entry={activeEntry}
-                      tempUnit={tempUnit}
                       isDark={isDark}
                       prevEntry={
                         timeline.findIndex((e) => e.period.label === activeTab) > 0
@@ -543,22 +542,14 @@ export function OutfitRecommendationCard({
 
 function TimelinePeriodDetail({
   entry,
-  tempUnit,
   isDark,
   prevEntry,
 }: {
   entry: OutfitTimelineEntry;
-  tempUnit: "F" | "C";
   isDark: boolean;
   prevEntry: OutfitTimelineEntry | null;
 }) {
   const { period, recommendation } = entry;
-  const { umbrella, sunglasses, scarf, beanie, gloves, footwear } = recommendation;
-  const hasAccessories = umbrella || sunglasses || scarf || beanie || gloves;
-
-  const lo = toUnit(period.minFeelsLike, tempUnit);
-  const hi = toUnit(period.maxFeelsLike, tempUnit);
-  const unit = tempUnit === "C" ? "°C" : "°F";
 
   const layerChange =
     prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
@@ -568,61 +559,33 @@ function TimelinePeriodDetail({
         )
       : null;
 
-  const primaryText = isDark ? "#F4F4F5" : "#111827";
   const mutedText = isDark ? "#9BA4B4" : "#4B5563";
 
   return (
-    <div>
-      {/* Row: condition + temp range + outfit label */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 15, fontWeight: 700, color: primaryText, lineHeight: 1.2 }}>
-            {recommendation.label}
-          </p>
-          <p style={{ fontSize: 13, color: mutedText, marginTop: 2 }}>
-            {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
-            {period.precipProb > 20 ? ` · ${period.precipProb}% rain` : ""}
-          </p>
-        </div>
-        {layerChange && (
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 999,
-              background: isDark
-                ? (layerChange === "layer up" ? "rgba(29,78,216,0.18)" : "rgba(146,64,14,0.18)")
-                : (layerChange === "layer up" ? "#EFF6FF" : "#FEF9C3"),
-              color: isDark
-                ? (layerChange === "layer up" ? "#93C5FD" : "#FCD34D")
-                : (layerChange === "layer up" ? "#1D4ED8" : "#92400E"),
-            }}
-          >
-            {layerChange === "layer up" ? "↑" : "↓"} {layerChange}
-          </span>
-        )}
-      </div>
-
-      {/* Accessories row */}
-      {(hasAccessories || footwear) && (
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {footwear && (
-            <AccessoryPill
-              label={FOOTWEAR_PILLS[footwear].label}
-              emoji={FOOTWEAR_PILLS[footwear].emoji}
-              color={FOOTWEAR_PILLS[footwear].color}
-              bg={FOOTWEAR_PILLS[footwear].bg}
-              isDark={isDark}
-            />
-          )}
-          {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" isDark={isDark} />}
-          {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" isDark={isDark} />}
-          {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" isDark={isDark} />}
-          {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" isDark={isDark} />}
-          {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" isDark={isDark} />}
-        </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
+      {period.precipProb > 20 && (
+        <span style={{ fontSize: 13, color: mutedText }}>
+          {period.precipProb}% rain
+        </span>
+      )}
+      {layerChange && (
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            padding: "3px 8px",
+            borderRadius: 999,
+            background: isDark
+              ? (layerChange === "layer up" ? "rgba(29,78,216,0.18)" : "rgba(146,64,14,0.18)")
+              : (layerChange === "layer up" ? "#EFF6FF" : "#FEF9C3"),
+            color: isDark
+              ? (layerChange === "layer up" ? "#93C5FD" : "#FCD34D")
+              : (layerChange === "layer up" ? "#1D4ED8" : "#92400E"),
+          }}
+        >
+          {layerChange === "layer up" ? "↑" : "↓"} {layerChange}
+        </span>
       )}
     </div>
   );
