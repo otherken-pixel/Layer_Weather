@@ -18,20 +18,16 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
-/** Relative warmth / layering (higher = more layers). Matches temperature band order in `getOutfitRecommendation`. */
-const OUTFIT_WARMTH_RANK: Record<OutfitType, number> = {
-  shorts_tshirt: 0,
-  pants_tshirt: 1,
-  light_jacket: 2,
-  rain_light: 3,
+/** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
+const OUTFIT_WARMTH: Record<OutfitType, number> = {
+  heavy_coat: 5,
   heavy_jacket: 4,
-  rain_heavy: 5,
-  heavy_coat: 6,
+  rain_heavy: 4,
+  light_jacket: 3,
+  rain_light: 3,
+  pants_tshirt: 2,
+  shorts_tshirt: 1,
 };
-
-export function getOutfitWarmthRank(outfit: OutfitType): number {
-  return OUTFIT_WARMTH_RANK[outfit];
-}
 
 /** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
 export function getLayerChangeDirection(
@@ -39,7 +35,7 @@ export function getLayerChangeDirection(
   to: OutfitType
 ): "layer up" | "layer down" | null {
   if (from === to) return null;
-  const delta = getOutfitWarmthRank(to) - getOutfitWarmthRank(from);
+  const delta = OUTFIT_WARMTH[to] - OUTFIT_WARMTH[from];
   if (delta > 0) return "layer up";
   if (delta < 0) return "layer down";
   return null;
@@ -158,16 +154,6 @@ export function getFeelsLikeExplanation(opts: {
   }
   return null;
 }
-
-const OUTFIT_WARMTH: Record<OutfitType, number> = {
-  heavy_coat: 5,
-  heavy_jacket: 4,
-  rain_heavy: 4,
-  light_jacket: 3,
-  rain_light: 3,
-  pants_tshirt: 2,
-  shorts_tshirt: 1,
-};
 
 /**
  * Returns a smart layering tip when morning and afternoon outfits diverge.
