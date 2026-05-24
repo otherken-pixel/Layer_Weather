@@ -40,7 +40,7 @@ export function WeatherAvatar({
   const isJacket =
     outfit === "light_jacket" || outfit === "heavy_jacket" ||
     outfit === "heavy_coat" || outfit === "rain_light" || outfit === "rain_heavy";
-  const shortsMode = outfit === "shorts_tshirt";
+  const shortsMode = outfit === "shorts_tshirt" || outfit === "dress";
 
   const pantsColor = "bottom" in colors ? (colors as { bottom: string }).bottom : "#2D3748";
   const pantsShadow = "bottomShadow" in colors ? (colors as { bottomShadow: string }).bottomShadow : "#1A202C";

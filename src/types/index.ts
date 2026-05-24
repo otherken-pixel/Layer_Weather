@@ -110,7 +110,8 @@ export type OutfitType =
   | "heavy_jacket"
   | "heavy_coat"
   | "rain_light"
-  | "rain_heavy";
+  | "rain_heavy"
+  | "dress";
 
 /** Footwear shown in the Flat Lay accessories zone */
 export type FootwearKind = "flip_flops" | "sneakers" | "snow_boots" | "rain_boots";

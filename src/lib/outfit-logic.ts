@@ -21,6 +21,7 @@ export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 /** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
 const OUTFIT_WARMTH: Record<OutfitType, number> = {
   shorts_tshirt: 1,
+  dress: 1,
   pants_tshirt: 2,
   light_jacket: 3,
   rain_light: 3,
@@ -91,6 +92,11 @@ export function getOutfitReason(opts: {
   const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
   const isHumid = humidity > 70 && feelsLike > 70;
 
+  if (outfit === "dress") {
+    return isHumid
+      ? `${feelsLike}°F · ${humidity}% humidity → light & breathable dress`
+      : `${feelsLike}°F clear skies → perfect dress weather`;
+  }
   if (outfit === "rain_heavy") {
     return `${feelsLike}°F · heavy rain ${Math.round(precipProb)}% → full rain gear`;
   }
@@ -295,7 +301,7 @@ export function getOutfitRecommendation(opts: {
   const lightJacketFloor = adjustedThresholds.heavyCoat + 15;
   let outfit: OutfitType;
   if (effectiveFeelsLike >= adjustedThresholds.shorts) {
-    outfit = "shorts_tshirt";
+    outfit = weatherCode <= 1 ? "dress" : "shorts_tshirt";
   } else if (effectiveFeelsLike >= adjustedThresholds.lightJacket) {
     outfit = "pants_tshirt";
   } else if (effectiveFeelsLike >= lightJacketFloor) {
@@ -381,6 +387,7 @@ export function getOutfitRecommendation(opts: {
 function getOutfitLabel(outfit: OutfitType): string {
   const labels: Record<OutfitType, string> = {
     shorts_tshirt: "Short Sleeves & Shorts",
+    dress: "Dress Weather",
     pants_tshirt: "Long Sleeves & Pants",
     light_jacket: "Light Jacket",
     heavy_jacket: "Heavy Jacket",
@@ -403,6 +410,8 @@ function buildDescription(
   const snowNote = snowy ? " Snowfall possible — layer up." : "";
 
   switch (outfit) {
+    case "dress":
+      return `Beautiful ${feelsLike}°F clear day — perfect weather for a dress. Light, breezy, and comfortable.${windNote}`;
     case "shorts_tshirt":
       return `Short sleeves and shorts are the move at ${feelsLike}°F. Light, breathable fabrics will keep you comfortable.${windNote}`;
     case "pants_tshirt":

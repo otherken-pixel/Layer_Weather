@@ -220,4 +220,11 @@ export const OutfitColors = {
     bottomShadow: "#000",
     label: "Stormy Weather",
   },
+  dress: {
+    top: "#fee372",
+    topShadow: "#eabe32",
+    bottom: "#fee372",
+    bottomShadow: "#eabe32",
+    label: "Dress Weather",
+  },
 } as const;
