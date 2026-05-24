@@ -66,7 +66,6 @@ export function getOutfitReason(opts: {
   const isWindy = windSpeed > 15;
   const isSnowy = weatherCode >= 71 && weatherCode <= 77;
   const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
-  const isRainy = precipProb > 40 || (weatherCode >= 51 && weatherCode <= 82);
   const isHumid = humidity > 70 && feelsLike > 70;
 
   if (outfit === "rain_heavy") {
@@ -117,16 +116,16 @@ export function getFeelsLikeExplanation(opts: {
   const delta = Math.round(feelsLike - temp);
   if (Math.abs(delta) < 2) return null;
 
-  if (delta < -3 && windSpeed > 10) {
+  if (delta <= -2 && windSpeed > 10) {
     return `Wind chill (${Math.round(windSpeed)} mph) makes it feel ${Math.abs(delta)}° colder`;
   }
-  if (delta > 3 && humidity > 65 && temp > 70) {
+  if (delta >= 2 && humidity > 65 && temp > 70) {
     return `High humidity (${Math.round(humidity)}%) makes it feel ${delta}° warmer`;
   }
-  if (delta < -3) {
+  if (delta <= -2) {
     return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
   }
-  if (delta > 3) {
+  if (delta >= 2) {
     return `Conditions make it feel ${delta}° warmer than the thermometer`;
   }
   return null;

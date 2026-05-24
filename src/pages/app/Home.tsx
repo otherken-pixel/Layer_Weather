@@ -11,6 +11,7 @@ import { AQICard } from "@/components/weather/AQICard";
 import { LocationTabs } from "@/components/weather/LocationTabs";
 import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { useAppStore } from "@/store";
 import { getSkyColor } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
@@ -30,23 +31,6 @@ const CONDITION_EMOJI: Record<string, string> = {
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
-}
-
-function useDarkMode(themePreference: string | null): boolean {
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const [isDark, setIsDark] = useState(
-    themePreference === "light" ? false : themePreference === "dark" ? true : systemDark,
-  );
-  useEffect(() => {
-    if (themePreference === "light") { setIsDark(false); return; }
-    if (themePreference === "dark") { setIsDark(true); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [themePreference]);
-  return isDark;
 }
 
 function formatTimeAgo(date: Date): string {
@@ -334,7 +318,7 @@ export default function Home() {
 
             {/* AQI card */}
             {weather.current.aqiIndex !== null && weather.current.aqiIndex !== undefined && (
-              <AQICard aqiIndex={weather.current.aqiIndex} />
+              <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
             )}
 
             {/* Nowcast */}

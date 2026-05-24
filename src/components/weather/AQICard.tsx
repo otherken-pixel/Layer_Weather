@@ -25,9 +25,10 @@ function getAQILevel(aqi: number): AQILevel {
 
 interface Props {
   aqiIndex: number;
+  isDark?: boolean;
 }
 
-export function AQICard({ aqiIndex }: Props) {
+export function AQICard({ aqiIndex, isDark = false }: Props) {
   const level = getAQILevel(aqiIndex);
   const fillPct = Math.min(aqiIndex / 300, 1);
 
@@ -37,7 +38,7 @@ export function AQICard({ aqiIndex }: Props) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 24 }}
       style={{
-        background: "#FFFFFF",
+        background: isDark ? "#2C2C2E" : "#FFFFFF",
         borderRadius: 24,
         padding: "20px",
         boxShadow: "0 2px 20px rgba(0,0,0,0.07)",
@@ -45,7 +46,8 @@ export function AQICard({ aqiIndex }: Props) {
     >
       <p
         style={{
-          fontSize: 11, fontWeight: 700, color: "#6B7280",
+          fontSize: 11, fontWeight: 700,
+          color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
           letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12,
         }}
       >
@@ -57,7 +59,7 @@ export function AQICard({ aqiIndex }: Props) {
           <span style={{ fontSize: 36, fontWeight: 700, color: level.color, lineHeight: 1 }}>
             {aqiIndex}
           </span>
-          <span style={{ fontSize: 13, color: "#6B7280", marginLeft: 6 }}>US AQI</span>
+          <span style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.45)" : "#6B7280", marginLeft: 6 }}>US AQI</span>
         </div>
         <div
           style={{
@@ -73,7 +75,7 @@ export function AQICard({ aqiIndex }: Props) {
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 6, background: "#F3F4F6", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
+      <div style={{ height: 6, background: isDark ? "#52525B" : "#F3F4F6", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.round(fillPct * 100)}%` }}
@@ -86,7 +88,7 @@ export function AQICard({ aqiIndex }: Props) {
         />
       </div>
 
-      <p style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>
+      <p style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.55)" : "#6B7280", lineHeight: 1.4 }}>
         {level.description}
       </p>
     </motion.div>
