@@ -46,6 +46,10 @@ export function useAuth() {
   // Promise dequeue: second caller awaits the same running promise instead of
   // returning early and calling setIsLoading(false) while loadUser is mid-flight.
   const loadUserPromise = useRef<Promise<void> | null>(null);
+  // When a second loadUser runs the same in-flight promise, callers after the fast
+  // phase still need their onFastPhaseComplete (e.g. SIGNED_IN clearing loading).
+  const fastPhaseDoneRef = useRef(false);
+  const postFastPhaseCallbacksRef = useRef<(() => void)[]>([]);
   // Started at mount so loadUser's fast phase awaits an in-flight read rather
   // than starting a fresh one.
   const weatherCacheRef = useRef<Promise<WeatherCachePayload | null> | null>(null);
@@ -141,10 +145,18 @@ export function useAuth() {
   async function loadUser(id: string, onFastPhaseComplete?: () => void): Promise<void> {
     // If already running, await the same promise so both callers finish together.
     if (loadUserPromise.current) {
+      if (onFastPhaseComplete) {
+        if (fastPhaseDoneRef.current) {
+          onFastPhaseComplete();
+        } else {
+          postFastPhaseCallbacksRef.current.push(onFastPhaseComplete);
+        }
+      }
       return loadUserPromise.current;
     }
 
     const run = async () => {
+      fastPhaseDoneRef.current = false;
       setUserId(id);
 
       if (localStorage.getItem(IS_ONBOARDED_KEY)) {
@@ -170,6 +182,9 @@ export function useAuth() {
       // Fast phase complete — notify INITIAL_SESSION handler so the loading
       // screen clears while the Supabase fetch continues in the background.
       onFastPhaseComplete?.();
+      fastPhaseDoneRef.current = true;
+      for (const cb of postFastPhaseCallbacksRef.current) cb();
+      postFastPhaseCallbacksRef.current = [];
 
       const result = await withTimeout(
         Promise.all([getProfile(id), getCalibration(id)]),
