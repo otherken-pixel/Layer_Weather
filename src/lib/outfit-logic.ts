@@ -322,6 +322,7 @@ export function getOutfitRecommendation(opts: {
     if (isHeavyRain && effectiveFeelsLike < 75) {
       outfit = "rain_heavy";
     } else if (
+      outfit === "dress" ||
       outfit === "shorts_tshirt" ||
       outfit === "pants_tshirt" ||
       outfit === "light_jacket"
