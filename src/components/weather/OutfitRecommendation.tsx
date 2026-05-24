@@ -485,7 +485,8 @@ export function OutfitRecommendationCard({
           </div>
 
           {/* Accessories pills */}
-          {(umbrella || sunglasses || scarf || beanie || gloves || footwear) && (
+          {!textOnly &&
+            (umbrella || sunglasses || scarf || beanie || gloves || footwear) && (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
               {footwear && (
                 <AccessoryPill
