@@ -442,7 +442,7 @@ function HourlyStrip({
   cardSurface: string;
 }) {
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
-  const labelColor = isDark ? Colors.dark.textMuted : "#4B5563";
+  const labelColor = isDark ? Colors.dark.textMuted : Colors.text.mutedLabel;
 
   return (
     <div style={{
@@ -476,7 +476,7 @@ function HourlyStrip({
             >
               <span style={{
                 fontSize: 12, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : "#4B5563",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : Colors.text.mutedLabel,
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
