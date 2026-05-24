@@ -223,7 +223,7 @@ async function fetchFromOpenMeteo(
     .filter((h) => h.time >= now);
 
   const dailyData: DailyForecast[] = (daily.time as string[]).map((t, i) => ({
-    date: new Date(t),
+    date: parseLocalDateOnly(t),
     tempMin: Math.round((daily.temperature_2m_min as number[])[i]),
     tempMax: Math.round((daily.temperature_2m_max as number[])[i]),
     feelsLikeMin: Math.round((daily.apparent_temperature_min as number[])[i]),
@@ -281,6 +281,12 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
 }
 
 // ── Group hourly forecasts by calendar day ────────────────────────────────────
+
+/** Open-Meteo daily `time` is date-only (YYYY-MM-DD); `new Date` would parse as UTC and skew local calendar keys. */
+function parseLocalDateOnly(isoDate: string): Date {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
 
 function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;

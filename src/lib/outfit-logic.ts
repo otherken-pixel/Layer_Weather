@@ -360,7 +360,7 @@ function formatTime(timeStr: string): string {
 const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number }[] = [
   { label: "Morning", startHour: 6, endHour: 12 },
   { label: "Afternoon", startHour: 12, endHour: 18 },
-  { label: "Evening", startHour: 18, endHour: 23 },
+  { label: "Evening", startHour: 18, endHour: 24 },
 ];
 
 export function getDayOutfitTimeline(

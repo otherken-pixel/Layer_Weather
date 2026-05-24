@@ -9,7 +9,19 @@ import type {
   DayOutfitTimeline,
   DayPeriodLabel,
   OutfitTimelineEntry,
+  OutfitType,
 } from "@/types";
+
+/** Warmer / more coverage = higher rank (for layer-change hints between periods). */
+const OUTFIT_WARMTH_RANK: Record<OutfitType, number> = {
+  shorts_tshirt: 1,
+  pants_tshirt: 2,
+  light_jacket: 3,
+  rain_light: 3,
+  heavy_jacket: 4,
+  rain_heavy: 5,
+  heavy_coat: 6,
+};
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
   flip_flops: { label: "Flip flops", emoji: "🩴", color: "#1E40AF", bg: "#EFF6FF" },
@@ -375,13 +387,13 @@ function TimelinePeriodDetail({
   const hi = toUnit(period.maxFeelsLike, tempUnit);
   const unit = tempUnit === "C" ? "°C" : "°F";
 
-  const layerChange =
-    prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
-      ? prevEntry.recommendation.outfit.includes("heavy") &&
-        !recommendation.outfit.includes("heavy")
-        ? "layer down"
-        : "layer up"
-      : null;
+  let layerChange: "layer up" | "layer down" | null = null;
+  if (prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit) {
+    const prevRank = OUTFIT_WARMTH_RANK[prevEntry.recommendation.outfit];
+    const nextRank = OUTFIT_WARMTH_RANK[recommendation.outfit];
+    if (nextRank > prevRank) layerChange = "layer up";
+    else if (nextRank < prevRank) layerChange = "layer down";
+  }
 
   return (
     <div>
