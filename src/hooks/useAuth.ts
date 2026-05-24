@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase, getProfile, getCalibration, upsertCalibration, createDefaultCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
-import { loadWeatherCache, clearWeatherCache } from "@/lib/cache";
+import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
+import type { Profile, UserCalibration } from "@/types";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
 const IS_ONBOARDED_KEY = "wt_is_onboarded";
+const PROFILE_CACHE_KEY = "wt_profile_cache";
+const CALIBRATION_CACHE_KEY = "wt_calibration_cache";
 const LOAD_USER_TIMEOUT_MS = 10_000;
-const AUTH_LOADING_TIMEOUT_MS = 12_000;
+const AUTH_LOADING_TIMEOUT_MS = 5_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([
@@ -16,11 +19,36 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   ]);
 }
 
+function loadProfileCache(): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Profile) : null;
+  } catch { return null; }
+}
+
+function saveProfileCache(profile: Profile): void {
+  try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch {}
+}
+
+function loadCalibrationCache(): UserCalibration | null {
+  try {
+    const raw = localStorage.getItem(CALIBRATION_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as UserCalibration) : null;
+  } catch { return null; }
+}
+
+function saveCalibrationCache(calibration: UserCalibration): void {
+  try { localStorage.setItem(CALIBRATION_CACHE_KEY, JSON.stringify(calibration)); } catch {}
+}
+
 export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
   // Promise dequeue: second caller awaits the same running promise instead of
   // returning early and calling setIsLoading(false) while loadUser is mid-flight.
   const loadUserPromise = useRef<Promise<void> | null>(null);
+  // Started at mount so loadUser's fast phase awaits an in-flight read rather
+  // than starting a fresh one.
+  const weatherCacheRef = useRef<Promise<WeatherCachePayload | null> | null>(null);
   const {
     userId,
     profile,
@@ -36,7 +64,23 @@ export function useAuth() {
   } = useAppStore();
 
   useEffect(() => {
+    // Kick off weather cache read immediately so it runs in parallel with the
+    // session check rather than sequentially inside loadUser.
+    weatherCacheRef.current = loadWeatherCache();
+
     const authTimeout = setTimeout(() => setIsLoading(false), AUTH_LOADING_TIMEOUT_MS);
+
+    // Eagerly read the stored session before INITIAL_SESSION fires.
+    // getSession() reads from localStorage without a network call, so returning
+    // users start loading immediately rather than waiting for Supabase to
+    // initialise its auth client and potentially refresh an expired token.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && localStorage.getItem(IS_ONBOARDED_KEY)) {
+        clearTimeout(authTimeout);
+        loadUser(session.user.id).catch(console.error);
+        setIsLoading(false);
+      }
+    });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "INITIAL_SESSION") {
@@ -45,14 +89,14 @@ export function useAuth() {
         if (session?.user) {
           // loadUser's run() calls setUserId synchronously before any await, so
           // by the time we check localStorage below, isAuthenticated is already true.
+          // If getSession() already started loadUser, the dequeue ref ensures we
+          // await the same promise and onFastPhaseComplete is a no-op here.
           loadUser(session.user.id, () => {
             clearTimeout(authTimeout);
             setIsLoading(false);
           }).catch(console.error);
 
-          // Returning users: skip the loading screen entirely. The synchronous
-          // setUserId call inside loadUser has already run, so the router will
-          // land on /app/home with no flash to /welcome.
+          // Returning users: skip the loading screen entirely.
           if (localStorage.getItem(IS_ONBOARDED_KEY)) {
             clearTimeout(authTimeout);
             setIsLoading(false);
@@ -69,6 +113,8 @@ export function useAuth() {
       } else if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         localStorage.removeItem(CALIBRATION_PENDING_KEY);
         localStorage.removeItem(IS_ONBOARDED_KEY);
+        localStorage.removeItem(PROFILE_CACHE_KEY);
+        localStorage.removeItem(CALIBRATION_CACHE_KEY);
         localStorage.removeItem("wt_last_outfit_alert");
         localStorage.removeItem("wt_today_event_type");
         localStorage.removeItem("wt_today_event_date");
@@ -97,7 +143,16 @@ export function useAuth() {
         setIsOnboarded(true);
       }
 
-      const cached = await loadWeatherCache();
+      // Restore cached profile and calibration so the home screen has real data
+      // the moment the loading screen clears, with no skeleton states.
+      const cachedProfile = loadProfileCache();
+      if (cachedProfile) setProfile(cachedProfile);
+
+      const cachedCalibration = loadCalibrationCache();
+      if (cachedCalibration) setCalibration(cachedCalibration);
+
+      // Await the weather cache promise started at mount rather than a new read.
+      const cached = await (weatherCacheRef.current ?? loadWeatherCache());
       if (cached) {
         setWeather(cached.weather);
         setOutfit(cached.outfit);
@@ -114,10 +169,16 @@ export function useAuth() {
       );
 
       const [prof, cal] = result ?? [null, null];
-      setProfile(prof);
+      // Only overwrite the cached profile if we got a fresh one; on timeout the
+      // cached version remains rather than blanking the store.
+      if (prof) {
+        setProfile(prof);
+        saveProfileCache(prof);
+      }
 
       if (cal) {
         setCalibration(cal);
+        saveCalibrationCache(cal);
         setIsOnboarded(true);
         localStorage.setItem(IS_ONBOARDED_KEY, "1");
         localStorage.removeItem(CALIBRATION_PENDING_KEY);
@@ -129,6 +190,7 @@ export function useAuth() {
             const saved = await upsertCalibration(id, payload);
             if (saved) {
               setCalibration(saved);
+              saveCalibrationCache(saved);
               setIsOnboarded(true);
               localStorage.setItem(IS_ONBOARDED_KEY, "1");
               localStorage.removeItem(CALIBRATION_PENDING_KEY);
@@ -141,6 +203,7 @@ export function useAuth() {
           const defaultCal = await createDefaultCalibration(id).catch(() => null);
           if (defaultCal) {
             setCalibration(defaultCal);
+            saveCalibrationCache(defaultCal);
           }
           setIsOnboarded(true);
           localStorage.setItem(IS_ONBOARDED_KEY, "1");
