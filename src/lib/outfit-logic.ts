@@ -23,9 +23,9 @@ const OUTFIT_WARMTH_RANK: Record<OutfitType, number> = {
   shorts_tshirt: 0,
   pants_tshirt: 1,
   light_jacket: 2,
-  rain_light: 3,
+  rain_light: 2,
   heavy_jacket: 4,
-  rain_heavy: 5,
+  rain_heavy: 4,
   heavy_coat: 6,
 };
 
