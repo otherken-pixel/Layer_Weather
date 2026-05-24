@@ -279,6 +279,18 @@ export default function Home() {
 
           {/* Sky section */}
           <div style={{ position: "relative", overflow: "hidden" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "65%",
+                background: "linear-gradient(to bottom, rgba(0,0,0,0.38) 0%, transparent 100%)",
+                pointerEvents: "none",
+                zIndex: 1,
+              }}
+            />
             <SkyHeader
               weather={weather.current}
               today={weather.daily[0] ?? null}
