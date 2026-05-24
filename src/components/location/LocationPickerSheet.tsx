@@ -8,7 +8,8 @@ import { addSavedLocation } from "@/lib/saved-locations";
 interface LocationPickerSheetProps {
   open: boolean;
   onClose: () => void;
-  onSaved?: () => void | Promise<void>;
+  /** `fromCitySave` when the sheet already persisted the city to the saved list (GPS path skips that until geocode). */
+  onSaved?: (ctx?: { fromCitySave?: boolean }) => void | Promise<void>;
   /** When true, sheet uses light styling for the Today sky header context */
   variant?: "sky" | "card";
 }
@@ -47,7 +48,7 @@ export function LocationPickerSheet({
     const result = await saveFromCity(cityQuery);
     if (result.ok) {
       await persistToSavedList();
-      await onSaved?.();
+      await onSaved?.({ fromCitySave: true });
       onClose();
     }
   }
