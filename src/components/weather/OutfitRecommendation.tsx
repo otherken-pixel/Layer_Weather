@@ -214,21 +214,23 @@ export function OutfitRecommendationCard({
                   }
                 }}
                 style={{
-                  fontSize: 13,
-                  color: mutedText,
-                  marginTop: 3,
-                  background: "none",
+                  marginTop: 6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6",
                   border: "none",
-                  padding: 0,
                   cursor: feelsLikeExplanation ? "pointer" : "default",
                   textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
                 }}
                 aria-label={feelsLikeExplanation ? "Tap to see feels-like explanation" : undefined}
               >
-                Feels like {displayFeelsLike}
+                <span style={{ fontSize: 13 }}>🌡️</span>
+                <span style={{ fontSize: 13, color: mutedText, fontWeight: 500 }}>
+                  Feels like {displayFeelsLike}
+                </span>
                 {feelsLikeExplanation && (
                   <span style={{ fontSize: 11, color: infoIconColor }}>
                     {feelsLikeExpanded ? "▲" : "ⓘ"}
@@ -263,6 +265,78 @@ export function OutfitRecommendationCard({
               </span>
             )}
           </div>
+
+          {/* Plan-for-later strip — shown when outfit changes across the day */}
+          {timeline && timeline.length > 1 && (() => {
+            const outfits = timeline.map((e) => e.recommendation.outfit);
+            const allSame = outfits.every((o) => o === outfits[0]);
+            if (allSame) return null;
+            const curPeriod = currentPeriodLabel();
+            return (
+              <div style={{ marginTop: 12, marginBottom: 4 }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: sectionLabelColor,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    marginBottom: 7,
+                  }}
+                >
+                  Plan for Today
+                </p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {timeline.map((entry) => {
+                    const lo = toUnit(entry.period.minFeelsLike, tempUnit);
+                    const hi = toUnit(entry.period.maxFeelsLike, tempUnit);
+                    const unit = tempUnit === "C" ? "°C" : "°F";
+                    const isCurrent = entry.period.label === curPeriod;
+                    const shortLabel = entry.recommendation.label.split(/\s+/).slice(0, 2).join(" ");
+                    return (
+                      <div
+                        key={entry.period.label}
+                        style={{
+                          flex: 1,
+                          background: isCurrent ? tabActiveBg : tabInactiveBg,
+                          border: `1px solid ${isCurrent ? tabActiveBorder : tabInactiveBorder}`,
+                          borderRadius: 12,
+                          padding: "8px 6px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <div style={{ fontSize: 15 }}>{PERIOD_EMOJI[entry.period.label]}</div>
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: isCurrent ? tabActiveText : tabInactiveText,
+                            marginTop: 3,
+                          }}
+                        >
+                          {entry.period.label}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: primaryText,
+                            marginTop: 3,
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {shortLabel}
+                        </div>
+                        <div style={{ fontSize: 10, color: mutedText, marginTop: 2 }}>
+                          {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Flat Lay SVG Grid */}
           <OutfitFlatLay

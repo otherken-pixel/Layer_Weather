@@ -340,8 +340,8 @@ export function groupHourlyByDay(
 export function detectSignificantChanges(
   hourly: HourlyForecast[],
   currentFeelsLike: number,
-): Array<{ hour: Date; message: string; feelsLike: number }> {
-  const alerts: Array<{ hour: Date; message: string; feelsLike: number }> = [];
+): Array<{ hour: Date; message: string; feelsLike: number; type: "info" | "warning" }> {
+  const alerts: Array<{ hour: Date; message: string; feelsLike: number; type: "info" | "warning" }> = [];
   const now = new Date();
   const next12h = hourly.filter((h) => {
     const diff = (h.time.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -359,6 +359,7 @@ export function detectSignificantChanges(
         hour: next12h[i].time,
         message: `Feels-like ${dir} ${Math.abs(delta)}° at ${next12h[i].time.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}`,
         feelsLike: next12h[i].feelsLike,
+        type: "info",
       });
     }
     if (
@@ -369,6 +370,7 @@ export function detectSignificantChanges(
         hour: next12h[i].time,
         message: `Rain expected around ${next12h[i].time.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })} — grab an umbrella`,
         feelsLike: next12h[i].feelsLike,
+        type: "warning",
       });
     }
   }

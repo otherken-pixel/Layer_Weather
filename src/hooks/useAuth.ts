@@ -43,10 +43,17 @@ export function useAuth() {
         // Fires once on startup with the stored session (or null). Single path
         // for page-reload auth — no race with getSession().
         if (session?.user) {
-          await loadUser(session.user.id);
+          // Fast phase: clear the loading screen once localStorage + cache are
+          // restored (~50 ms). Supabase profile/calibration fetch continues in
+          // the background without blocking the UI.
+          loadUser(session.user.id, () => {
+            clearTimeout(authTimeout);
+            setIsLoading(false);
+          }).catch(console.error);
+        } else {
+          clearTimeout(authTimeout);
+          setIsLoading(false);
         }
-        clearTimeout(authTimeout);
-        setIsLoading(false);
       } else if (event === "SIGNED_IN" && session?.user) {
         // Fires only on explicit sign-in (not on page reload).
         setIsLoading(true);
@@ -70,7 +77,7 @@ export function useAuth() {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function loadUser(id: string): Promise<void> {
+  async function loadUser(id: string, onFastPhaseComplete?: () => void): Promise<void> {
     // If already running, await the same promise so both callers finish together.
     if (loadUserPromise.current) {
       return loadUserPromise.current;
@@ -89,6 +96,10 @@ export function useAuth() {
         setOutfit(cached.outfit);
         setWeatherLastFetched(new Date(cached.savedAt));
       }
+
+      // Fast phase complete — notify INITIAL_SESSION handler so the loading
+      // screen clears while the Supabase fetch continues in the background.
+      onFastPhaseComplete?.();
 
       const result = await withTimeout(
         Promise.all([getProfile(id), getCalibration(id)]),

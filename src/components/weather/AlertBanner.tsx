@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export interface WeatherAlert {
   message: string;
   feelsLike: number;
+  type?: "info" | "warning";
 }
 
 interface Props {
@@ -25,6 +26,12 @@ export function AlertBanner({ alerts }: Props) {
       <AnimatePresence>
         {visible.map((alert, _originalIdx) => {
           const idx = alerts.indexOf(alert);
+          const isInfo = alert.type === "info";
+          const bannerBg = isInfo ? "#EFF6FF" : "#FEF3C7";
+          const bannerBorder = isInfo ? "#BFDBFE" : "#F59E0B";
+          const bannerText = isInfo ? "#1D4ED8" : "#92400E";
+          const bannerDismissBg = isInfo ? "rgba(59,130,246,0.15)" : "rgba(245,158,11,0.2)";
+          const bannerIcon = isInfo ? "ℹ️" : "⚠️";
           return (
             <motion.div
               key={idx}
@@ -33,8 +40,8 @@ export function AlertBanner({ alerts }: Props) {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
               style={{
-                background: "#FEF3C7",
-                border: "1px solid #F59E0B",
+                background: bannerBg,
+                border: `1px solid ${bannerBorder}`,
                 borderRadius: 16,
                 padding: "10px 14px",
                 display: "flex",
@@ -43,8 +50,8 @@ export function AlertBanner({ alerts }: Props) {
                 overflow: "hidden",
               }}
             >
-              <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-              <p style={{ fontSize: 13, color: "#92400E", flex: 1, lineHeight: 1.4 }}>
+              <span style={{ fontSize: 16, flexShrink: 0 }}>{bannerIcon}</span>
+              <p style={{ fontSize: 13, color: bannerText, flex: 1, lineHeight: 1.4 }}>
                 {alert.message}
               </p>
               <button
@@ -57,8 +64,8 @@ export function AlertBanner({ alerts }: Props) {
                   height: 28,
                   borderRadius: "50%",
                   border: "none",
-                  background: "rgba(245,158,11,0.2)",
-                  color: "#92400E",
+                  background: bannerDismissBg,
+                  color: bannerText,
                   fontSize: 14,
                   cursor: "pointer",
                   display: "flex",
