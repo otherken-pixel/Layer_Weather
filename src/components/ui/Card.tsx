@@ -4,16 +4,22 @@ interface CardProps {
   children: React.ReactNode;
   className?: string;
   padding?: string;
-  /** "dark" = white-glass; "light" = dark-glass; "weather" = solid white card */
+  /** "dark" = white-glass; "light" = dark-glass; "weather" = solid card that respects isDark */
   mode?: "dark" | "light" | "weather";
+  isDark?: boolean;
 }
 
-export function Card({ children, className = "", padding = "p-5", mode = "dark" }: CardProps) {
+export function Card({ children, className = "", padding = "p-5", mode = "dark", isDark = false }: CardProps) {
   if (mode === "weather") {
     return (
       <div
         className={[padding, className].filter(Boolean).join(" ")}
-        style={{ background: "#FFFFFF", borderRadius: 24, boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}
+        style={{
+          background: isDark ? "#2C2C2E" : "#FFFFFF",
+          borderRadius: 24,
+          boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+        }}
       >
         {children}
       </div>

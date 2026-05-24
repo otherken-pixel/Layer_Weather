@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { SkyHeader } from "@/components/weather/SkyHeader";
@@ -191,7 +192,8 @@ export default function Home() {
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>
+            {/* Loading bg is always #1a1a2e — use explicit colors for AA contrast ✓ */}
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#9CA3AF" }}>
               Fetching your weather…
             </p>
           </div>
@@ -316,6 +318,7 @@ export default function Home() {
               feelsLikeExplanation={feelsLikeExplanation}
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
+              isDark={isDark}
             />
 
             {/* Calendar style hint */}
@@ -361,7 +364,7 @@ export default function Home() {
 
             {/* Nowcast */}
             {weather.nextHourPrecip && (
-              <NowcastCard data={weather.nextHourPrecip} />
+              <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
             )}
 
             {/* Hourly strip */}
@@ -373,6 +376,7 @@ export default function Home() {
                 daily={weather.daily}
                 tempUnit={tempUnit}
                 hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}
+                isDark={isDark}
               />
             )}
 
@@ -402,12 +406,21 @@ function HourlyStrip({
   isDark: boolean;
   cardSurface: string;
 }) {
+  // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
+  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+
   return (
-    <div style={{ background: cardSurface, borderRadius: 24, padding: "20px", boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}>
+    <div style={{
+      background: cardSurface,
+      borderRadius: 24,
+      padding: "20px",
+      boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
+      border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+    }}>
       <p style={{
-        fontSize: 11, fontWeight: 700,
-        color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
-        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12,
+        fontSize: 12, fontWeight: 700,
+        color: labelColor,
+        letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
       }}>
         Hourly Forecast
       </p>
@@ -415,6 +428,8 @@ function HourlyStrip({
         {hourly.map((h, i) => {
           const isNow = i === 0;
           const condKey = wmoToCondition(h.weatherCode);
+          // Precip %: #1D4ED8 on light cell #F3F4F6 (6.1:1 ✓); #60A5FA on dark cell #3A3A3C (4.5:1 ✓)
+          const precipColor = isNow ? "rgba(255,255,255,0.9)" : isDark ? "#60A5FA" : "#1D4ED8";
           return (
             <div
               key={i}
@@ -426,15 +441,15 @@ function HourlyStrip({
             >
               <span style={{
                 fontSize: 10, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "rgba(255,255,255,0.5)" : "#6B7280",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "#9BA4B4" : "#6B7280",
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F9FAFB" : "#111827" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F4F4F5" : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.75)" : "#3B82F6" }}>
+              <span style={{ fontSize: 10, fontWeight: 600, color: precipColor }}>
                 {h.precipProb}%
               </span>
             </div>
