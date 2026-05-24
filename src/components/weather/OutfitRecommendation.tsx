@@ -484,26 +484,6 @@ export function OutfitRecommendationCard({
             </button>
           </div>
 
-          {/* Accessories pills */}
-          {(umbrella || sunglasses || scarf || beanie || gloves || footwear) && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-              {footwear && (
-                <AccessoryPill
-                  label={FOOTWEAR_PILLS[footwear].label}
-                  emoji={FOOTWEAR_PILLS[footwear].emoji}
-                  color={FOOTWEAR_PILLS[footwear].color}
-                  bg={FOOTWEAR_PILLS[footwear].bg}
-                  isDark={isDark}
-                />
-              )}
-              {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" isDark={isDark} />}
-              {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" isDark={isDark} />}
-              {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" isDark={isDark} />}
-              {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" isDark={isDark} />}
-              {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" isDark={isDark} />}
-            </div>
-          )}
-
           {/* Commute alert */}
           {commuteAlert && (
             <motion.div
