@@ -18,7 +18,7 @@ export function Card({ children, className = "", padding = "p-5", mode = "dark",
           background: isDark ? "#2C2C2E" : "#FFFFFF",
           borderRadius: 24,
           boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
-          border: isDark ? "1px solid rgba(255,255,255,0.08)" : undefined,
+          border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #F0F0F0",
         }}
       >
         {children}
