@@ -87,8 +87,8 @@ const SCALE_MAX = 1.28;
 
 function iconSizesForWidth(compact: boolean, containerWidth: number | null) {
   const base = compact
-    ? { top: 70, bottom: 60, acc: 50 }
-    : { top: 80, bottom: 68, acc: 56 };
+    ? { top: 82, bottom: 72, acc: 56 }
+    : { top: 96, bottom: 84, acc: 62 };
   const w = containerWidth ?? LAYOUT_REF_WIDTH;
   const scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, w / LAYOUT_REF_WIDTH));
   return {
@@ -125,13 +125,14 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   }, []);
 
   const { topSz, bottomSz: baseBottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
+  const footwearSz = Math.round(accSz * 1.25);
 
-  const wrap = (node: React.ReactNode, delay: number) => (
+  const wrap = (node: React.ReactNode, delay: number, sz = accSz) => (
     <motion.div
       {...ITEM_ANIM}
       transition={{ delay, type: "spring", stiffness: 280, damping: 22 }}
       className="flex items-center justify-center"
-      style={{ width: accSz, height: accSz }}
+      style={{ width: sz, height: sz }}
     >
       {node}
     </motion.div>
@@ -153,7 +154,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
       ref={containerRef}
       layout
       className="mx-auto w-full overflow-hidden"
-      style={{ maxWidth: compact ? 260 : 280 }}
+      style={{ maxWidth: compact ? 270 : 320 }}
       aria-label="Outfit flat lay"
     >
       <AnimatePresence mode="wait">
@@ -205,10 +206,10 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                   {stackFootwearUmbrella && footwear && (
                     <>
                       {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
-                      {wrap(<FootwearIcon kind={footwear} size={accSz} />, 3 * STAGGER)}
+                      {wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 3 * STAGGER, footwearSz)}
                     </>
                   )}
-                  {footwear && !umbrella && wrap(<FootwearIcon kind={footwear} size={accSz} />, 2 * STAGGER)}
+                  {footwear && !umbrella && wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
                   {!footwear && umbrella && wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
                   {!footwear && !umbrella && sunglasses && wrap(<Sunglasses size={accSz} />, 2 * STAGGER)}
                 </div>
