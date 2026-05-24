@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
+import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { shareOutfitCard } from "@/lib/share-card";
+import { useAppStore } from "@/store";
 import type {
   FootwearKind,
   OutfitFeedbackValue,
@@ -10,6 +13,7 @@ import type {
   DayOutfitTimeline,
   DayPeriodLabel,
   OutfitTimelineEntry,
+  AvatarCondition,
 } from "@/types";
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
@@ -28,6 +32,17 @@ const PERIOD_EMOJI: Record<DayPeriodLabel, string> = {
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
   drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
+};
+
+const AVATAR_CONDITION_EMOJI: Record<AvatarCondition, string> = {
+  sunny: "☀️",
+  cloudy: "☁️",
+  rainy: "🌧️",
+  windy: "💨",
+  snowy: "❄️",
+  stormy: "⛈️",
+  foggy: "🌫️",
+  clear_night: "🌙",
 };
 
 interface Props {
@@ -70,9 +85,10 @@ export function OutfitRecommendationCard({
   onFeedback,
   onRecalibrate,
 }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } =
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert, avatarCondition } =
     recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
+  const [shared, setShared] = useState(false);
   const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
 
   // Determine initial active tab: prefer the current period if it exists in the timeline
@@ -87,6 +103,25 @@ export function OutfitRecommendationCard({
     if (value === "thumbs_up") hapticSuccess();
     else hapticLight();
     onFeedback?.(value);
+  }
+
+  async function handleShare() {
+    const loc = useAppStore.getState().location;
+    try {
+      await shareOutfitCard({
+        conditionEmoji: AVATAR_CONDITION_EMOJI[avatarCondition],
+        temp: feelsLike,
+        tempUnit,
+        outfitLabel: label,
+        outfitDescription: description,
+        city: loc?.city ?? "",
+        region: loc?.region ?? "",
+      });
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // silently fail
+    }
   }
 
   const displayFeelsLike =
@@ -332,6 +367,27 @@ export function OutfitRecommendationCard({
                 </motion.span>
               )}
             </AnimatePresence>
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share outfit"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: "1.5px solid #E5E7EB",
+                background: "#F9FAFB",
+                cursor: "pointer",
+                fontSize: 16,
+                transition: "all 0.15s",
+                marginLeft: "auto",
+              }}
+            >
+              {shared ? <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED" }}>Shared!</span> : "⬆"}
+            </button>
           </div>
 
           {/* Accessories pills */}
@@ -431,10 +487,10 @@ function TimelinePeriodDetail({
 
   const layerChange =
     prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
-      ? prevEntry.recommendation.outfit.includes("heavy") &&
-        !recommendation.outfit.includes("heavy")
-        ? "layer down"
-        : "layer up"
+      ? getLayerChangeDirection(
+          prevEntry.recommendation.outfit,
+          recommendation.outfit
+        )
       : null;
 
   return (
@@ -462,7 +518,7 @@ function TimelinePeriodDetail({
               color: layerChange === "layer up" ? "#1D4ED8" : "#92400E",
             }}
           >
-            ↑ {layerChange}
+            {layerChange === "layer up" ? "↑" : "↓"} {layerChange}
           </span>
         )}
       </div>

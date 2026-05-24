@@ -19,9 +19,10 @@ import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
-import { getOutfitReason, getFeelsLikeExplanation } from "@/lib/outfit-logic";
+import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
 import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
+import { startGeofence, stopGeofence } from "@/lib/geofence";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
@@ -62,13 +63,20 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Trigger weather refresh when location city changes (e.g. tab switch)
-  const prevCityRef = useRef<string | null>(null);
+  // Trigger weather refresh when location city changes (e.g. tab switch).
+  // `undefined` means we have not synced yet — skip the first non-null city so the
+  // initial `refresh()` is not duplicated when reverse-geocode sets city.
+  const prevCityRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     const city = location?.city ?? null;
-    if (city && city !== prevCityRef.current) {
+    if (city === null) return;
+    if (prevCityRef.current === undefined) {
       prevCityRef.current = city;
-      refresh(true);
+      return;
+    }
+    if (city !== prevCityRef.current) {
+      prevCityRef.current = city;
+      refresh(true, false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
@@ -77,11 +85,24 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refresh(); }, []);
 
+  // Geofence: trigger weather refresh when user moves significantly
+  useEffect(() => {
+    if (!location) return;
+    startGeofence({
+      currentLocation: location,
+      onSignificantMove: () => { refresh(true); },
+    }).catch(() => {});
+    return () => {
+      stopGeofence().catch(() => {});
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
+
   async function handleLocationSaved() {
-    await refresh(true);
-    // Add the newly active location to saved list
-    if (location) {
-      const updated = await addSavedLocation(location).catch(() => savedLocations);
+    await refresh(true, false);
+    const loc = useAppStore.getState().location;
+    if (loc) {
+      const updated = await addSavedLocation(loc).catch(() => useAppStore.getState().savedLocations);
       setSavedLocations(updated);
     }
   }
@@ -149,6 +170,8 @@ export default function Home() {
     if (!weather) return [];
     return detectSignificantChanges(weather.hourly, weather.current.feelsLike);
   }, [weather]);
+
+  const layeringTip = useMemo(() => getLayeringTip(outfitTimeline), [outfitTimeline]);
 
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
@@ -305,6 +328,21 @@ export default function Home() {
               }}>
                 <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
                 <p style={{ fontSize: 13, color: isDark ? "#C4B5FD" : "#5B21B6", flex: 1 }}>{styleHint}</p>
+              </div>
+            )}
+
+            {/* Smart layering tip */}
+            {layeringTip && (
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "12px 16px", borderRadius: 20,
+                background: isDark ? "rgba(59,130,246,0.18)" : "#EFF6FF",
+                border: "1px solid #BFDBFE",
+              }}>
+                <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>🧥</span>
+                <p style={{ fontSize: 13, color: isDark ? "#93C5FD" : "#1D4ED8", flex: 1, lineHeight: 1.45 }}>
+                  {layeringTip}
+                </p>
               </div>
             )}
 

@@ -18,6 +18,29 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
+/** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
+const OUTFIT_WARMTH: Record<OutfitType, number> = {
+  heavy_coat: 5,
+  heavy_jacket: 4,
+  rain_heavy: 4,
+  light_jacket: 3,
+  rain_light: 3,
+  pants_tshirt: 2,
+  shorts_tshirt: 1,
+};
+
+/** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
+export function getLayerChangeDirection(
+  from: OutfitType,
+  to: OutfitType
+): "layer up" | "layer down" | null {
+  if (from === to) return null;
+  const delta = OUTFIT_WARMTH[to] - OUTFIT_WARMTH[from];
+  if (delta > 0) return "layer up";
+  if (delta < 0) return "layer down";
+  return null;
+}
+
 export function resolveFootwear(opts: {
   effectiveFeelsLike: number;
   isRainy: boolean;
@@ -128,6 +151,67 @@ export function getFeelsLikeExplanation(opts: {
   if (delta >= 2) {
     return `Conditions make it feel ${delta}° warmer than the thermometer`;
   }
+  return null;
+}
+
+/**
+ * Returns a smart layering tip when morning and afternoon outfits diverge.
+ * Returns null when no meaningful change occurs across the day.
+ */
+export function getLayeringTip(timeline: DayOutfitTimeline | null): string | null {
+  if (!timeline || timeline.length < 2) return null;
+
+  const morning = timeline.find((e) => e.period.label === "Morning");
+  const afternoon = timeline.find((e) => e.period.label === "Afternoon");
+  const evening = timeline.find((e) => e.period.label === "Evening");
+
+  if (!morning || !afternoon) return null;
+
+  const morningOutfit = morning.recommendation.outfit;
+  const afternoonOutfit = afternoon.recommendation.outfit;
+
+  const morningWarmth = OUTFIT_WARMTH[morningOutfit] ?? 3;
+  const afternoonWarmth = OUTFIT_WARMTH[afternoonOutfit] ?? 3;
+  const delta = morningWarmth - afternoonWarmth;
+
+  // Rain in morning but not afternoon
+  if (
+    (morningOutfit === "rain_light" || morningOutfit === "rain_heavy") &&
+    afternoonOutfit !== "rain_light" &&
+    afternoonOutfit !== "rain_heavy"
+  ) {
+    const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
+    return `Grab an umbrella for the morning — rain clears and warms to ${afternoonTemp}° by afternoon.`;
+  }
+
+  // Rain coming in afternoon
+  if (
+    (afternoonOutfit === "rain_light" || afternoonOutfit === "rain_heavy") &&
+    morningOutfit !== "rain_light" &&
+    morningOutfit !== "rain_heavy"
+  ) {
+    return `Nice morning, but rain moves in this afternoon — pack a rain jacket before heading out.`;
+  }
+
+  // Big warmup: need to layer down significantly
+  if (delta >= 2) {
+    const morningTemp = Math.round(morning.period.avgFeelsLike);
+    const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
+    const rise = afternoonTemp - morningTemp;
+    return `Chilly ${morningTemp}° morning → warms ${rise > 0 ? `+${rise}°` : `${rise}°`} to ${afternoonTemp}° by afternoon. Start layered — you'll shed up top later.`;
+  }
+
+  // Big cool-down toward evening
+  if (evening) {
+    const eveningOutfit = evening.recommendation.outfit;
+    const eveningWarmth = OUTFIT_WARMTH[eveningOutfit] ?? 3;
+    const eveningDelta = eveningWarmth - afternoonWarmth;
+    if (eveningDelta >= 2) {
+      const eveningTemp = Math.round(evening.period.avgFeelsLike);
+      return `Warm afternoon, but evening drops to ${eveningTemp}°. Bring a jacket if you're out late.`;
+    }
+  }
+
   return null;
 }
 
