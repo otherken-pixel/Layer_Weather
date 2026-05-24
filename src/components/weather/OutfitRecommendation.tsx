@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
+import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
@@ -486,10 +487,10 @@ function TimelinePeriodDetail({
 
   const layerChange =
     prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
-      ? prevEntry.recommendation.outfit.includes("heavy") &&
-        !recommendation.outfit.includes("heavy")
-        ? "layer down"
-        : "layer up"
+      ? getLayerChangeDirection(
+          prevEntry.recommendation.outfit,
+          recommendation.outfit
+        )
       : null;
 
   return (
