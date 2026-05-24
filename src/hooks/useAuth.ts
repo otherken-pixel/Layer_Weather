@@ -70,15 +70,22 @@ export function useAuth() {
 
     const authTimeout = setTimeout(() => setIsLoading(false), AUTH_LOADING_TIMEOUT_MS);
 
-    // Eagerly read the stored session before INITIAL_SESSION fires.
-    // getSession() reads from localStorage without a network call, so returning
-    // users start loading immediately rather than waiting for Supabase to
-    // initialise its auth client and potentially refresh an expired token.
+    // Optimistic auth: if the user was previously onboarded, clear the loading
+    // screen immediately from localStorage — no Supabase round-trip needed.
+    // Auth validates in the background; the router redirects to /login if the
+    // session turns out to be gone (SIGNED_OUT handler calls reset()).
+    if (localStorage.getItem(IS_ONBOARDED_KEY)) {
+      clearTimeout(authTimeout);
+      setIsLoading(false);
+    }
+
+    // Still eagerly read the session so loadUser() hydrates state before any
+    // screen interaction, but no longer gate the loading screen on this result.
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && localStorage.getItem(IS_ONBOARDED_KEY)) {
+      if (session?.user) {
         clearTimeout(authTimeout);
         loadUser(session.user.id).catch(console.error);
-        setIsLoading(false);
+        if (!localStorage.getItem(IS_ONBOARDED_KEY)) setIsLoading(false);
       }
     });
 
@@ -107,9 +114,10 @@ export function useAuth() {
         }
       } else if (event === "SIGNED_IN" && session?.user) {
         // Fires only on explicit sign-in (not on page reload).
+        // Pass onFastPhaseComplete so loading clears after cache reads only;
+        // DB fetches (getProfile, getCalibration) continue in the background.
         setIsLoading(true);
-        await loadUser(session.user.id);
-        setIsLoading(false);
+        loadUser(session.user.id, () => setIsLoading(false)).catch(console.error);
       } else if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
         localStorage.removeItem(CALIBRATION_PENDING_KEY);
         localStorage.removeItem(IS_ONBOARDED_KEY);
