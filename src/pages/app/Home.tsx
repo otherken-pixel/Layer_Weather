@@ -121,7 +121,7 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved() {
-    await refresh(true);
+    await refresh(true, { useDeviceLocation: false });
     // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
     const loc = useAppStore.getState().location;
     if (loc?.city) {
