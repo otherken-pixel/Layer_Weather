@@ -14,6 +14,7 @@ import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
+import { groupHourlyByDay } from "@/lib/weather";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import type { OutfitFeedbackValue } from "@/types";
 
@@ -28,7 +29,7 @@ function toUnit(f: number, unit: "F" | "C") {
 
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile, userId, calibration, setProfile, setCalibration } = useAppStore();
+  const { profile, userId, calibration, outfitTimeline, setProfile, setCalibration } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
@@ -188,6 +189,7 @@ export default function Home() {
               recommendation={outfit}
               tempUnit={tempUnit}
               feelsLike={weather.current.feelsLike}
+              timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
             />
 
@@ -220,7 +222,11 @@ export default function Home() {
 
             {/* 7-Day forecast */}
             {weather.daily.length > 0 && (
-              <SevenDayCard daily={weather.daily} tempUnit={tempUnit} />
+              <SevenDayCard
+                daily={weather.daily}
+                tempUnit={tempUnit}
+                hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}
+              />
             )}
 
             {/* Dev-only: data source badge */}

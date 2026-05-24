@@ -144,6 +144,30 @@ export interface CommuteAlert {
   urgency: "info" | "warning" | "critical";
 }
 
+// ── Outfit Timeline ───────────────────────────────────────────────────────────
+
+export type DayPeriodLabel = "Morning" | "Afternoon" | "Evening";
+
+export interface DayPeriod {
+  label: DayPeriodLabel;
+  startHour: number;
+  endHour: number;
+  minFeelsLike: number;
+  maxFeelsLike: number;
+  avgFeelsLike: number;
+  condition: WeatherCondition;
+  precipProb: number;
+  windSpeed: number;
+  weatherCode: number;
+}
+
+export interface OutfitTimelineEntry {
+  period: DayPeriod;
+  recommendation: OutfitRecommendation;
+}
+
+export type DayOutfitTimeline = OutfitTimelineEntry[];
+
 // ── Location ──────────────────────────────────────────────────────────────────
 
 export interface LocationData {

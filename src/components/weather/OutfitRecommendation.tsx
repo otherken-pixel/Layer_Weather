@@ -2,7 +2,14 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
-import type { FootwearKind, OutfitFeedbackValue, OutfitRecommendation as OutfitRec } from "@/types";
+import type {
+  FootwearKind,
+  OutfitFeedbackValue,
+  OutfitRecommendation as OutfitRec,
+  DayOutfitTimeline,
+  DayPeriodLabel,
+  OutfitTimelineEntry,
+} from "@/types";
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
   flip_flops: { label: "Flip flops", emoji: "🩴", color: "#1E40AF", bg: "#EFF6FF" },
@@ -11,10 +18,22 @@ const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color
   rain_boots: { label: "Rain boots", emoji: "🌧️", color: "#1D4ED8", bg: "#EFF6FF" },
 };
 
+const PERIOD_EMOJI: Record<DayPeriodLabel, string> = {
+  Morning: "🌅",
+  Afternoon: "☀️",
+  Evening: "🌆",
+};
+
+const CONDITION_EMOJI: Record<string, string> = {
+  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
+  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
+};
+
 interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
+  timeline?: DayOutfitTimeline | null;
   onFeedback?: (value: OutfitFeedbackValue) => void;
   onRecalibrate?: () => void;
 }
@@ -25,9 +44,34 @@ const URGENCY_COLORS = {
   info: { bg: "#EFF6FF", border: "#BFDBFE", icon: "ℹ️", text: "#1D4ED8" },
 };
 
-export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, onFeedback, onRecalibrate }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } = recommendation;
+function toUnit(f: number, unit: "F" | "C") {
+  return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
+}
+
+function currentPeriodLabel(): DayPeriodLabel {
+  const h = new Date().getHours();
+  if (h >= 18) return "Evening";
+  if (h >= 12) return "Afternoon";
+  return "Morning";
+}
+
+export function OutfitRecommendationCard({
+  recommendation,
+  tempUnit,
+  feelsLike,
+  timeline,
+  onFeedback,
+  onRecalibrate,
+}: Props) {
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } =
+    recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
+
+  // Determine initial active tab: prefer the current period if it exists in the timeline
+  const defaultPeriod = timeline?.find((e) => e.period.label === currentPeriodLabel())
+    ? currentPeriodLabel()
+    : timeline?.[0]?.period.label ?? "Morning";
+  const [activeTab, setActiveTab] = useState<DayPeriodLabel>(defaultPeriod);
 
   function handleVote(value: OutfitFeedbackValue) {
     if (voted) return;
@@ -40,9 +84,10 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
       ? `${Math.round(((feelsLike - 32) * 5) / 9)}°C`
       : `${Math.round(feelsLike)}°F`;
 
+  const activeEntry = timeline?.find((e) => e.period.label === activeTab);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {/* Main outfit card */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -50,9 +95,24 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
       >
         <Card mode="weather" padding="p-5">
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              marginBottom: 14,
+            }}
+          >
             <div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#111827", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+              <h2
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: "#111827",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.15,
+                }}
+              >
                 {label}
               </h2>
               <p style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
@@ -60,7 +120,16 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
               </p>
             </div>
             {(umbrella || rainGear) && (
-              <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 999, background: "#EFF6FF", color: "#1D4ED8" }}>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "4px 12px",
+                  borderRadius: 999,
+                  background: "#EFF6FF",
+                  color: "#1D4ED8",
+                }}
+              >
                 Rain
               </span>
             )}
@@ -84,6 +153,93 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
             {description}
           </p>
 
+          {/* Outfit Timeline */}
+          {timeline && timeline.length > 0 && (
+            <div style={{ marginTop: 18 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#9CA3AF",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: 10,
+                }}
+              >
+                Today's Outfit Timeline
+              </p>
+
+              {/* Period tabs */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {timeline.map((entry) => {
+                  const isActive = entry.period.label === activeTab;
+                  return (
+                    <button
+                      key={entry.period.label}
+                      type="button"
+                      onClick={() => setActiveTab(entry.period.label)}
+                      style={{
+                        flex: 1,
+                        padding: "7px 4px",
+                        borderRadius: 12,
+                        border: `1.5px solid ${isActive ? "#6C63FF" : "#E5E7EB"}`,
+                        background: isActive ? "#EDE9FE" : "#F9FAFB",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }}>
+                        {PERIOD_EMOJI[entry.period.label]}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: isActive ? "#6C63FF" : "#6B7280",
+                        }}
+                      >
+                        {entry.period.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active period detail */}
+              <AnimatePresence mode="wait">
+                {activeEntry && (
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.18 }}
+                    style={{
+                      background: "#F9FAFB",
+                      borderRadius: 16,
+                      padding: "12px 14px",
+                      border: "1px solid #F3F4F6",
+                    }}
+                  >
+                    <TimelinePeriodDetail
+                      entry={activeEntry}
+                      tempUnit={tempUnit}
+                      prevEntry={
+                        timeline.findIndex((e) => e.period.label === activeTab) > 0
+                          ? timeline[timeline.findIndex((e) => e.period.label === activeTab) - 1]
+                          : null
+                      }
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           {/* Thumbs feedback */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
             <span style={{ fontSize: 12, color: "#9CA3AF", fontWeight: 500 }}>
@@ -97,8 +253,18 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
                   exit={{ opacity: 0, scale: 0.8 }}
                   style={{ display: "flex", gap: 6 }}
                 >
-                  <ThumbButton icon="👍" label="Yes" onClick={() => handleVote("thumbs_up")} active={false} />
-                  <ThumbButton icon="👎" label="No" onClick={() => handleVote("thumbs_down")} active={false} />
+                  <ThumbButton
+                    icon="👍"
+                    label="Yes"
+                    onClick={() => handleVote("thumbs_up")}
+                    active={false}
+                  />
+                  <ThumbButton
+                    icon="👎"
+                    label="No"
+                    onClick={() => handleVote("thumbs_down")}
+                    active={false}
+                  />
                 </motion.div>
               )}
               {voted && (
@@ -126,14 +292,16 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
                 />
               )}
               {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
-              {sunglasses && <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />}
+              {sunglasses && (
+                <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />
+              )}
               {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
               {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
               {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" />}
             </div>
           )}
 
-          {/* Commute alert — inside the card */}
+          {/* Commute alert */}
           {commuteAlert && (
             <motion.div
               initial={{ opacity: 0, y: 6 }}
@@ -153,7 +321,14 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
               <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
                 {URGENCY_COLORS[commuteAlert.urgency].icon}
               </span>
-              <p style={{ fontSize: 13, color: URGENCY_COLORS[commuteAlert.urgency].text, lineHeight: 1.4, flex: 1 }}>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: URGENCY_COLORS[commuteAlert.urgency].text,
+                  lineHeight: 1.4,
+                  flex: 1,
+                }}
+              >
                 {commuteAlert.message}
               </p>
             </motion.div>
@@ -172,25 +347,126 @@ export function OutfitRecommendationCard({ recommendation, tempUnit, feelsLike, 
           className="min-h-[44px] w-full flex items-center justify-center gap-2 bg-transparent border-0 cursor-pointer"
         >
           <span style={{ fontSize: 12 }}>🔄</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF" }}>Not quite right? Recalibrate</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#9CA3AF" }}>
+            Not quite right? Recalibrate
+          </span>
         </motion.button>
       )}
     </div>
   );
 }
 
-function ThumbButton({ icon, label, onClick, active }: { icon: string; label: string; onClick: () => void; active: boolean }) {
+// ── Timeline period detail ────────────────────────────────────────────────────
+
+function TimelinePeriodDetail({
+  entry,
+  tempUnit,
+  prevEntry,
+}: {
+  entry: OutfitTimelineEntry;
+  tempUnit: "F" | "C";
+  prevEntry: OutfitTimelineEntry | null;
+}) {
+  const { period, recommendation } = entry;
+  const { umbrella, sunglasses, scarf, beanie, gloves, footwear } = recommendation;
+  const hasAccessories = umbrella || sunglasses || scarf || beanie || gloves;
+
+  const lo = toUnit(period.minFeelsLike, tempUnit);
+  const hi = toUnit(period.maxFeelsLike, tempUnit);
+  const unit = tempUnit === "C" ? "°C" : "°F";
+
+  const layerChange =
+    prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
+      ? prevEntry.recommendation.outfit.includes("heavy") &&
+        !recommendation.outfit.includes("heavy")
+        ? "layer down"
+        : "layer up"
+      : null;
+
+  return (
+    <div>
+      {/* Row: condition + temp range + outfit label */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+            {recommendation.label}
+          </p>
+          <p style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+            {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
+            {period.precipProb > 20 ? ` · ${period.precipProb}% rain` : ""}
+          </p>
+        </div>
+        {layerChange && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 999,
+              background: layerChange === "layer up" ? "#EFF6FF" : "#FEF9C3",
+              color: layerChange === "layer up" ? "#1D4ED8" : "#92400E",
+            }}
+          >
+            ↑ {layerChange}
+          </span>
+        )}
+      </div>
+
+      {/* Accessories row */}
+      {(hasAccessories || footwear) && (
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {footwear && (
+            <AccessoryPill
+              label={FOOTWEAR_PILLS[footwear].label}
+              emoji={FOOTWEAR_PILLS[footwear].emoji}
+              color={FOOTWEAR_PILLS[footwear].color}
+              bg={FOOTWEAR_PILLS[footwear].bg}
+            />
+          )}
+          {umbrella && <AccessoryPill label="Umbrella" emoji="☂️" color="#1D4ED8" bg="#EFF6FF" />}
+          {sunglasses && (
+            <AccessoryPill label="Sunglasses" emoji="🕶️" color="#92400E" bg="#FEF9C3" />
+          )}
+          {scarf && <AccessoryPill label="Scarf" emoji="🧣" color="#6B21A8" bg="#F3E8FF" />}
+          {beanie && <AccessoryPill label="Beanie" emoji="🧢" color="#166534" bg="#F0FDF4" />}
+          {gloves && <AccessoryPill label="Gloves" emoji="🧤" color="#374151" bg="#F3F4F6" />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
+
+function ThumbButton({
+  icon,
+  label,
+  onClick,
+  active,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  active: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: 36, height: 36, borderRadius: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 36,
+        height: 36,
+        borderRadius: 10,
         border: `1.5px solid ${active ? "#6C63FF" : "#E5E7EB"}`,
         background: active ? "#EDE9FE" : "#F9FAFB",
-        cursor: "pointer", fontSize: 18, transition: "all 0.15s",
+        cursor: "pointer",
+        fontSize: 18,
+        transition: "all 0.15s",
       }}
     >
       {icon}
@@ -198,9 +474,31 @@ function ThumbButton({ icon, label, onClick, active }: { icon: string; label: st
   );
 }
 
-function AccessoryPill({ label, emoji, color, bg }: { label: string; emoji: string; color: string; bg: string }) {
+function AccessoryPill({
+  label,
+  emoji,
+  color,
+  bg,
+}: {
+  label: string;
+  emoji: string;
+  color: string;
+  bg: string;
+}) {
   return (
-    <span style={{ fontSize: 11, fontWeight: 600, color, background: bg, padding: "4px 10px", borderRadius: 999, display: "flex", alignItems: "center", gap: 4 }}>
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        color,
+        background: bg,
+        padding: "4px 10px",
+        borderRadius: 999,
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+      }}
+    >
       {emoji} {label}
     </span>
   );
