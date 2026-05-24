@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -232,9 +232,15 @@ export default function Radar() {
       })
     : "Now";
 
-  const center: [number, number] = location
-    ? [location.latitude, location.longitude]
-    : [37.7749, -122.4194];
+  const lat = location?.latitude;
+  const lng = location?.longitude;
+  const center = useMemo<[number, number]>(
+    () =>
+      typeof lat === "number" && typeof lng === "number"
+        ? [lat, lng]
+        : [37.7749, -122.4194],
+    [lat, lng],
+  );
 
   const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
 
