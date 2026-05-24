@@ -50,7 +50,7 @@ export default function Settings() {
   async function saveGpsLocation() {
     if (!userId) return;
     const result = await saveFromDevice();
-    if (result.ok) await refresh(true);
+    if (result.ok) await refresh(true, { useDeviceLocation: true });
   }
 
   async function saveSettings() {

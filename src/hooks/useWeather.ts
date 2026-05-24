@@ -35,11 +35,11 @@ function mapWeatherError(err: unknown): string {
 
 async function resolveCoordinates(
   force: boolean,
-  preferGpsWhenForced: boolean,
+  useDeviceLocation: boolean,
   location: ReturnType<typeof useAppStore.getState>["location"],
   profile: ReturnType<typeof useAppStore.getState>["profile"],
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && preferGpsWhenForced && Capacitor.isNativePlatform()) {
+  if (force && useDeviceLocation && Capacitor.isNativePlatform()) {
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm === "granted") {
       try {
@@ -81,6 +81,11 @@ async function resolveCoordinates(
   return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
 }
 
+export type RefreshOptions = {
+  /** When true with force, prefer GPS over saved/tab coordinates (native only). */
+  useDeviceLocation?: boolean;
+};
+
 export function useWeather() {
   const refreshGeneration = useRef(0);
   const {
@@ -92,9 +97,10 @@ export function useWeather() {
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
-  const refresh = useCallback(async (force = false, preferGpsWhenForced = true) => {
+  const refresh = useCallback(async (force = false, options: RefreshOptions = {}) => {
     if (!force && !isStale && weather) return;
 
+    const { useDeviceLocation = false } = options;
     const generation = ++refreshGeneration.current;
     setIsLoadingWeather(true);
     setWeatherError(null);
@@ -104,7 +110,7 @@ export function useWeather() {
         (async () => {
           const { latitude, longitude } = await resolveCoordinates(
             force,
-            preferGpsWhenForced,
+            useDeviceLocation,
             location,
             profile,
           );

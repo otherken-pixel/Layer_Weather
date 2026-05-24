@@ -76,7 +76,7 @@ export default function Home() {
         skipNextCityRefreshRef.current = false;
         return;
       }
-      refresh(true, false);
+      refresh(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
@@ -93,7 +93,7 @@ export default function Home() {
     if (!location) return;
     startGeofence({
       currentLocation: location,
-      onSignificantMove: () => { refresh(true); },
+      onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
     }).catch(() => {});
     return () => {
       stopGeofence().catch(() => {});
@@ -103,7 +103,7 @@ export default function Home() {
 
   async function handleLocationSaved() {
     // Saved list is updated in LocationPickerSheet (getState().location). Refresh weather only.
-    await refresh(true, false);
+    await refresh(true);
   }
 
   async function handleTabSelect(loc: LocationData) {
@@ -264,7 +264,7 @@ export default function Home() {
               today={weather.daily[0] ?? null}
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
-              onRefresh={() => refresh(true)}
+              onRefresh={() => refresh(true, { useDeviceLocation: true })}
               onLocationPress={() => setLocationPickerOpen(true)}
             />
             <LocationPickerSheet
