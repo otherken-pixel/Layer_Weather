@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
@@ -8,6 +8,8 @@ import { WeatherAnimationLayer } from "@/components/weather/WeatherAnimationLaye
 import { SevenDayCard } from "@/components/weather/SevenDayCard";
 import { NowcastCard } from "@/components/weather/NowcastCard";
 import { AQICard } from "@/components/weather/AQICard";
+import { LocationTabs } from "@/components/weather/LocationTabs";
+import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
 import { getSkyColor } from "@/constants/colors";
@@ -15,10 +17,11 @@ import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
-import { groupHourlyByDay } from "@/lib/weather";
+import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation } from "@/lib/outfit-logic";
+import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
-import type { OutfitFeedbackValue } from "@/types";
+import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -56,7 +59,11 @@ function formatTimeAgo(date: Date): string {
 
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile, userId, calibration, outfitTimeline, setProfile, setCalibration, weatherLastFetched } = useAppStore();
+  const {
+    profile, userId, calibration, outfitTimeline, location,
+    savedLocations, setSavedLocations,
+    setProfile, setCalibration, setLocation, weatherLastFetched,
+  } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const isDark = useDarkMode(profile?.theme_preference ?? null);
@@ -65,9 +72,43 @@ export default function Home() {
   const cardsBg = isDark ? "#1C1C1E" : "#F2F2F7";
   const cardSurface = isDark ? "#2C2C2E" : "#FFFFFF";
 
+  // Load saved locations on mount
+  useEffect(() => {
+    getSavedLocations().then(setSavedLocations).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Trigger weather refresh when location city changes (e.g. tab switch)
+  const prevCityRef = useRef<string | null>(null);
+  useEffect(() => {
+    const city = location?.city ?? null;
+    if (city && city !== prevCityRef.current) {
+      prevCityRef.current = city;
+      refresh(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.city]);
+
+  // Initial load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, []);
+
+  async function handleLocationSaved() {
+    await refresh(true);
+    // Add the newly active location to saved list
+    if (location) {
+      const updated = await addSavedLocation(location).catch(() => savedLocations);
+      setSavedLocations(updated);
+    }
+  }
+
+  async function handleTabSelect(loc: LocationData) {
+    setLocation(loc);
+    // setLocation triggers the city-change effect above which calls refresh(true)
+  }
+
   async function handleOutfitFeedback(value: OutfitFeedbackValue) {
     if (!userId || !outfit || !weather || !calibration) return;
-
     await saveOutfitFeedback({
       user_id: userId,
       outfit_type: outfit.outfit,
@@ -76,7 +117,6 @@ export default function Home() {
       wind_speed: weather.current.windSpeed,
       feedback: value,
     }).catch(console.error);
-
     if (value === "thumbs_down") {
       const recent = await getRecentFeedback(userId, 30).catch(() => []);
       const updates = computeCalibrationFromFeedback(recent, calibration);
@@ -86,9 +126,6 @@ export default function Home() {
       }
     }
   }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
 
   const skyColor = weather
     ? getSkyColor(weather.current.condition, weather.current.isDay)
@@ -122,6 +159,11 @@ export default function Home() {
       windSpeed: weather.current.windSpeed,
       humidity: weather.current.humidity,
     });
+  }, [weather]);
+
+  const weatherAlerts = useMemo((): WeatherAlert[] => {
+    if (!weather) return [];
+    return detectSignificantChanges(weather.hourly, weather.current.feelsLike);
   }, [weather]);
 
   return (
@@ -221,7 +263,7 @@ export default function Home() {
             <LocationPickerSheet
               open={locationPickerOpen}
               onClose={() => setLocationPickerOpen(false)}
-              onSaved={() => refresh(true)}
+              onSaved={handleLocationSaved}
               variant="sky"
             />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
@@ -230,6 +272,16 @@ export default function Home() {
               isDay={weather.current.isDay}
             />
           </div>
+
+          {/* Location tab switcher — shown when 2+ saved locations exist */}
+          {savedLocations.length >= 2 && (
+            <LocationTabs
+              locations={savedLocations}
+              activeCity={location?.city ?? null}
+              onSelect={handleTabSelect}
+              onAdd={() => setLocationPickerOpen(true)}
+            />
+          )}
 
           {/* Cards area */}
           <div style={{
@@ -242,6 +294,11 @@ export default function Home() {
             flexDirection: "column",
             gap: 12,
           }}>
+
+            {/* Weather change alerts */}
+            {weatherAlerts.length > 0 && (
+              <AlertBanner alerts={weatherAlerts} />
+            )}
 
             {/* Today's outfit */}
             <OutfitRecommendationCard
@@ -275,7 +332,7 @@ export default function Home() {
               isDark={isDark}
             />
 
-            {/* AQI card — only when data available */}
+            {/* AQI card */}
             {weather.current.aqiIndex !== null && weather.current.aqiIndex !== undefined && (
               <AQICard aqiIndex={weather.current.aqiIndex} />
             )}

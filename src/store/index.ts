@@ -10,6 +10,7 @@ interface AppState {
 
   // Location & Weather
   location: LocationData | null;
+  savedLocations: LocationData[];
   weather: WeatherData | null;
   outfit: OutfitRecommendation | null;
   outfitTimeline: DayOutfitTimeline | null;
@@ -26,6 +27,7 @@ interface AppState {
   setCalibration: (cal: UserCalibration | null) => void;
   setIsOnboarded: (v: boolean) => void;
   setLocation: (loc: LocationData | null) => void;
+  setSavedLocations: (locs: LocationData[]) => void;
   setWeather: (data: WeatherData | null) => void;
   setOutfit: (outfit: OutfitRecommendation | null) => void;
   setOutfitTimeline: (timeline: DayOutfitTimeline | null) => void;
@@ -42,6 +44,7 @@ const initialState = {
   calibration: null,
   isOnboarded: false,
   location: null,
+  savedLocations: [] as LocationData[],
   weather: null,
   outfit: null,
   outfitTimeline: null,
@@ -59,6 +62,7 @@ export const useAppStore = create<AppState>((set) => ({
   setCalibration: (calibration) => set({ calibration }),
   setIsOnboarded: (isOnboarded) => set({ isOnboarded }),
   setLocation: (location) => set({ location }),
+  setSavedLocations: (savedLocations) => set({ savedLocations }),
   setWeather: (weather) => set({ weather }),
   setOutfit: (outfit) => set({ outfit }),
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),

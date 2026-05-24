@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { useAppStore } from "@/store";
+import { addSavedLocation } from "@/lib/saved-locations";
 
 interface LocationPickerSheetProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function LocationPickerSheet({
 }: LocationPickerSheetProps) {
   const location = useAppStore((s) => s.location);
   const profile = useAppStore((s) => s.profile);
+  const setSavedLocations = useAppStore((s) => s.setSavedLocations);
   const [cityQuery, setCityQuery] = useState("");
   const { saveFromCity, saveFromDevice, saving, error, setError } = useSaveLocation();
 
@@ -31,9 +33,18 @@ export function LocationPickerSheet({
 
   const isSky = variant === "sky";
 
+  async function persistToSavedList() {
+    const loc = useAppStore.getState().location;
+    if (loc?.city) {
+      const updated = await addSavedLocation(loc).catch(() => null);
+      if (updated) setSavedLocations(updated);
+    }
+  }
+
   async function handleCitySave() {
     const result = await saveFromCity(cityQuery);
     if (result.ok) {
+      await persistToSavedList();
       await onSaved?.();
       onClose();
     }
@@ -42,6 +53,7 @@ export function LocationPickerSheet({
   async function handleGpsSave() {
     const result = await saveFromDevice();
     if (result.ok) {
+      await persistToSavedList();
       await onSaved?.();
       onClose();
     }
