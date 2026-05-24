@@ -54,6 +54,8 @@ export interface CurrentWeather {
   windDirection: number;  // degrees
   precipProb: number;     // percentage 0-100
   uvIndex: number;
+  /** US EPA AQI (0–500+). Null when unavailable (e.g. WeatherKit source). */
+  aqiIndex: number | null;
   condition: WeatherCondition;
   weatherCode: number;    // WMO code (or approximated from WeatherKit condition)
   isDay: boolean;
@@ -216,6 +218,26 @@ export type RootStackParamList = {
   "(tabs)/packing": undefined;
   "(tabs)/settings": undefined;
 };
+
+// ── Wardrobe ──────────────────────────────────────────────────────────────────
+
+export type WardrobeCategory = "tops" | "bottoms" | "outerwear" | "footwear" | "accessories";
+
+export type StyleTag = "casual" | "formal" | "activewear" | "outdoor" | "work" | "smart-casual";
+
+export interface WardrobeItem {
+  id: string;
+  user_id: string;
+  category: WardrobeCategory;
+  name: string;
+  warmth_rating: 1 | 2 | 3 | 4 | 5;
+  is_waterproof: boolean;
+  style_tags: StyleTag[];
+  color: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 // ── Packing ───────────────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
+import { useDarkMode } from "@/hooks/useDarkMode";
 
 // RainViewer personal API: max tile zoom is 7 (see rainviewer.com/api/weather-maps-api.html)
 const RAINVIEWER_MAX_ZOOM = 7;
@@ -12,25 +13,6 @@ interface RVFrame { time: number; path: string; }
 interface RVManifest {
   host: string;
   radar: { past: RVFrame[]; nowcast: RVFrame[] };
-}
-
-function useDarkMode(themePreference: string | null): boolean {
-  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const [isDark, setIsDark] = useState(
-    themePreference === "light" ? false : themePreference === "dark" ? true : systemDark
-  );
-
-  useEffect(() => {
-    if (themePreference === "light") { setIsDark(false); return; }
-    if (themePreference === "dark") { setIsDark(true); return; }
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setIsDark(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, [themePreference]);
-
-  return isDark;
 }
 
 /** Keeps map centered and clamps zoom to RainViewer-supported levels. */

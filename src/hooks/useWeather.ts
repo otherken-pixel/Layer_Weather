@@ -2,7 +2,7 @@ import { useCallback, useRef } from "react";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore } from "@/store";
-import { fetchWeatherData, reverseGeocodePlace } from "@/lib/weather";
+import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex } from "@/lib/weather";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
@@ -35,10 +35,11 @@ function mapWeatherError(err: unknown): string {
 
 async function resolveCoordinates(
   force: boolean,
+  preferGpsWhenForced: boolean,
   location: ReturnType<typeof useAppStore.getState>["location"],
   profile: ReturnType<typeof useAppStore.getState>["profile"],
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && Capacitor.isNativePlatform()) {
+  if (force && preferGpsWhenForced && Capacitor.isNativePlatform()) {
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm === "granted") {
       try {
@@ -91,7 +92,7 @@ export function useWeather() {
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
-  const refresh = useCallback(async (force = false) => {
+  const refresh = useCallback(async (force = false, preferGpsWhenForced = true) => {
     if (!force && !isStale && weather) return;
 
     const generation = ++refreshGeneration.current;
@@ -101,7 +102,12 @@ export function useWeather() {
     try {
       await withTimeout(
         (async () => {
-          const { latitude, longitude } = await resolveCoordinates(force, location, profile);
+          const { latitude, longitude } = await resolveCoordinates(
+            force,
+            preferGpsWhenForced,
+            location,
+            profile,
+          );
           if (generation !== refreshGeneration.current) return;
 
           let city = location?.city || profile?.last_city || "";
@@ -136,14 +142,18 @@ export function useWeather() {
             }).catch(console.error);
           }
 
-          const data = await withTimeout(
-            fetchWeatherData(latitude, longitude, { countryCode }),
-            WEATHER_TIMEOUT_MS,
-            "Weather fetch",
-          );
+          const [data, aqiIndex] = await Promise.all([
+            withTimeout(
+              fetchWeatherData(latitude, longitude, { countryCode }),
+              WEATHER_TIMEOUT_MS,
+              "Weather fetch",
+            ),
+            fetchAQIIndex(latitude, longitude),
+          ]);
           if (generation !== refreshGeneration.current) return;
 
           data.current.location = city;
+          data.current.aqiIndex = aqiIndex;
           setWeather(data);
           setWeatherLastFetched(new Date());
 

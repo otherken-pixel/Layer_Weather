@@ -14,15 +14,16 @@ interface Props {
   weather: CurrentWeather;
   tempUnit: "F" | "C";
   onUnitChange: (unit: "F" | "C") => void;
+  isDark?: boolean;
 }
 
-export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
+export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false }: Props) {
   const hairForecast = getHairForecast(weather, { tempUnit });
 
   return (
     <div
       style={{
-        background: "#FFFFFF",
+        background: isDark ? "#2C2C2E" : "#FFFFFF",
         borderRadius: 24,
         padding: "20px",
         boxShadow: "0 2px 20px rgba(0,0,0,0.07)",
@@ -30,7 +31,8 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
     >
       <p
         style={{
-          fontSize: 11, fontWeight: 700, color: "#6B7280",
+          fontSize: 11, fontWeight: 700,
+          color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
           letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14,
         }}
       >
@@ -40,10 +42,10 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
       {/* Hair forecast row with unit toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
-          <div style={{ fontSize: 26, fontWeight: 700, color: "#111827", lineHeight: 1.15 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: isDark ? "#F9FAFB" : "#111827", lineHeight: 1.15 }}>
             {hairForecast.shortTitle}
           </div>
-          <div style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
+          <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.5)" : "#6B7280", marginTop: 3 }}>
             {hairForecast.actionableAdvice}
           </div>
         </div>
@@ -68,61 +70,38 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange }: Props) {
 
       {/* 2×2 stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <StatCell
-          label="Humidity"
-          value={`${weather.humidity}`}
-          unit="%"
-          fill={weather.humidity / 100}
-          fillColor="#3B82F6"
-        />
-        <StatCell
-          label="Wind"
-          value={`${weather.windSpeed}`}
-          unit="mph"
-          fill={Math.min(weather.windSpeed / 40, 1)}
-          fillColor="#10B981"
-        />
-        <StatCell
-          label="Rain Chance"
-          value={`${weather.precipProb}`}
-          unit="%"
-          fill={weather.precipProb / 100}
-          fillColor="#6366F1"
-        />
-        <StatCell
-          label="UV Index"
-          value={`${weather.uvIndex}`}
-          unit={uvLabel(weather.uvIndex)}
-          fill={Math.min(weather.uvIndex / 11, 1)}
-          fillColor="#F59E0B"
-        />
+        <StatCell isDark={isDark} label="Humidity" value={`${weather.humidity}`} unit="%" fill={weather.humidity / 100} fillColor="#3B82F6" />
+        <StatCell isDark={isDark} label="Wind" value={`${weather.windSpeed}`} unit="mph" fill={Math.min(weather.windSpeed / 40, 1)} fillColor="#10B981" />
+        <StatCell isDark={isDark} label="Rain Chance" value={`${weather.precipProb}`} unit="%" fill={weather.precipProb / 100} fillColor="#6366F1" />
+        <StatCell isDark={isDark} label="UV Index" value={`${weather.uvIndex}`} unit={uvLabel(weather.uvIndex)} fill={Math.min(weather.uvIndex / 11, 1)} fillColor="#F59E0B" />
       </div>
     </div>
   );
 }
 
 function StatCell({
-  label, value, unit, fill, fillColor,
+  label, value, unit, fill, fillColor, isDark,
 }: {
-  label: string; value: string; unit: string; fill: number; fillColor: string;
+  label: string; value: string; unit: string; fill: number; fillColor: string; isDark: boolean;
 }) {
   return (
-    <div style={{ background: "#F9FAFB", borderRadius: 16, padding: "12px 14px" }}>
+    <div style={{ background: isDark ? "#3A3A3C" : "#F9FAFB", borderRadius: 16, padding: "12px 14px" }}>
       <p
         style={{
-          fontSize: 11, fontWeight: 600, color: "#6B7280",
+          fontSize: 11, fontWeight: 600,
+          color: isDark ? "rgba(255,255,255,0.45)" : "#6B7280",
           textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4,
         }}
       >
         {label}
       </p>
-      <p style={{ fontSize: 22, fontWeight: 700, color: "#111827", lineHeight: 1 }}>
+      <p style={{ fontSize: 22, fontWeight: 700, color: isDark ? "#F9FAFB" : "#111827", lineHeight: 1 }}>
         {value}
-        <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 2 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: isDark ? "rgba(255,255,255,0.45)" : "#6B7280", marginLeft: 2 }}>
           {unit}
         </span>
       </p>
-      <div style={{ height: 4, background: "#E5E7EB", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+      <div style={{ height: 4, background: isDark ? "#52525B" : "#E5E7EB", borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
