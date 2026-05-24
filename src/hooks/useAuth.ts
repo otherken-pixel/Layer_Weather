@@ -27,7 +27,7 @@ function loadProfileCache(): Profile | null {
 }
 
 function saveProfileCache(profile: Profile): void {
-  try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch {}
+  try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch { /* quota exceeded — skip */ }
 }
 
 function loadCalibrationCache(): UserCalibration | null {
@@ -38,7 +38,7 @@ function loadCalibrationCache(): UserCalibration | null {
 }
 
 function saveCalibrationCache(calibration: UserCalibration): void {
-  try { localStorage.setItem(CALIBRATION_CACHE_KEY, JSON.stringify(calibration)); } catch {}
+  try { localStorage.setItem(CALIBRATION_CACHE_KEY, JSON.stringify(calibration)); } catch { /* quota exceeded — skip */ }
 }
 
 export function useAuth() {
