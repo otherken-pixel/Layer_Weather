@@ -6,6 +6,7 @@ export interface Profile {
   display_name: string | null;
   theme_preference: string | null;
   temp_unit: "F" | "C";
+  outfit_display_mode: "visual" | "text";
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"
   fcm_token: string | null;
