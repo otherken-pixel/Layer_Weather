@@ -442,7 +442,7 @@ function HourlyStrip({
   cardSurface: string;
 }) {
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
-  const labelColor = isDark ? Colors.dark.textMuted : Colors.text.muted;
+  const labelColor = isDark ? Colors.dark.textMuted : "#4B5563";
 
   return (
     <div style={{
@@ -453,13 +453,13 @@ function HourlyStrip({
       border: isDark ? `1px solid ${Colors.dark.border}` : undefined,
     }}>
       <p style={{
-        fontSize: 12, fontWeight: 700,
+        fontSize: 14, fontWeight: 700,
         color: labelColor,
         letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
       }}>
         Hourly Forecast
       </p>
-      <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
         {hourly.map((h, i) => {
           const isNow = i === 0;
           const condKey = wmoToCondition(h.weatherCode);
@@ -470,21 +470,21 @@ function HourlyStrip({
               key={i}
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
-                minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
+                minWidth: 52, padding: "12px 8px", borderRadius: 16, flexShrink: 0,
                 background: isNow ? "#7C3AED" : isDark ? Colors.dark.cellBg : "#F3F4F6",
               }}
             >
               <span style={{
-                fontSize: 10, fontWeight: 600, textTransform: "uppercase",
-                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : Colors.text.muted,
+                fontSize: 12, fontWeight: 600, textTransform: "uppercase",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? Colors.dark.textMuted : "#4B5563",
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
+              <span style={{ fontSize: 17, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: precipColor }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: precipColor }}>
                 {h.precipProb}%
               </span>
             </div>

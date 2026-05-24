@@ -21,9 +21,9 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false 
   const hairForecast = getHairForecast(weather, { tempUnit });
 
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const labelColor = isDark ? "#9BA4B4" : "#4B5563";
   const primaryTextColor = isDark ? "#F4F4F5" : "#111827";
-  const secondaryTextColor = isDark ? "#9BA4B4" : "#6B7280";
+  const secondaryTextColor = isDark ? "#9BA4B4" : "#4B5563";
   const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
   const pillInactiveText = isDark ? "#D1D5DB" : "#4B5563";
 
@@ -39,7 +39,7 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false 
     >
       <p
         style={{
-          fontSize: 12, fontWeight: 700,
+          fontSize: 14, fontWeight: 700,
           color: labelColor,
           letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14,
         }}
@@ -53,7 +53,7 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false 
           <div style={{ fontSize: 26, fontWeight: 700, color: primaryTextColor, lineHeight: 1.15 }}>
             {hairForecast.shortTitle}
           </div>
-          <div style={{ fontSize: 13, color: secondaryTextColor, marginTop: 3 }}>
+          <div style={{ fontSize: 15, color: secondaryTextColor, marginTop: 3 }}>
             {hairForecast.actionableAdvice}
           </div>
         </div>
@@ -99,16 +99,16 @@ function StatCell({
 }) {
   // Opacity-based colors replaced with explicit hex (AA ✓)
   const cellBg = isDark ? "#3A3A3C" : "#F9FAFB";
-  const cellLabelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const cellLabelColor = isDark ? "#9BA4B4" : "#4B5563";
   const cellValueColor = isDark ? "#F4F4F5" : "#111827";
-  const cellUnitColor = isDark ? "#9BA4B4" : "#6B7280";
+  const cellUnitColor = isDark ? "#9BA4B4" : "#4B5563";
   const trackColor = isDark ? "#52525B" : "#E5E7EB";
 
   return (
-    <div style={{ background: cellBg, borderRadius: 16, padding: "12px 14px" }}>
+    <div style={{ background: cellBg, borderRadius: 16, padding: "14px 16px" }}>
       <p
         style={{
-          fontSize: 11, fontWeight: 600,
+          fontSize: 13, fontWeight: 600,
           color: cellLabelColor,
           textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4,
         }}
@@ -117,7 +117,7 @@ function StatCell({
       </p>
       <p style={{ fontSize: 22, fontWeight: 700, color: cellValueColor, lineHeight: 1 }}>
         {value}
-        <span style={{ fontSize: 12, fontWeight: 500, color: cellUnitColor, marginLeft: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: cellUnitColor, marginLeft: 2 }}>
           {unit}
         </span>
       </p>

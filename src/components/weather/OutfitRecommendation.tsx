@@ -168,7 +168,7 @@ export function OutfitRecommendationCard({
 
   const primaryText = isDark ? "#F4F4F5" : "#111827";
   const secondaryText = isDark ? "#D1D5DB" : "#4B5563";
-  const mutedText = isDark ? "#9BA4B4" : "#6B7280";
+  const mutedText = isDark ? "#9BA4B4" : "#4B5563";
   // Outfit reason purple — #7C3AED on white (5.3:1 ✓); #C4B5FD on dark (5.3:1 ✓)
   const outfitReasonColor = isDark ? "#C4B5FD" : "#7C3AED";
   // "ⓘ" hint icon — use mutedText
@@ -176,19 +176,19 @@ export function OutfitRecommendationCard({
   // Rain badge — blue on white (6.7:1 ✓); light blue on dark (4.5:1 ✓)
   const rainBadgeBg = isDark ? "rgba(29,78,216,0.18)" : "#EFF6FF";
   const rainBadgeText = isDark ? "#93C5FD" : "#1D4ED8";
-  // Section label (on white card) — #6B7280 (4.87:1 ✓)
-  const sectionLabelColor = isDark ? "#9BA4B4" : "#6B7280";
+  // Section label (on white card) — #4B5563 (7.4:1 ✓)
+  const sectionLabelColor = isDark ? "#9BA4B4" : "#4B5563";
   const tabActiveBg = isDark ? "rgba(108,99,255,0.2)" : "#EDE9FE";
   const tabActiveBorder = "#6C63FF";
   const tabInactiveBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const tabInactiveBorder = isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB";
   const tabActiveText = isDark ? "#A5B4FC" : "#6C63FF";
-  const tabInactiveText = isDark ? "#9BA4B4" : "#6B7280";
+  const tabInactiveText = isDark ? "#9BA4B4" : "#4B5563";
   const periodPanelBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const periodPanelBorder = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
   const thumbBtnBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const thumbBtnBorder = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
-  const feedbackText = isDark ? "#9BA4B4" : "#6B7280";
+  const feedbackText = isDark ? "#9BA4B4" : "#4B5563";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -220,7 +220,7 @@ export function OutfitRecommendationCard({
                 {label}
               </h2>
               {isViewingNow && outfitReason && (
-                <p style={{ fontSize: 12, color: outfitReasonColor, fontWeight: 500, marginTop: 3 }}>
+                <p style={{ fontSize: 13, color: outfitReasonColor, fontWeight: 500, marginTop: 3 }}>
                   {outfitReason}
                 </p>
               )}
@@ -245,7 +245,7 @@ export function OutfitRecommendationCard({
                 }}
                 aria-label={isViewingNow && feelsLikeExplanation ? "Tap to see feels-like explanation" : undefined}
               >
-                <span style={{ fontSize: 13, color: mutedText }}>
+                <span style={{ fontSize: 14, color: mutedText }}>
                   {isViewingNow ? "Feels like " : ""}{displayFeelsLike}
                 </span>
                 {isViewingNow && feelsLikeExplanation && (
@@ -260,7 +260,7 @@ export function OutfitRecommendationCard({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    style={{ fontSize: 12, color: secondaryText, marginTop: 4, overflow: "hidden" }}
+                    style={{ fontSize: 13, color: secondaryText, marginTop: 4, overflow: "hidden" }}
                   >
                     {feelsLikeExplanation}
                   </motion.p>
@@ -331,7 +331,7 @@ export function OutfitRecommendationCard({
           )}
 
           {/* Description */}
-          <p style={{ fontSize: 14, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
+          <p style={{ fontSize: 15, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
             {description}
           </p>
 
@@ -340,7 +340,7 @@ export function OutfitRecommendationCard({
             <div style={{ marginTop: 18 }}>
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 700,
                   color: sectionLabelColor,
                   letterSpacing: "0.08em",
@@ -379,7 +379,7 @@ export function OutfitRecommendationCard({
                       </span>
                       <span
                         style={{
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: 700,
                           color: isActive ? tabActiveText : tabInactiveText,
                         }}
@@ -425,7 +425,7 @@ export function OutfitRecommendationCard({
 
           {/* Thumbs feedback */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
-            <span style={{ fontSize: 12, color: feedbackText, fontWeight: 500 }}>
+            <span style={{ fontSize: 13, color: feedbackText, fontWeight: 500 }}>
               {voted ? "Thanks for the feedback!" : "Wearing this today?"}
             </span>
             <AnimatePresence>
@@ -530,7 +530,7 @@ export function OutfitRecommendationCard({
           className="min-h-[44px] w-full flex items-center justify-center gap-2 bg-transparent border-0 cursor-pointer"
         >
           <span style={{ fontSize: 12 }}>🔄</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: isDark ? "#9BA4B4" : "#6B7280" }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: isDark ? "#9BA4B4" : "#4B5563" }}>
             Not quite right? Recalibrate
           </span>
         </motion.button>
@@ -569,7 +569,7 @@ function TimelinePeriodDetail({
       : null;
 
   const primaryText = isDark ? "#F4F4F5" : "#111827";
-  const mutedText = isDark ? "#9BA4B4" : "#6B7280";
+  const mutedText = isDark ? "#9BA4B4" : "#4B5563";
 
   return (
     <div>
@@ -577,10 +577,10 @@ function TimelinePeriodDetail({
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: primaryText, lineHeight: 1.2 }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: primaryText, lineHeight: 1.2 }}>
             {recommendation.label}
           </p>
-          <p style={{ fontSize: 12, color: mutedText, marginTop: 2 }}>
+          <p style={{ fontSize: 13, color: mutedText, marginTop: 2 }}>
             {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
             {period.precipProb > 20 ? ` · ${period.precipProb}% rain` : ""}
           </p>
@@ -588,7 +588,7 @@ function TimelinePeriodDetail({
         {layerChange && (
           <span
             style={{
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 700,
               padding: "3px 8px",
               borderRadius: 999,
@@ -689,12 +689,12 @@ function AccessoryPill({
         // Dark mode: neutral pill so all accessory types are legible (D1D5DB on #3A3A3C = 8:1 ✓)
         background: isDark ? "rgba(255,255,255,0.08)" : bg,
         color: isDark ? "#D1D5DB" : color,
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: 600,
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: 13 }}>{emoji}</span>
+      <span style={{ fontSize: 14 }}>{emoji}</span>
       {label}
     </div>
   );

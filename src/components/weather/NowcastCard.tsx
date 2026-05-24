@@ -36,12 +36,12 @@ export function NowcastCard({ data, isDark = false }: Props) {
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
   const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
-  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const labelColor = isDark ? "#9BA4B4" : "#4B5563";
   // Blue summary text — #1D4ED8 on white (6.7:1 ✓), #60A5FA on dark (4.5:1 ✓)
   const summaryColor = hasAnyPrecip ? (isDark ? "#60A5FA" : "#1D4ED8") : labelColor;
   const chartBg = isDark ? "#1F1F21" : "#F9FAFB";
   const emptyBarColor = isDark ? "#3A3A3C" : "#E5E7EB";
-  const timeLabelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const timeLabelColor = isDark ? "#9BA4B4" : "#4B5563";
 
   return (
     <div
@@ -54,12 +54,12 @@ export function NowcastCard({ data, isDark = false }: Props) {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <p style={{ fontSize: 12, fontWeight: 700, color: labelColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: labelColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Next 60 Minutes
         </p>
         <span
           className="truncate max-w-[55%] text-right"
-          style={{ fontSize: 12, fontWeight: 600, color: summaryColor }}
+          style={{ fontSize: 14, fontWeight: 600, color: summaryColor }}
         >
           {summaryText()}
         </span>
@@ -101,10 +101,10 @@ export function NowcastCard({ data, isDark = false }: Props) {
       </div>
 
       {/* Time labels */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-        <span style={{ fontSize: 10, color: timeLabelColor, fontWeight: 500 }}>Now</span>
-        <span style={{ fontSize: 10, color: timeLabelColor, fontWeight: 500 }}>+30 min</span>
-        <span style={{ fontSize: 10, color: timeLabelColor, fontWeight: 500 }}>+60 min</span>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        <span style={{ fontSize: 12, color: timeLabelColor, fontWeight: 500 }}>Now</span>
+        <span style={{ fontSize: 12, color: timeLabelColor, fontWeight: 500 }}>+30 min</span>
+        <span style={{ fontSize: 12, color: timeLabelColor, fontWeight: 500 }}>+60 min</span>
       </div>
     </div>
   );
