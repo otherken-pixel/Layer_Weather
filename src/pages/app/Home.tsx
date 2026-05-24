@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
@@ -7,6 +7,9 @@ import { VectorLandscape } from "@/components/weather/VectorLandscape";
 import { WeatherAnimationLayer } from "@/components/weather/WeatherAnimationLayer";
 import { SevenDayCard } from "@/components/weather/SevenDayCard";
 import { NowcastCard } from "@/components/weather/NowcastCard";
+import { AQICard } from "@/components/weather/AQICard";
+import { LocationTabs } from "@/components/weather/LocationTabs";
+import { AlertBanner, type WeatherAlert } from "@/components/weather/AlertBanner";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store";
 import { getSkyColor } from "@/constants/colors";
@@ -14,9 +17,12 @@ import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
 import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
-import { groupHourlyByDay } from "@/lib/weather";
+import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
+import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
+import { getSavedLocations, addSavedLocation } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
-import type { OutfitFeedbackValue } from "@/types";
+import { startGeofence, stopGeofence } from "@/lib/geofence";
+import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -27,16 +33,96 @@ function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
 }
 
+function useDarkMode(themePreference: string | null): boolean {
+  const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const [isDark, setIsDark] = useState(
+    themePreference === "light" ? false : themePreference === "dark" ? true : systemDark,
+  );
+  useEffect(() => {
+    if (themePreference === "light") { setIsDark(false); return; }
+    if (themePreference === "dark") { setIsDark(true); return; }
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, [themePreference]);
+  return isDark;
+}
+
+function formatTimeAgo(date: Date): string {
+  const mins = Math.round((Date.now() - date.getTime()) / 60000);
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
+}
+
 export default function Home() {
   const { weather, outfit, isLoadingWeather, weatherError, refresh } = useWeather();
-  const { profile, userId, calibration, outfitTimeline, setProfile, setCalibration } = useAppStore();
+  const {
+    profile, userId, calibration, outfitTimeline, location,
+    savedLocations, setSavedLocations,
+    setProfile, setCalibration, setLocation, weatherLastFetched,
+  } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
+  const isDark = useDarkMode(profile?.theme_preference ?? null);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+
+  const cardsBg = isDark ? "#1C1C1E" : "#F2F2F7";
+  const cardSurface = isDark ? "#2C2C2E" : "#FFFFFF";
+
+  // Load saved locations on mount
+  useEffect(() => {
+    getSavedLocations().then(setSavedLocations).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Trigger weather refresh when location city changes (e.g. tab switch)
+  const prevCityRef = useRef<string | null>(null);
+  useEffect(() => {
+    const city = location?.city ?? null;
+    if (city && city !== prevCityRef.current) {
+      prevCityRef.current = city;
+      refresh(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.city]);
+
+  // Initial load
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { refresh(); }, []);
+
+  // Geofence: trigger weather refresh when user moves significantly
+  useEffect(() => {
+    if (!location) return;
+    startGeofence({
+      currentLocation: location,
+      onSignificantMove: () => { refresh(true); },
+    }).catch(() => {});
+    return () => {
+      stopGeofence().catch(() => {});
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
+
+  async function handleLocationSaved() {
+    await refresh(true);
+    // Add the newly active location to saved list
+    if (location) {
+      const updated = await addSavedLocation(location).catch(() => savedLocations);
+      setSavedLocations(updated);
+    }
+  }
+
+  async function handleTabSelect(loc: LocationData) {
+    setLocation(loc);
+    // setLocation triggers the city-change effect above which calls refresh(true)
+  }
 
   async function handleOutfitFeedback(value: OutfitFeedbackValue) {
     if (!userId || !outfit || !weather || !calibration) return;
-
     await saveOutfitFeedback({
       user_id: userId,
       outfit_type: outfit.outfit,
@@ -45,7 +131,6 @@ export default function Home() {
       wind_speed: weather.current.windSpeed,
       feedback: value,
     }).catch(console.error);
-
     if (value === "thumbs_down") {
       const recent = await getRecentFeedback(userId, 30).catch(() => []);
       const updates = computeCalibrationFromFeedback(recent, calibration);
@@ -55,9 +140,6 @@ export default function Home() {
       }
     }
   }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { refresh(); }, []);
 
   const skyColor = weather
     ? getSkyColor(weather.current.condition, weather.current.isDay)
@@ -71,6 +153,35 @@ export default function Home() {
     upsertProfile(userId, { temp_unit: unit }).catch(console.error);
   }
 
+  const outfitReason = useMemo(() => {
+    if (!weather || !outfit) return null;
+    return getOutfitReason({
+      feelsLike: weather.current.feelsLike,
+      windSpeed: weather.current.windSpeed,
+      precipProb: weather.current.precipProb,
+      humidity: weather.current.humidity,
+      weatherCode: weather.current.weatherCode,
+      outfit: outfit.outfit,
+    });
+  }, [weather, outfit]);
+
+  const feelsLikeExplanation = useMemo(() => {
+    if (!weather) return null;
+    return getFeelsLikeExplanation({
+      temp: weather.current.temp,
+      feelsLike: weather.current.feelsLike,
+      windSpeed: weather.current.windSpeed,
+      humidity: weather.current.humidity,
+    });
+  }, [weather]);
+
+  const weatherAlerts = useMemo((): WeatherAlert[] => {
+    if (!weather) return [];
+    return detectSignificantChanges(weather.hourly, weather.current.feelsLike);
+  }, [weather]);
+
+  const layeringTip = useMemo(() => getLayeringTip(outfitTimeline), [outfitTimeline]);
+
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
 
@@ -82,16 +193,21 @@ export default function Home() {
             <div className="h-20 w-40 rounded skeleton" />
             <div className="h-5 w-24 rounded skeleton" />
           </div>
-          <div className="flex-1 bg-[#F2F2F7] rounded-t-[32px] -mt-8 px-4 pt-6 pb-4 flex flex-col gap-3">
+          <div
+            className="flex-1 rounded-t-[32px] -mt-8 px-4 pt-6 pb-4 flex flex-col gap-3"
+            style={{ background: cardsBg }}
+          >
             <div className="h-64 rounded-3xl skeleton" />
             <div className="h-40 rounded-3xl skeleton" />
             <div className="h-48 rounded-3xl skeleton" />
-            <p className="text-center text-sm text-neutral-500 pt-2">Fetching your weather…</p>
+            <p className="text-center text-sm pt-2" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "#9CA3AF" }}>
+              Fetching your weather…
+            </p>
           </div>
         </div>
       )}
 
-      {/* Error */}
+      {/* Full error (no cached data) */}
       {weatherError && !weather && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "120px 24px 24px" }}>
           <span style={{ fontSize: 48 }}>⚠️</span>
@@ -121,14 +237,15 @@ export default function Home() {
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 13, color: "#92400E", flex: 1 }}>{weatherError}</span>
+          <span style={{ fontSize: 13, color: "#92400E", flex: 1 }}>
+            {weatherLastFetched
+              ? `Showing data from ${formatTimeAgo(weatherLastFetched)} — ${weatherError}`
+              : weatherError}
+          </span>
           <button
             type="button"
             onClick={() => refresh(true)}
-            style={{
-              fontSize: 12, fontWeight: 700, color: "#92400E",
-              background: "none", border: "none", cursor: "pointer",
-            }}
+            style={{ fontSize: 12, fontWeight: 700, color: "#92400E", background: "none", border: "none", cursor: "pointer" }}
           >
             Retry
           </button>
@@ -149,7 +266,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Sky section — animation layer sits behind text, over landscape */}
+          {/* Sky section */}
           <div style={{ position: "relative", overflow: "hidden" }}>
             <SkyHeader
               weather={weather.current}
@@ -162,7 +279,7 @@ export default function Home() {
             <LocationPickerSheet
               open={locationPickerOpen}
               onClose={() => setLocationPickerOpen(false)}
-              onSaved={() => refresh(true)}
+              onSaved={handleLocationSaved}
               variant="sky"
             />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
@@ -172,10 +289,20 @@ export default function Home() {
             />
           </div>
 
-          {/* Cards area — overlaps landscape */}
+          {/* Location tab switcher — shown when 2+ saved locations exist */}
+          {savedLocations.length >= 2 && (
+            <LocationTabs
+              locations={savedLocations}
+              activeCity={location?.city ?? null}
+              onSelect={handleTabSelect}
+              onAdd={() => setLocationPickerOpen(true)}
+            />
+          )}
+
+          {/* Cards area */}
           <div style={{
             flex: 1,
-            background: "#F2F2F7",
+            background: cardsBg,
             borderRadius: "32px 32px 0 0",
             marginTop: -32,
             padding: "16px 14px 16px",
@@ -184,11 +311,18 @@ export default function Home() {
             gap: 12,
           }}>
 
+            {/* Weather change alerts */}
+            {weatherAlerts.length > 0 && (
+              <AlertBanner alerts={weatherAlerts} />
+            )}
+
             {/* Today's outfit */}
             <OutfitRecommendationCard
               recommendation={outfit}
               tempUnit={tempUnit}
               feelsLike={weather.current.feelsLike}
+              outfitReason={outfitReason}
+              feelsLikeExplanation={feelsLikeExplanation}
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
             />
@@ -198,27 +332,49 @@ export default function Home() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 12,
                 padding: "12px 16px", borderRadius: 20,
-                background: "#EDE9FE", border: "1px solid #C4B5FD",
+                background: isDark ? "rgba(109,40,217,0.25)" : "#EDE9FE",
+                border: "1px solid #C4B5FD",
               }}>
                 <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
-                <p style={{ fontSize: 13, color: "#5B21B6", flex: 1 }}>{styleHint}</p>
+                <p style={{ fontSize: 13, color: isDark ? "#C4B5FD" : "#5B21B6", flex: 1 }}>{styleHint}</p>
               </div>
             )}
 
-            {/* Current Conditions (2×2 grid, UV, unit toggle) */}
+            {/* Smart layering tip */}
+            {layeringTip && (
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "12px 16px", borderRadius: 20,
+                background: isDark ? "rgba(59,130,246,0.18)" : "#EFF6FF",
+                border: "1px solid #BFDBFE",
+              }}>
+                <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>🧥</span>
+                <p style={{ fontSize: 13, color: isDark ? "#93C5FD" : "#1D4ED8", flex: 1, lineHeight: 1.45 }}>
+                  {layeringTip}
+                </p>
+              </div>
+            )}
+
+            {/* Current Conditions */}
             <WeatherWidget
               weather={weather.current}
               tempUnit={tempUnit}
               onUnitChange={handleUnitChange}
+              isDark={isDark}
             />
 
-            {/* Nowcast — only when next-hour precip data exists */}
+            {/* AQI card */}
+            {weather.current.aqiIndex !== null && weather.current.aqiIndex !== undefined && (
+              <AQICard aqiIndex={weather.current.aqiIndex} />
+            )}
+
+            {/* Nowcast */}
             {weather.nextHourPrecip && (
               <NowcastCard data={weather.nextHourPrecip} />
             )}
 
             {/* Hourly strip */}
-            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} />
+            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} isDark={isDark} cardSurface={cardSurface} />
 
             {/* 7-Day forecast */}
             {weather.daily.length > 0 && (
@@ -229,9 +385,8 @@ export default function Home() {
               />
             )}
 
-            {/* Dev-only: data source badge */}
             {import.meta.env.DEV && weather._source && (
-              <p style={{ textAlign: "center", fontSize: 11, color: "#9CA3AF", paddingBottom: 4 }}>
+              <p style={{ textAlign: "center", fontSize: 11, color: isDark ? "rgba(255,255,255,0.25)" : "#9CA3AF", paddingBottom: 4 }}>
                 source: {weather._source}
               </p>
             )}
@@ -248,13 +403,21 @@ export default function Home() {
 function HourlyStrip({
   hourly,
   tempUnit,
+  isDark,
+  cardSurface,
 }: {
   hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
   tempUnit: "F" | "C";
+  isDark: boolean;
+  cardSurface: string;
 }) {
   return (
-    <div style={{ background: "#FFFFFF", borderRadius: 24, padding: "20px", boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+    <div style={{ background: cardSurface, borderRadius: 24, padding: "20px", boxShadow: "0 2px 20px rgba(0,0,0,0.07)" }}>
+      <p style={{
+        fontSize: 11, fontWeight: 700,
+        color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
+        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12,
+      }}>
         Hourly Forecast
       </p>
       <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2 }}>
@@ -267,14 +430,17 @@ function HourlyStrip({
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                 minWidth: 52, padding: "10px 6px", borderRadius: 16, flexShrink: 0,
-                background: isNow ? "#7C3AED" : "#F3F4F6",
+                background: isNow ? "#7C3AED" : isDark ? "#3A3A3C" : "#F3F4F6",
               }}
             >
-              <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.9)" : "#6B7280", textTransform: "uppercase" }}>
+              <span style={{
+                fontSize: 10, fontWeight: 600, textTransform: "uppercase",
+                color: isNow ? "rgba(255,255,255,0.9)" : isDark ? "rgba(255,255,255,0.5)" : "#6B7280",
+              }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
               <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : "#111827" }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isNow ? "white" : isDark ? "#F9FAFB" : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
               <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.75)" : "#3B82F6" }}>

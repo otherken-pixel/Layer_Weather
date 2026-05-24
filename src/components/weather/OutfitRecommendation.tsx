@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { Card } from "@/components/ui/Card";
 import { getLayerChangeDirection } from "@/lib/outfit-logic";
+import { hapticSuccess, hapticLight } from "@/lib/haptics";
+import { shareOutfitCard } from "@/lib/share-card";
+import { useAppStore } from "@/store";
 import type {
   FootwearKind,
   OutfitFeedbackValue,
@@ -10,6 +13,7 @@ import type {
   DayOutfitTimeline,
   DayPeriodLabel,
   OutfitTimelineEntry,
+  AvatarCondition,
 } from "@/types";
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
@@ -30,10 +34,25 @@ const CONDITION_EMOJI: Record<string, string> = {
   drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
 };
 
+const AVATAR_CONDITION_EMOJI: Record<AvatarCondition, string> = {
+  sunny: "☀️",
+  cloudy: "☁️",
+  rainy: "🌧️",
+  windy: "💨",
+  snowy: "❄️",
+  stormy: "⛈️",
+  foggy: "🌫️",
+  clear_night: "🌙",
+};
+
 interface Props {
   recommendation: OutfitRec;
   tempUnit: "F" | "C";
   feelsLike: number;
+  /** Short reasoning string from getOutfitReason() */
+  outfitReason?: string | null;
+  /** Short feels-like explanation string from getFeelsLikeExplanation() */
+  feelsLikeExplanation?: string | null;
   timeline?: DayOutfitTimeline | null;
   onFeedback?: (value: OutfitFeedbackValue) => void;
   onRecalibrate?: () => void;
@@ -60,13 +79,17 @@ export function OutfitRecommendationCard({
   recommendation,
   tempUnit,
   feelsLike,
+  outfitReason,
+  feelsLikeExplanation,
   timeline,
   onFeedback,
   onRecalibrate,
 }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert } =
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert, avatarCondition } =
     recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
+  const [shared, setShared] = useState(false);
+  const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
 
   // Determine initial active tab: prefer the current period if it exists in the timeline
   const defaultPeriod = timeline?.find((e) => e.period.label === currentPeriodLabel())
@@ -77,7 +100,28 @@ export function OutfitRecommendationCard({
   function handleVote(value: OutfitFeedbackValue) {
     if (voted) return;
     setVoted(value);
+    if (value === "thumbs_up") hapticSuccess();
+    else hapticLight();
     onFeedback?.(value);
+  }
+
+  async function handleShare() {
+    const loc = useAppStore.getState().location;
+    try {
+      await shareOutfitCard({
+        conditionEmoji: AVATAR_CONDITION_EMOJI[avatarCondition],
+        temp: feelsLike,
+        tempUnit,
+        outfitLabel: label,
+        outfitDescription: description,
+        city: loc?.city ?? "",
+        region: loc?.region ?? "",
+      });
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch {
+      // silently fail
+    }
   }
 
   const displayFeelsLike =
@@ -104,7 +148,7 @@ export function OutfitRecommendationCard({
               marginBottom: 14,
             }}
           >
-            <div>
+            <div style={{ flex: 1 }}>
               <h2
                 style={{
                   fontSize: 22,
@@ -116,9 +160,53 @@ export function OutfitRecommendationCard({
               >
                 {label}
               </h2>
-              <p style={{ fontSize: 13, color: "#6B7280", marginTop: 3 }}>
+              {outfitReason && (
+                <p style={{ fontSize: 12, color: "#7C3AED", fontWeight: 500, marginTop: 3 }}>
+                  {outfitReason}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (feelsLikeExplanation) {
+                    setFeelsLikeExpanded((v) => !v);
+                    hapticLight();
+                  }
+                }}
+                style={{
+                  fontSize: 13,
+                  color: "#6B7280",
+                  marginTop: 3,
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: feelsLikeExplanation ? "pointer" : "default",
+                  textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+                aria-label={feelsLikeExplanation ? "Tap to see feels-like explanation" : undefined}
+              >
                 Feels like {displayFeelsLike}
-              </p>
+                {feelsLikeExplanation && (
+                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                    {feelsLikeExpanded ? "▲" : "ⓘ"}
+                  </span>
+                )}
+              </button>
+              <AnimatePresence>
+                {feelsLikeExpanded && feelsLikeExplanation && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    style={{ fontSize: 12, color: "#4B5563", marginTop: 4, overflow: "hidden" }}
+                  >
+                    {feelsLikeExplanation}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
             {(umbrella || rainGear) && (
               <span
@@ -279,6 +367,27 @@ export function OutfitRecommendationCard({
                 </motion.span>
               )}
             </AnimatePresence>
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Share outfit"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: "1.5px solid #E5E7EB",
+                background: "#F9FAFB",
+                cursor: "pointer",
+                fontSize: 16,
+                transition: "all 0.15s",
+                marginLeft: "auto",
+              }}
+            >
+              {shared ? <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED" }}>Shared!</span> : "⬆"}
+            </button>
           </div>
 
           {/* Accessories pills */}
@@ -378,10 +487,10 @@ function TimelinePeriodDetail({
 
   const layerChange =
     prevEntry && prevEntry.recommendation.outfit !== recommendation.outfit
-      ? prevEntry.recommendation.outfit.includes("heavy") &&
-        !recommendation.outfit.includes("heavy")
-        ? "layer down"
-        : "layer up"
+      ? getLayerChangeDirection(
+          prevEntry.recommendation.outfit,
+          recommendation.outfit
+        )
       : null;
 
   return (

@@ -41,6 +41,7 @@ function reviveWeather(raw: Record<string, unknown>): WeatherData {
       windDirection: cur.windDirection as number,
       precipProb: cur.precipProb as number,
       uvIndex: (cur.uvIndex as number) ?? 0,
+      aqiIndex: (cur.aqiIndex as number | null) ?? null,
       condition: cur.condition as WeatherCondition,
       weatherCode: cur.weatherCode as number,
       isDay: cur.isDay as boolean,

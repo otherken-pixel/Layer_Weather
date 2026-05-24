@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import React, { memo, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
 import TShirt from "./svg/TShirt";
@@ -38,9 +38,9 @@ interface Props {
 }
 
 const ITEM_ANIM = {
-  initial: { opacity: 0, scale: 0.75 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.75 },
+  initial: { opacity: 0, scale: 0.6, y: 10 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.7, y: -6 },
 };
 
 const STAGGER = 0.06;
@@ -98,7 +98,7 @@ function iconSizesForWidth(compact: boolean, containerWidth: number | null) {
   };
 }
 
-export default function OutfitFlatLay({
+const OutfitFlatLay = memo(function OutfitFlatLay({
   outfit,
   rainGear,
   umbrella,
@@ -129,7 +129,7 @@ export default function OutfitFlatLay({
   const wrap = (node: React.ReactNode, delay: number) => (
     <motion.div
       {...ITEM_ANIM}
-      transition={{ delay }}
+      transition={{ delay, type: "spring", stiffness: 280, damping: 22 }}
       className="flex items-center justify-center"
       style={{ width: accSz, height: accSz }}
     >
@@ -174,7 +174,7 @@ export default function OutfitFlatLay({
           {/* Hero top — centered, full width */}
           <motion.div
             {...ITEM_ANIM}
-            transition={{ delay: 0 }}
+            transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
             className="flex justify-center items-center"
             style={{ gridColumn: "1 / 4", gridRow: 1, minHeight: topSz }}
           >
@@ -186,7 +186,7 @@ export default function OutfitFlatLay({
               {/* Bottom garment — lower left */}
               <motion.div
                 {...ITEM_ANIM}
-                transition={{ delay: STAGGER }}
+                transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
                 className="flex justify-center items-end"
                 style={{ gridColumn: 1, gridRow: 2, justifySelf: "center" }}
               >
@@ -253,7 +253,7 @@ export default function OutfitFlatLay({
           ) : (
             <motion.div
               {...ITEM_ANIM}
-              transition={{ delay: STAGGER }}
+              transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
               className="flex justify-center items-center"
               style={{ gridColumn: "1 / 4", gridRow: 2 }}
             >
@@ -264,4 +264,6 @@ export default function OutfitFlatLay({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
+
+export default OutfitFlatLay;

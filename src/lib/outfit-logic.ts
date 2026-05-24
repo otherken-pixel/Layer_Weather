@@ -80,6 +80,156 @@ export function resolveFootwear(opts: {
   return "sneakers";
 }
 
+/** One-line reasoning shown beneath the outfit label. */
+export function getOutfitReason(opts: {
+  feelsLike: number;
+  windSpeed: number;
+  precipProb: number;
+  humidity: number;
+  weatherCode: number;
+  outfit: OutfitType;
+}): string {
+  const { feelsLike, windSpeed, precipProb, humidity, weatherCode, outfit } = opts;
+  const isWindy = windSpeed > 15;
+  const isSnowy = weatherCode >= 71 && weatherCode <= 77;
+  const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+  const isRainy = precipProb > 40 || (weatherCode >= 51 && weatherCode <= 82);
+  const isHumid = humidity > 70 && feelsLike > 70;
+
+  if (outfit === "rain_heavy") {
+    return `${feelsLike}°F · heavy rain ${Math.round(precipProb)}% → full rain gear`;
+  }
+  if (outfit === "rain_light") {
+    return `${feelsLike}°F · rain ${Math.round(precipProb)}% → rain jacket`;
+  }
+  if (isSnowy) {
+    return `${feelsLike}°F · snow → winter coat`;
+  }
+  if (isHeavyRain) {
+    return `${feelsLike}°F · heavy rain → gear up`;
+  }
+  if (outfit === "heavy_coat") {
+    return isWindy
+      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph wind → bundle up`
+      : `${feelsLike}°F → winter coat territory`;
+  }
+  if (outfit === "heavy_jacket") {
+    return isWindy
+      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph gusts → warm jacket`
+      : `${feelsLike}°F → heavy jacket needed`;
+  }
+  if (outfit === "light_jacket") {
+    return isWindy
+      ? `${feelsLike}°F + breezy → light layer up`
+      : `${feelsLike}°F → light jacket recommended`;
+  }
+  if (outfit === "pants_tshirt") {
+    return isHumid
+      ? `${feelsLike}°F · ${humidity}% humidity → light long sleeves`
+      : `${feelsLike}°F → long sleeves & pants`;
+  }
+  return isHumid
+    ? `${feelsLike}°F · ${humidity}% humidity → light & breathable`
+    : `${feelsLike}°F → short sleeves & shorts`;
+}
+
+/** Short explanation of why feels-like differs from actual temp. */
+export function getFeelsLikeExplanation(opts: {
+  temp: number;
+  feelsLike: number;
+  windSpeed: number;
+  humidity: number;
+}): string | null {
+  const { temp, feelsLike, windSpeed, humidity } = opts;
+  const delta = Math.round(feelsLike - temp);
+  if (Math.abs(delta) < 2) return null;
+
+  if (delta < -3 && windSpeed > 10) {
+    return `Wind chill (${Math.round(windSpeed)} mph) makes it feel ${Math.abs(delta)}° colder`;
+  }
+  if (delta > 3 && humidity > 65 && temp > 70) {
+    return `High humidity (${Math.round(humidity)}%) makes it feel ${delta}° warmer`;
+  }
+  if (delta < -3) {
+    return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
+  }
+  if (delta > 3) {
+    return `Conditions make it feel ${delta}° warmer than the thermometer`;
+  }
+  return null;
+}
+
+const OUTFIT_WARMTH: Record<OutfitType, number> = {
+  heavy_coat: 5,
+  heavy_jacket: 4,
+  rain_heavy: 4,
+  light_jacket: 3,
+  rain_light: 3,
+  pants_tshirt: 2,
+  shorts_tshirt: 1,
+};
+
+/**
+ * Returns a smart layering tip when morning and afternoon outfits diverge.
+ * Returns null when no meaningful change occurs across the day.
+ */
+export function getLayeringTip(timeline: DayOutfitTimeline | null): string | null {
+  if (!timeline || timeline.length < 2) return null;
+
+  const morning = timeline.find((e) => e.period.label === "Morning");
+  const afternoon = timeline.find((e) => e.period.label === "Afternoon");
+  const evening = timeline.find((e) => e.period.label === "Evening");
+
+  if (!morning || !afternoon) return null;
+
+  const morningOutfit = morning.recommendation.outfit;
+  const afternoonOutfit = afternoon.recommendation.outfit;
+
+  const morningWarmth = OUTFIT_WARMTH[morningOutfit] ?? 3;
+  const afternoonWarmth = OUTFIT_WARMTH[afternoonOutfit] ?? 3;
+  const delta = morningWarmth - afternoonWarmth;
+
+  // Rain in morning but not afternoon
+  if (
+    (morningOutfit === "rain_light" || morningOutfit === "rain_heavy") &&
+    afternoonOutfit !== "rain_light" &&
+    afternoonOutfit !== "rain_heavy"
+  ) {
+    const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
+    return `Grab an umbrella for the morning — rain clears and warms to ${afternoonTemp}° by afternoon.`;
+  }
+
+  // Rain coming in afternoon
+  if (
+    (afternoonOutfit === "rain_light" || afternoonOutfit === "rain_heavy") &&
+    morningOutfit !== "rain_light" &&
+    morningOutfit !== "rain_heavy"
+  ) {
+    return `Nice morning, but rain moves in this afternoon — pack a rain jacket before heading out.`;
+  }
+
+  // Big warmup: need to layer down significantly
+  if (delta >= 2) {
+    const morningTemp = Math.round(morning.period.avgFeelsLike);
+    const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
+    const rise = afternoonTemp - morningTemp;
+    return `Chilly ${morningTemp}° morning → warms ${rise > 0 ? `+${rise}°` : `${rise}°`} to ${afternoonTemp}° by afternoon. Start layered — you'll shed up top later.`;
+  }
+
+  // Big cool-down toward evening
+  if (evening) {
+    const eveningOutfit = evening.recommendation.outfit;
+    const eveningWarmth = OUTFIT_WARMTH[eveningOutfit] ?? 3;
+    const eveningDelta = eveningWarmth - afternoonWarmth;
+    if (eveningDelta >= 2) {
+      const eveningTemp = Math.round(evening.period.avgFeelsLike);
+      return `Warm afternoon, but evening drops to ${eveningTemp}°. Bring a jacket if you're out late.`;
+    }
+  }
+
+  return null;
+}
+
 /** Onboarding / swipe cards — infer rain & snow from outfit + temp */
 export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";

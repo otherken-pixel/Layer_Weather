@@ -4,9 +4,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
 
-// RainViewer personal API: max tile zoom is 7 (see rainviewer.com/api/weather-maps-api.html)
-const RAINVIEWER_MAX_ZOOM = 7;
-const RADAR_DEFAULT_ZOOM = 6;
+const RADAR_MAX_ZOOM = 12;
+const RADAR_DEFAULT_ZOOM = 8;
 
 interface RVFrame { time: number; path: string; }
 interface RVManifest {
@@ -33,28 +32,65 @@ function useDarkMode(themePreference: string | null): boolean {
   return isDark;
 }
 
-/** Keeps map centered and clamps zoom to RainViewer-supported levels. */
-function MapViewSync({ center }: { center: [number, number] }) {
+function ZoomControls({ isDark }: { isDark: boolean }) {
   const map = useMap();
-
-  useEffect(() => {
-    const zoom = Math.min(map.getZoom(), RAINVIEWER_MAX_ZOOM);
-    map.setView(center, zoom, { animate: false });
-  }, [center, map]);
-
-  useEffect(() => {
-    const clampZoom = () => {
-      if (map.getZoom() > RAINVIEWER_MAX_ZOOM) {
-        map.setZoom(RAINVIEWER_MAX_ZOOM);
-      }
-    };
-    map.on("zoomend", clampZoom);
-    return () => {
-      map.off("zoomend", clampZoom);
-    };
-  }, [map]);
-
-  return null;
+  const badgeBg = isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)";
+  const badgeBorder = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.1)";
+  const badgeText = isDark ? "white" : "#1a1a1a";
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 56,
+        right: 10,
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+      }}
+    >
+      <button
+        type="button"
+        aria-label="Zoom in"
+        onClick={() => map.zoomIn()}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          border: `1px solid ${badgeBorder}`,
+          background: badgeBg,
+          color: badgeText,
+          fontSize: 20,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        +
+      </button>
+      <button
+        type="button"
+        aria-label="Zoom out"
+        onClick={() => map.zoomOut()}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          border: `1px solid ${badgeBorder}`,
+          background: badgeBg,
+          color: badgeText,
+          fontSize: 20,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        −
+      </button>
+    </div>
+  );
 }
 
 const RADAR_TILE_OPTS: L.TileLayerOptions = {
@@ -62,8 +98,8 @@ const RADAR_TILE_OPTS: L.TileLayerOptions = {
   zIndex: 200,
   tileSize: 256,
   minZoom: 1,
-  maxZoom: RAINVIEWER_MAX_ZOOM,
-  maxNativeZoom: RAINVIEWER_MAX_ZOOM,
+  maxZoom: RADAR_MAX_ZOOM,
+  maxNativeZoom: RADAR_MAX_ZOOM,
   crossOrigin: "anonymous",
   errorTileUrl:
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -307,13 +343,13 @@ export default function Radar() {
         center={center}
         zoom={RADAR_DEFAULT_ZOOM}
         minZoom={3}
-        maxZoom={RAINVIEWER_MAX_ZOOM}
+        maxZoom={RADAR_MAX_ZOOM}
         style={{ width: "100%", height: "100%" }}
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer url={baseTileUrl} maxZoom={RAINVIEWER_MAX_ZOOM} />
-        <MapViewSync center={center} />
+        <TileLayer url={baseTileUrl} maxZoom={19} />
+        <ZoomControls isDark={isDark} />
         {tileUrl && <RadarOverlay url={tileUrl} />}
         <Circle
           center={center}
