@@ -81,21 +81,17 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
 
-  // Initial load (sets location.city via refresh — skip duplicate city-change fetch).
-  // If the profile already had the same city, the city-change effect never runs, so clear
-  // the skip flag here after refresh when the resolved city matches what we seeded.
+  // Initial load (refresh may call setLocation — skip duplicate city-change fetch).
+  // Always clear the skip flag when refresh finishes: returning users already have
+  // location.city from the profile, so the city-change effect often never runs.
   useEffect(() => {
-    const norm = (c: string | null) => (c && c.trim()) || null;
-    const seededCity = norm(prevCityRef.current);
     skipNextCityRefreshRef.current = true;
     void (async () => {
       try {
         await refresh();
       } finally {
-        const resolvedCity = norm(useAppStore.getState().location?.city ?? null);
-        if (resolvedCity === seededCity) {
-          skipNextCityRefreshRef.current = false;
-        }
+        skipNextCityRefreshRef.current = false;
+        prevCityRef.current = useAppStore.getState().location?.city ?? null;
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
