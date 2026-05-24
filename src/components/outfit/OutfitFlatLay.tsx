@@ -1,24 +1,8 @@
 import React, { memo, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
-import TShirt from "./svg/TShirt";
-import LongSleeve from "./svg/LongSleeve";
-import Pants from "./svg/Pants";
-import Shorts from "./svg/Shorts";
-import Jacket from "./svg/Jacket";
-import HeavyJacket from "./svg/HeavyJacket";
-import HeavyCoat from "./svg/HeavyCoat";
-import RainJacket from "./svg/RainJacket";
-import Umbrella from "./svg/Umbrella";
-import Sunglasses from "./svg/Sunglasses";
-import Scarf from "./svg/Scarf";
-import Beanie from "./svg/Beanie";
-import Gloves from "./svg/Gloves";
-import FlipFlops from "./svg/FlipFlops";
-import Sneakers from "./svg/Sneakers";
-import SnowBoots from "./svg/SnowBoots";
-import RainBoots from "./svg/RainBoots";
-import Dress from "./svg/Dress";
+import { svgRegistry } from "./svg/index";
+import { accessoryMap, bottomMap, footwearMap, topMap } from "./outfitMap";
 
 interface Props {
   outfit: OutfitType;
@@ -46,42 +30,24 @@ const ITEM_ANIM = {
 
 const STAGGER = 0.06;
 
+function SvgIcon({ name, size }: { name: string; size: number }) {
+  const Component = svgRegistry[name];
+  if (!Component) return null;
+  return <Component size={size} />;
+}
+
 function FootwearIcon({ kind, size }: { kind: FootwearKind; size: number }) {
-  switch (kind) {
-    case "flip_flops":
-      return <FlipFlops size={size} />;
-    case "sneakers":
-      return <Sneakers size={size} />;
-    case "snow_boots":
-      return <SnowBoots size={size} />;
-    case "rain_boots":
-      return <RainBoots size={size} />;
-  }
+  return <SvgIcon name={footwearMap[kind]} size={size} />;
 }
 
 function TopGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
-  switch (outfit) {
-    case "shorts_tshirt":
-      return <TShirt size={size} />;
-    case "pants_tshirt":
-      return <LongSleeve size={size} />;
-    case "light_jacket":
-      return <Jacket size={size} />;
-    case "heavy_jacket":
-      return <HeavyJacket size={size} />;
-    case "heavy_coat":
-      return <HeavyCoat size={size} />;
-    case "rain_light":
-    case "rain_heavy":
-      return <RainJacket size={size} />;
-    case "dress":
-      return <Dress size={size} />;
-  }
+  return <SvgIcon name={topMap[outfit]} size={size} />;
 }
 
 function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
-  if (outfit === "dress") return null;
-  return outfit === "shorts_tshirt" ? <Shorts size={size} /> : <Pants size={size} />;
+  const name = bottomMap[outfit];
+  if (!name) return null;
+  return <SvgIcon name={name} size={size} />;
 }
 
 /** Layout width (px) the base sizes below are tuned for — scaling uses measured container width / this value. */
@@ -211,13 +177,13 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                 >
                   {stackFootwearUmbrella && footwear && (
                     <>
-                      {wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
+                      {wrap(<SvgIcon name={accessoryMap.umbrella} size={accSz} />, 2 * STAGGER)}
                       {wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 3 * STAGGER, footwearSz)}
                     </>
                   )}
                   {footwear && !umbrella && wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
-                  {!footwear && umbrella && wrap(<Umbrella size={accSz} />, 2 * STAGGER)}
-                  {!footwear && !umbrella && sunglasses && wrap(<Sunglasses size={accSz} />, 2 * STAGGER)}
+                  {!footwear && umbrella && wrap(<SvgIcon name={accessoryMap.umbrella} size={accSz} />, 2 * STAGGER)}
+                  {!footwear && !umbrella && sunglasses && wrap(<SvgIcon name={accessoryMap.sunglasses} size={accSz} />, 2 * STAGGER)}
                 </div>
               )}
 
@@ -226,8 +192,8 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                   className="flex justify-center items-end"
                   style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
                 >
-                  {beanie && wrap(<Beanie size={accSz} />, 3 * STAGGER)}
-                  {!beanie && col3Sunglasses && wrap(<Sunglasses size={accSz} />, 3 * STAGGER)}
+                  {beanie && wrap(<SvgIcon name={accessoryMap.beanie} size={accSz} />, 3 * STAGGER)}
+                  {!beanie && col3Sunglasses && wrap(<SvgIcon name={accessoryMap.sunglasses} size={accSz} />, 3 * STAGGER)}
                 </div>
               )}
 
@@ -242,7 +208,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                         justifySelf: "center",
                       }}
                     >
-                      {wrap(<Scarf size={accSz} />, 5 * STAGGER)}
+                      {wrap(<SvgIcon name={accessoryMap.scarf} size={accSz} />, 5 * STAGGER)}
                     </div>
                   )}
                   {gloves && (
@@ -254,7 +220,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                         justifySelf: "center",
                       }}
                     >
-                      {wrap(<Gloves size={accSz} />, 6 * STAGGER)}
+                      {wrap(<SvgIcon name={accessoryMap.gloves} size={accSz} />, 6 * STAGGER)}
                     </div>
                   )}
                 </>
