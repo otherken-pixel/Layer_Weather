@@ -335,6 +335,8 @@ export default function Home() {
             display: "flex",
             flexDirection: "column",
             gap: 12,
+            position: "relative",
+            zIndex: 2,
           }}>
 
             {/* Weather change alerts — only show rain warnings, not feels-like info */}
