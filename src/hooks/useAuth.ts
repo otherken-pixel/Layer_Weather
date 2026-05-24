@@ -43,13 +43,20 @@ export function useAuth() {
         // Fires once on startup with the stored session (or null). Single path
         // for page-reload auth — no race with getSession().
         if (session?.user) {
-          // Fast phase: clear the loading screen once localStorage + cache are
-          // restored (~50 ms). Supabase profile/calibration fetch continues in
-          // the background without blocking the UI.
+          // loadUser's run() calls setUserId synchronously before any await, so
+          // by the time we check localStorage below, isAuthenticated is already true.
           loadUser(session.user.id, () => {
             clearTimeout(authTimeout);
             setIsLoading(false);
           }).catch(console.error);
+
+          // Returning users: skip the loading screen entirely. The synchronous
+          // setUserId call inside loadUser has already run, so the router will
+          // land on /app/home with no flash to /welcome.
+          if (localStorage.getItem(IS_ONBOARDED_KEY)) {
+            clearTimeout(authTimeout);
+            setIsLoading(false);
+          }
         } else {
           clearTimeout(authTimeout);
           setIsLoading(false);
