@@ -81,7 +81,7 @@ function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
 }
 
 /** Layout width (px) the base sizes below are tuned for — scaling uses measured container width / this value. */
-const LAYOUT_REF_WIDTH = 280;
+const LAYOUT_REF_WIDTH = 320;
 const SCALE_MIN = 0.72;
 const SCALE_MAX = 1.28;
 
