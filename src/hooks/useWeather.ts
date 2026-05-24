@@ -35,11 +35,9 @@ function mapWeatherError(err: unknown): string {
 
 async function resolveCoordinates(
   force: boolean,
-  preferGpsWhenForced: boolean,
-  location: ReturnType<typeof useAppStore.getState>["location"],
-  profile: ReturnType<typeof useAppStore.getState>["profile"],
+  useDeviceLocation: boolean,
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && preferGpsWhenForced && Capacitor.isNativePlatform()) {
+  if (force && useDeviceLocation && Capacitor.isNativePlatform()) {
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm === "granted") {
       try {
@@ -49,17 +47,14 @@ async function resolveCoordinates(
         });
         return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
       } catch {
-        // Fall through to cached coordinates
+        // Fall through to saved coordinates
       }
     }
   }
 
-  const cached = useAppStore.getState().location;
+  const { location, profile } = useAppStore.getState();
   if (location?.latitude != null && location?.longitude != null) {
     return { latitude: location.latitude, longitude: location.longitude };
-  }
-  if (cached?.latitude != null && cached?.longitude != null) {
-    return { latitude: cached.latitude, longitude: cached.longitude };
   }
   if (profile?.last_latitude != null && profile?.last_longitude != null) {
     return { latitude: profile.last_latitude, longitude: profile.last_longitude };
@@ -81,6 +76,11 @@ async function resolveCoordinates(
   return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
 }
 
+export type RefreshOptions = {
+  /** When true with force, prefer GPS over saved/tab coordinates (native only). */
+  useDeviceLocation?: boolean;
+};
+
 export function useWeather() {
   const refreshGeneration = useRef(0);
   const {
@@ -92,9 +92,10 @@ export function useWeather() {
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
-  const refresh = useCallback(async (force = false, preferGpsWhenForced = true) => {
+  const refresh = useCallback(async (force = false, options: RefreshOptions = {}) => {
     if (!force && !isStale && weather) return;
 
+    const { useDeviceLocation = false } = options;
     const generation = ++refreshGeneration.current;
     setIsLoadingWeather(true);
     setWeatherError(null);
@@ -102,17 +103,14 @@ export function useWeather() {
     try {
       await withTimeout(
         (async () => {
-          const { latitude, longitude } = await resolveCoordinates(
-            force,
-            preferGpsWhenForced,
-            location,
-            profile,
-          );
+          const { latitude, longitude } = await resolveCoordinates(force, useDeviceLocation);
           if (generation !== refreshGeneration.current) return;
 
-          let city = location?.city || profile?.last_city || "";
+          const storeLocation = useAppStore.getState().location;
+          const storeProfile = useAppStore.getState().profile;
+          let city = storeLocation?.city || storeProfile?.last_city || "";
           let countryCode: string | undefined =
-            location?.country?.trim() || undefined;
+            storeLocation?.country?.trim() || undefined;
 
           if (force || !city) {
             const place = await withTimeout(
@@ -166,8 +164,8 @@ export function useWeather() {
             humidity: data.current.humidity,
             calibration: cal,
             hourly: data.hourly,
-            commuteStart: profile?.commute_start ?? null,
-            commuteEnd: profile?.commute_end ?? null,
+            commuteStart: storeProfile?.commute_start ?? null,
+            commuteEnd: storeProfile?.commute_end ?? null,
           });
           setOutfit(rec);
 

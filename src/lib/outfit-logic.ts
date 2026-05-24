@@ -20,13 +20,13 @@ export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
 /** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
 const OUTFIT_WARMTH: Record<OutfitType, number> = {
-  heavy_coat: 5,
-  heavy_jacket: 4,
-  rain_heavy: 4,
+  shorts_tshirt: 1,
+  pants_tshirt: 2,
   light_jacket: 3,
   rain_light: 3,
-  pants_tshirt: 2,
-  shorts_tshirt: 1,
+  heavy_jacket: 4,
+  rain_heavy: 4,
+  heavy_coat: 6,
 };
 
 /** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
@@ -522,7 +522,7 @@ function formatTime(timeStr: string): string {
 const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number }[] = [
   { label: "Morning", startHour: 6, endHour: 12 },
   { label: "Afternoon", startHour: 12, endHour: 18 },
-  { label: "Evening", startHour: 18, endHour: 23 },
+  { label: "Evening", startHour: 18, endHour: 24 },
 ];
 
 export function getDayOutfitTimeline(

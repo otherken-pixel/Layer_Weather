@@ -7,20 +7,58 @@ interface AQILevel {
   color: string;
   bg: string;
   textColor: string;
+  darkBg: string;
+  darkTextColor: string;
 }
 
 function getAQILevel(aqi: number): AQILevel {
   if (aqi <= 50)
-    return { label: "Good", description: "Air quality is satisfactory.", color: "#22C55E", bg: "#F0FDF4", textColor: "#166534" };
+    return {
+      label: "Good",
+      description: "Air quality is satisfactory.",
+      color: "#22C55E",
+      bg: "#F0FDF4", textColor: "#166534",
+      darkBg: "rgba(34,197,94,0.15)", darkTextColor: "#4ADE80",
+    };
   if (aqi <= 100)
-    return { label: "Moderate", description: "Sensitive individuals may experience effects.", color: "#EAB308", bg: "#FEFCE8", textColor: "#854D0E" };
+    return {
+      label: "Moderate",
+      description: "Sensitive individuals may experience effects.",
+      color: "#EAB308",
+      bg: "#FEFCE8", textColor: "#854D0E",
+      darkBg: "rgba(234,179,8,0.15)", darkTextColor: "#FACC15",
+    };
   if (aqi <= 150)
-    return { label: "Unhealthy for Sensitive Groups", description: "Limit outdoor activity if sensitive.", color: "#F97316", bg: "#FFF7ED", textColor: "#9A3412" };
+    return {
+      label: "Unhealthy for Sensitive Groups",
+      description: "Limit outdoor activity if sensitive.",
+      color: "#F97316",
+      bg: "#FFF7ED", textColor: "#9A3412",
+      darkBg: "rgba(249,115,22,0.15)", darkTextColor: "#FB923C",
+    };
   if (aqi <= 200)
-    return { label: "Unhealthy", description: "Everyone may experience health effects.", color: "#EF4444", bg: "#FEF2F2", textColor: "#991B1B" };
+    return {
+      label: "Unhealthy",
+      description: "Everyone may experience health effects.",
+      color: "#EF4444",
+      bg: "#FEF2F2", textColor: "#991B1B",
+      darkBg: "rgba(239,68,68,0.15)", darkTextColor: "#F87171",
+    };
   if (aqi <= 300)
-    return { label: "Very Unhealthy", description: "Avoid prolonged outdoor exposure.", color: "#8B5CF6", bg: "#F5F3FF", textColor: "#5B21B6" };
-  return { label: "Hazardous", description: "Avoid all outdoor activity.", color: "#991B1B", bg: "#FEF2F2", textColor: "#7F1D1D" };
+    return {
+      label: "Very Unhealthy",
+      description: "Avoid prolonged outdoor exposure.",
+      color: "#8B5CF6",
+      bg: "#F5F3FF", textColor: "#5B21B6",
+      darkBg: "rgba(139,92,246,0.15)", darkTextColor: "#C4B5FD",
+    };
+  return {
+    label: "Hazardous",
+    description: "Avoid all outdoor activity.",
+    color: "#EF4444",
+    bg: "#FEF2F2", textColor: "#991B1B",
+    darkBg: "rgba(239,68,68,0.15)", darkTextColor: "#FCA5A5",
+  };
 }
 
 interface Props {
@@ -32,23 +70,33 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
   const level = getAQILevel(aqiIndex);
   const fillPct = Math.min(aqiIndex / 300, 1);
 
+  const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
+  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const unitColor = isDark ? "#9BA4B4" : "#6B7280";
+  const trackColor = isDark ? "#3A3A3C" : "#F3F4F6";
+  const descColor = isDark ? "#9BA4B4" : "#6B7280";
+  const badgeBg = isDark ? level.darkBg : level.bg;
+  const badgeText = isDark ? level.darkTextColor : level.textColor;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 24 }}
       style={{
-        background: isDark ? "#2C2C2E" : "#FFFFFF",
+        background: cardBg,
         borderRadius: 24,
         padding: "20px",
-        boxShadow: "0 2px 20px rgba(0,0,0,0.07)",
+        boxShadow: cardShadow,
+        border: cardBorder,
       }}
     >
       <p
         style={{
-          fontSize: 11, fontWeight: 700,
-          color: isDark ? "rgba(255,255,255,0.4)" : "#6B7280",
-          letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12,
+          fontSize: 12, fontWeight: 700, color: labelColor,
+          letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
         }}
       >
         Air Quality
@@ -59,23 +107,23 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
           <span style={{ fontSize: 36, fontWeight: 700, color: level.color, lineHeight: 1 }}>
             {aqiIndex}
           </span>
-          <span style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.45)" : "#6B7280", marginLeft: 6 }}>US AQI</span>
+          <span style={{ fontSize: 13, color: unitColor, marginLeft: 6 }}>US AQI</span>
         </div>
         <div
           style={{
             padding: "4px 12px",
             borderRadius: 999,
-            background: level.bg,
+            background: badgeBg,
           }}
         >
-          <span style={{ fontSize: 12, fontWeight: 700, color: level.textColor }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: badgeText }}>
             {level.label}
           </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 6, background: isDark ? "#52525B" : "#F3F4F6", borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
+      <div style={{ height: 6, background: trackColor, borderRadius: 3, overflow: "hidden", marginBottom: 8 }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${Math.round(fillPct * 100)}%` }}
@@ -88,7 +136,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
         />
       </div>
 
-      <p style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.55)" : "#6B7280", lineHeight: 1.4 }}>
+      <p style={{ fontSize: 12, color: descColor, lineHeight: 1.5 }}>
         {level.description}
       </p>
     </motion.div>

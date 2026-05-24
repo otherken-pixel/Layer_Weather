@@ -468,7 +468,7 @@ export default function Wardrobe() {
     try {
       await deleteWardrobeItem(id);
     } catch {
-      loadItems();
+      await loadItems();
     }
   }
 

@@ -1,15 +1,17 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useIsDark } from "@/hooks/useDarkMode";
+import { Colors } from "@/constants/colors";
 
-function IconToday({ active }: { active: boolean }) {
+function IconToday() {
   return (
     <svg
       width="24"
       height="24"
       viewBox="0 0 24 24"
       fill="none"
-      className={active ? "text-brand-dark" : "text-neutral-600"}
+      className="text-current"
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -29,14 +31,14 @@ function IconToday({ active }: { active: boolean }) {
   );
 }
 
-function IconRadar({ active }: { active: boolean }) {
+function IconRadar() {
   return (
     <svg
       width="24"
       height="24"
       viewBox="0 0 24 24"
       fill="none"
-      className={active ? "text-brand-dark" : "text-neutral-600"}
+      className="text-current"
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -51,14 +53,14 @@ function IconRadar({ active }: { active: boolean }) {
   );
 }
 
-function IconPacking({ active }: { active: boolean }) {
+function IconPacking() {
   return (
     <svg
       width="24"
       height="24"
       viewBox="0 0 24 24"
       fill="none"
-      className={active ? "text-brand-dark" : "text-neutral-600"}
+      className="text-current"
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -73,14 +75,14 @@ function IconPacking({ active }: { active: boolean }) {
   );
 }
 
-function IconSettings({ active }: { active: boolean }) {
+function IconSettings() {
   return (
     <svg
       width="24"
       height="24"
       viewBox="0 0 24 24"
       fill="none"
-      className={active ? "text-brand-dark" : "text-neutral-600"}
+      className="text-current"
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -94,14 +96,14 @@ function IconSettings({ active }: { active: boolean }) {
   );
 }
 
-function IconWardrobe({ active }: { active: boolean }) {
+function IconWardrobe() {
   return (
     <svg
       width="24"
       height="24"
       viewBox="0 0 24 24"
       fill="none"
-      className={active ? "text-brand-dark" : "text-neutral-600"}
+      className="text-current"
       stroke="currentColor"
       strokeWidth="1.75"
       strokeLinecap="round"
@@ -124,10 +126,15 @@ const TABS = [
 export function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isDark = useIsDark();
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 pb-safe bg-white/95 backdrop-blur-xl border-t border-neutral-100"
+      className="fixed bottom-0 left-0 right-0 z-50 pb-safe backdrop-blur-xl"
+      style={{
+        background: isDark ? "rgba(28,28,30,0.95)" : "rgba(255,255,255,0.95)",
+        borderTop: isDark ? `1px solid ${Colors.dark.border}` : "1px solid #E5E7EB",
+      }}
       role="tablist"
       aria-label="Main navigation"
     >
@@ -141,15 +148,18 @@ export function TabBar() {
               aria-selected={active}
               aria-current={active ? "page" : undefined}
               onClick={() => navigate(path)}
-              className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[52px] px-2 py-1.5 rounded-2xl ${
-                active ? "text-brand-dark" : "text-neutral-600"
-              }`}
+              className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[52px] px-2 py-1.5 rounded-2xl"
+              style={{
+                color: active
+                  ? Colors.brand.textSafe
+                  : isDark ? Colors.dark.textMuted : Colors.text.muted,
+              }}
             >
               <motion.div
                 animate={{ scale: active ? 1.08 : 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
               >
-                <Icon active={active} />
+                <Icon />
               </motion.div>
               <span className="text-xs font-semibold">{label}</span>
             </button>
