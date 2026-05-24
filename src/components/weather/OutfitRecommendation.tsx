@@ -94,8 +94,8 @@ export function OutfitRecommendationCard({
   onRecalibrate,
   isDark = false,
 }: Props) {
-  // avatarCondition/commuteAlert always reflect current conditions
-  const { commuteAlert, avatarCondition } = recommendation;
+  // commuteAlert always reflects current conditions
+  const { commuteAlert } = recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
   const [shared, setShared] = useState(false);
   const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
@@ -121,12 +121,24 @@ export function OutfitRecommendationCard({
     }
   }
 
+  const activeEntry = timeline?.find((e) => e.period.label === activeTab);
+
+  const curPeriod = currentPeriodLabel();
+  const isViewingNow = !timeline || timeline.length === 0 || activeTab === curPeriod;
+  // When the user selects a future period in the timeline, the main card switches
+  // to show that period's outfit. Current-conditions data (commuteAlert, outfitReason,
+  // feelsLikeExplanation) only applies when viewing the current period.
+  const displayedRec = isViewingNow ? recommendation : (activeEntry?.recommendation ?? recommendation);
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } = displayedRec;
+
+  const shareFeelsLike = isViewingNow ? feelsLike : (activeEntry?.period.avgFeelsLike ?? feelsLike);
+
   async function handleShare() {
     const loc = useAppStore.getState().location;
     try {
       await shareOutfitCard({
-        conditionEmoji: AVATAR_CONDITION_EMOJI[avatarCondition],
-        temp: feelsLike,
+        conditionEmoji: AVATAR_CONDITION_EMOJI[displayedRec.avatarCondition],
+        temp: shareFeelsLike,
         tempUnit,
         outfitLabel: label,
         outfitDescription: description,
@@ -139,16 +151,6 @@ export function OutfitRecommendationCard({
       // silently fail
     }
   }
-
-  const activeEntry = timeline?.find((e) => e.period.label === activeTab);
-
-  const curPeriod = currentPeriodLabel();
-  const isViewingNow = !timeline || timeline.length === 0 || activeTab === curPeriod;
-  // When the user selects a future period in the timeline, the main card switches
-  // to show that period's outfit. Current-conditions data (commuteAlert, avatarCondition,
-  // outfitReason, feelsLikeExplanation) only applies when viewing the current period.
-  const displayedRec = isViewingNow ? recommendation : (activeEntry?.recommendation ?? recommendation);
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } = displayedRec;
 
   const displayFeelsLike = (() => {
     if (isViewingNow) {
