@@ -108,16 +108,14 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
     </motion.div>
   );
 
-  const hasAccessories = Boolean(footwear || umbrella || sunglasses || scarf || beanie || gloves);
-  const bottomSz = hasAccessories
-    ? baseBottomSz
-    : Math.max(baseBottomSz, compact ? 90 : 130);
-  const row3 = scarf || gloves;
-  const stackFootwearUmbrella = Boolean(footwear && umbrella);
-  const col3Sunglasses =
-    sunglasses &&
-    !beanie &&
-    (stackFootwearUmbrella || (footwear && !umbrella));
+  const isDress = outfit === "dress";
+  const accessories = [
+    umbrella && <SvgIcon name={accessoryMap.umbrella} size={accSz} />,
+    sunglasses && <SvgIcon name={accessoryMap.sunglasses} size={accSz} />,
+    scarf && <SvgIcon name={accessoryMap.scarf} size={accSz} />,
+    beanie && <SvgIcon name={accessoryMap.beanie} size={accSz} />,
+    gloves && <SvgIcon name={accessoryMap.gloves} size={accSz} />,
+  ].filter(Boolean) as React.ReactElement[];
 
   return (
     <motion.div
@@ -132,10 +130,9 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
           key={outfit}
           className="grid"
           style={{
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gridTemplateRows: row3 ? "auto auto auto" : "auto auto",
-            gap: compact ? 2 : 4,
-            alignItems: "end",
+            gridTemplateColumns: "1fr 1fr",
+            gridTemplateRows: "auto auto",
+            gap: compact ? 8 : 12,
             outline: rainGear ? "1px solid rgba(59, 130, 246, 0.35)" : undefined,
             outlineOffset: rainGear ? 2 : undefined,
             borderRadius: rainGear ? 12 : undefined,
@@ -145,97 +142,58 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          {/* Hero top — centered, full width */}
-          <motion.div
-            {...ITEM_ANIM}
-            transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
-            className="flex justify-center items-center"
-            style={{ gridColumn: "1 / 4", gridRow: 1, minHeight: topSz }}
-          >
-            <TopGarment outfit={outfit} size={topSz} />
-          </motion.div>
-
-          {hasAccessories ? (
-            <>
-              {/* Bottom garment — lower left */}
-              {outfit !== "dress" && (
-                <motion.div
-                  {...ITEM_ANIM}
-                  transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 1, gridRow: 2, justifySelf: "center" }}
-                >
-                  <BottomGarment outfit={outfit} size={bottomSz} />
-                </motion.div>
-              )}
-
-              {/* Center column: stack footwear + umbrella when both; else single accessory */}
-              {(footwear || umbrella || (!footwear && !umbrella && sunglasses)) && (
-                <div
-                  className="flex flex-col justify-end items-center gap-0.5"
-                  style={{ gridColumn: 2, gridRow: 2, justifySelf: "center" }}
-                >
-                  {stackFootwearUmbrella && footwear && (
-                    <>
-                      {wrap(<SvgIcon name={accessoryMap.umbrella} size={accSz} />, 2 * STAGGER)}
-                      {wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 3 * STAGGER, footwearSz)}
-                    </>
-                  )}
-                  {footwear && !umbrella && wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
-                  {!footwear && umbrella && wrap(<SvgIcon name={accessoryMap.umbrella} size={accSz} />, 2 * STAGGER)}
-                  {!footwear && !umbrella && sunglasses && wrap(<SvgIcon name={accessoryMap.sunglasses} size={accSz} />, 2 * STAGGER)}
-                </div>
-              )}
-
-              {(beanie || col3Sunglasses) && (
-                <div
-                  className="flex justify-center items-end"
-                  style={{ gridColumn: 3, gridRow: 2, justifySelf: "center" }}
-                >
-                  {beanie && wrap(<SvgIcon name={accessoryMap.beanie} size={accSz} />, 3 * STAGGER)}
-                  {!beanie && col3Sunglasses && wrap(<SvgIcon name={accessoryMap.sunglasses} size={accSz} />, 3 * STAGGER)}
-                </div>
-              )}
-
-              {row3 && (
-                <>
-                  {scarf && (
-                    <div
-                      className="flex justify-center items-start"
-                      style={{
-                        gridColumn: footwear ? 2 : 1,
-                        gridRow: 3,
-                        justifySelf: "center",
-                      }}
-                    >
-                      {wrap(<SvgIcon name={accessoryMap.scarf} size={accSz} />, 5 * STAGGER)}
-                    </div>
-                  )}
-                  {gloves && (
-                    <div
-                      className="flex justify-center items-start"
-                      style={{
-                        gridColumn: scarf && footwear ? 1 : 2,
-                        gridRow: 3,
-                        justifySelf: "center",
-                      }}
-                    >
-                      {wrap(<SvgIcon name={accessoryMap.gloves} size={accSz} />, 6 * STAGGER)}
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          ) : outfit !== "dress" ? (
+          {/* Top row */}
+          {isDress ? (
+            /* Dress — centered across full top row */
             <motion.div
               {...ITEM_ANIM}
-              transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
+              transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
               className="flex justify-center items-center"
-              style={{ gridColumn: "1 / 4", gridRow: 2 }}
+              style={{ gridColumn: "1 / 3", gridRow: 1, minHeight: topSz }}
             >
-              <BottomGarment outfit={outfit} size={bottomSz} />
+              <TopGarment outfit={outfit} size={topSz} />
             </motion.div>
-          ) : null}
+          ) : (
+            <>
+              {/* Top-left: top garment */}
+              <motion.div
+                {...ITEM_ANIM}
+                transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
+                className="flex justify-center items-center"
+                style={{ gridColumn: 1, gridRow: 1, minHeight: topSz }}
+              >
+                <TopGarment outfit={outfit} size={topSz} />
+              </motion.div>
+
+              {/* Top-right: bottom garment */}
+              <motion.div
+                {...ITEM_ANIM}
+                transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
+                className="flex justify-center items-center"
+                style={{ gridColumn: 2, gridRow: 1, minHeight: topSz }}
+              >
+                <BottomGarment outfit={outfit} size={baseBottomSz} />
+              </motion.div>
+            </>
+          )}
+
+          {/* Bottom-left: footwear */}
+          <div
+            className="flex justify-center items-center"
+            style={{ gridColumn: 1, gridRow: 2, minHeight: footwearSz }}
+          >
+            {footwear && wrap(<FootwearIcon kind={footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
+          </div>
+
+          {/* Bottom-right: accessories */}
+          <div
+            className="flex flex-wrap justify-center items-center gap-1"
+            style={{ gridColumn: 2, gridRow: 2, minHeight: footwearSz }}
+          >
+            {accessories.map((acc, i) =>
+              wrap(acc, (3 + i) * STAGGER)
+            )}
+          </div>
         </motion.div>
       </AnimatePresence>
     </motion.div>
