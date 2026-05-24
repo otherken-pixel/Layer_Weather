@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
+import OutfitTextView from "@/components/outfit/OutfitTextView";
 import { Card } from "@/components/ui/Card";
 import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
@@ -94,6 +95,8 @@ export function OutfitRecommendationCard({
   onRecalibrate,
   isDark = false,
 }: Props) {
+  const { profile } = useAppStore();
+  const textOnly = profile?.outfit_display_mode === "text";
   // avatarCondition/commuteAlert always reflect current conditions
   const { commuteAlert, avatarCondition } = recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
@@ -301,18 +304,31 @@ export function OutfitRecommendationCard({
             )}
           </div>
 
-          {/* Flat Lay SVG Grid */}
-          <OutfitFlatLay
-            outfit={outfit}
-            rainGear={rainGear}
-            umbrella={umbrella}
-            sunglasses={sunglasses}
-            scarf={scarf}
-            beanie={beanie}
-            gloves={gloves}
-            footwear={footwear}
-            colorScheme="light"
-          />
+          {/* Outfit display */}
+          {textOnly ? (
+            <OutfitTextView
+              outfit={outfit}
+              umbrella={umbrella}
+              sunglasses={sunglasses}
+              scarf={scarf}
+              beanie={beanie}
+              gloves={gloves}
+              footwear={footwear}
+              isDark={isDark}
+            />
+          ) : (
+            <OutfitFlatLay
+              outfit={outfit}
+              rainGear={rainGear}
+              umbrella={umbrella}
+              sunglasses={sunglasses}
+              scarf={scarf}
+              beanie={beanie}
+              gloves={gloves}
+              footwear={footwear}
+              colorScheme="light"
+            />
+          )}
 
           {/* Description */}
           <p style={{ fontSize: 14, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>

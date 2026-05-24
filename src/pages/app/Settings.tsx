@@ -22,6 +22,7 @@ export default function Settings() {
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
+  const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
@@ -58,7 +59,7 @@ export default function Settings() {
     if (!userId) return;
     setSaving(true);
     try {
-      const updated = await upsertProfile(userId, { temp_unit: tempUnit, commute_start: commuteStart, commute_end: commuteEnd });
+      const updated = await upsertProfile(userId, { temp_unit: tempUnit, outfit_display_mode: displayMode, commute_start: commuteStart, commute_end: commuteEnd });
       if (updated) setProfile(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
@@ -213,6 +214,28 @@ export default function Settings() {
                 active={tempUnit}
                 onSelect={(u) => setTempUnit(u)}
                 format={(u) => `°${u}`}
+                pillBg={pillBg}
+                pillInactiveText={pillInactiveText}
+              />
+            </div>
+          </ThemedCard>
+        </Section>
+
+        {/* Display */}
+        <Section title="Display" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>Outfit Style</span>
+                <p style={{ fontSize: 12, color: hintColor, marginTop: 2 }}>
+                  {displayMode === "text" ? "Text descriptions instead of illustrations" : "SVG clothing illustrations"}
+                </p>
+              </div>
+              <PillToggle
+                options={["visual", "text"] as const}
+                active={displayMode}
+                onSelect={(m) => setDisplayMode(m)}
+                format={(m) => m === "visual" ? "Visual" : "Text Only"}
                 pillBg={pillBg}
                 pillInactiveText={pillInactiveText}
               />
