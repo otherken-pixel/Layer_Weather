@@ -94,8 +94,8 @@ export function OutfitRecommendationCard({
   onRecalibrate,
   isDark = false,
 }: Props) {
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear, commuteAlert, avatarCondition } =
-    recommendation;
+  // avatarCondition/commuteAlert always reflect current conditions
+  const { commuteAlert, avatarCondition } = recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
   const [shared, setShared] = useState(false);
   const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
@@ -140,12 +140,28 @@ export function OutfitRecommendationCard({
     }
   }
 
-  const displayFeelsLike =
-    tempUnit === "C"
-      ? `${Math.round(((feelsLike - 32) * 5) / 9)}°C`
-      : `${Math.round(feelsLike)}°F`;
-
   const activeEntry = timeline?.find((e) => e.period.label === activeTab);
+
+  const curPeriod = currentPeriodLabel();
+  const isViewingNow = !timeline || timeline.length === 0 || activeTab === curPeriod;
+  // When the user selects a future period in the timeline, the main card switches
+  // to show that period's outfit. Current-conditions data (commuteAlert, avatarCondition,
+  // outfitReason, feelsLikeExplanation) only applies when viewing the current period.
+  const displayedRec = isViewingNow ? recommendation : (activeEntry?.recommendation ?? recommendation);
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } = displayedRec;
+
+  const displayFeelsLike = (() => {
+    if (isViewingNow) {
+      return tempUnit === "C"
+        ? `${Math.round(((feelsLike - 32) * 5) / 9)}°C`
+        : `${Math.round(feelsLike)}°F`;
+    }
+    if (!activeEntry) return "";
+    const lo = toUnit(activeEntry.period.minFeelsLike, tempUnit);
+    const hi = toUnit(activeEntry.period.maxFeelsLike, tempUnit);
+    const u = tempUnit === "C" ? "°C" : "°F";
+    return lo === hi ? `${lo}${u}` : `${lo}–${hi}${u}`;
+  })();
 
   const primaryText = isDark ? "#F4F4F5" : "#111827";
   const secondaryText = isDark ? "#D1D5DB" : "#4B5563";
@@ -200,7 +216,7 @@ export function OutfitRecommendationCard({
               >
                 {label}
               </h2>
-              {outfitReason && (
+              {isViewingNow && outfitReason && (
                 <p style={{ fontSize: 12, color: outfitReasonColor, fontWeight: 500, marginTop: 3 }}>
                   {outfitReason}
                 </p>
@@ -208,37 +224,35 @@ export function OutfitRecommendationCard({
               <button
                 type="button"
                 onClick={() => {
-                  if (feelsLikeExplanation) {
+                  if (isViewingNow && feelsLikeExplanation) {
                     setFeelsLikeExpanded((v) => !v);
                     hapticLight();
                   }
                 }}
                 style={{
-                  marginTop: 6,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  background: isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6",
+                  marginTop: 4,
+                  background: "none",
                   border: "none",
-                  cursor: feelsLikeExplanation ? "pointer" : "default",
+                  padding: 0,
+                  cursor: isViewingNow && feelsLikeExplanation ? "pointer" : "default",
                   textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                 }}
-                aria-label={feelsLikeExplanation ? "Tap to see feels-like explanation" : undefined}
+                aria-label={isViewingNow && feelsLikeExplanation ? "Tap to see feels-like explanation" : undefined}
               >
-                <span style={{ fontSize: 13 }}>🌡️</span>
-                <span style={{ fontSize: 13, color: mutedText, fontWeight: 500 }}>
-                  Feels like {displayFeelsLike}
+                <span style={{ fontSize: 13, color: mutedText }}>
+                  {isViewingNow ? "Feels like " : ""}{displayFeelsLike}
                 </span>
-                {feelsLikeExplanation && (
+                {isViewingNow && feelsLikeExplanation && (
                   <span style={{ fontSize: 11, color: infoIconColor }}>
                     {feelsLikeExpanded ? "▲" : "ⓘ"}
                   </span>
                 )}
               </button>
               <AnimatePresence>
-                {feelsLikeExpanded && feelsLikeExplanation && (
+                {feelsLikeExpanded && isViewingNow && feelsLikeExplanation && (
                   <motion.p
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
@@ -249,6 +263,27 @@ export function OutfitRecommendationCard({
                   </motion.p>
                 )}
               </AnimatePresence>
+              {!isViewingNow && (
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab(curPeriod); hapticLight(); }}
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: tabActiveText,
+                    fontWeight: 600,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  ← Now
+                </button>
+              )}
             </div>
             {(umbrella || rainGear) && (
               <span
@@ -265,78 +300,6 @@ export function OutfitRecommendationCard({
               </span>
             )}
           </div>
-
-          {/* Plan-for-later strip — shown when outfit changes across the day */}
-          {timeline && timeline.length > 1 && (() => {
-            const outfits = timeline.map((e) => e.recommendation.outfit);
-            const allSame = outfits.every((o) => o === outfits[0]);
-            if (allSame) return null;
-            const curPeriod = currentPeriodLabel();
-            return (
-              <div style={{ marginTop: 12, marginBottom: 4 }}>
-                <p
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: sectionLabelColor,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    marginBottom: 7,
-                  }}
-                >
-                  Plan for Today
-                </p>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {timeline.map((entry) => {
-                    const lo = toUnit(entry.period.minFeelsLike, tempUnit);
-                    const hi = toUnit(entry.period.maxFeelsLike, tempUnit);
-                    const unit = tempUnit === "C" ? "°C" : "°F";
-                    const isCurrent = entry.period.label === curPeriod;
-                    const shortLabel = entry.recommendation.label.split(/\s+/).slice(0, 2).join(" ");
-                    return (
-                      <div
-                        key={entry.period.label}
-                        style={{
-                          flex: 1,
-                          background: isCurrent ? tabActiveBg : tabInactiveBg,
-                          border: `1px solid ${isCurrent ? tabActiveBorder : tabInactiveBorder}`,
-                          borderRadius: 12,
-                          padding: "8px 6px",
-                          textAlign: "center",
-                        }}
-                      >
-                        <div style={{ fontSize: 15 }}>{PERIOD_EMOJI[entry.period.label]}</div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: isCurrent ? tabActiveText : tabInactiveText,
-                            marginTop: 3,
-                          }}
-                        >
-                          {entry.period.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: primaryText,
-                            marginTop: 3,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {shortLabel}
-                        </div>
-                        <div style={{ fontSize: 10, color: mutedText, marginTop: 2 }}>
-                          {lo === hi ? `${lo}${unit}` : `${lo}–${hi}${unit}`}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Flat Lay SVG Grid */}
           <OutfitFlatLay
@@ -380,7 +343,7 @@ export function OutfitRecommendationCard({
                     <button
                       key={entry.period.label}
                       type="button"
-                      onClick={() => setActiveTab(entry.period.label)}
+                      onClick={() => { setActiveTab(entry.period.label); hapticLight(); }}
                       style={{
                         flex: 1,
                         padding: "7px 4px",

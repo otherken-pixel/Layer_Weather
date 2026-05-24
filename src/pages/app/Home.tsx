@@ -334,9 +334,9 @@ export default function Home() {
             gap: 12,
           }}>
 
-            {/* Weather change alerts */}
-            {weatherAlerts.length > 0 && (
-              <AlertBanner alerts={weatherAlerts} />
+            {/* Weather change alerts — only show rain warnings, not feels-like info */}
+            {weatherAlerts.some((a) => a.type === "warning") && (
+              <AlertBanner alerts={weatherAlerts.filter((a) => a.type === "warning")} />
             )}
 
             {/* Today's outfit */}
