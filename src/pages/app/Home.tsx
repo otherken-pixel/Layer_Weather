@@ -120,8 +120,11 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
-  async function handleLocationSaved() {
+  async function handleLocationSaved(ctx?: { fromCitySave?: boolean }) {
     await refresh(true);
+    // City path: sheet already called addSavedLocation with forward-geocoded name; refresh may
+    // rename via reverse geocode — skip addSavedLocation so dedup by city string is not bypassed.
+    if (ctx?.fromCitySave) return;
     // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
     const loc = useAppStore.getState().location;
     if (loc?.city) {
