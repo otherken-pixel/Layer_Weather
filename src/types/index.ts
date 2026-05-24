@@ -54,6 +54,8 @@ export interface CurrentWeather {
   windDirection: number;  // degrees
   precipProb: number;     // percentage 0-100
   uvIndex: number;
+  /** US EPA AQI (0–500+). Null when unavailable (e.g. WeatherKit source). */
+  aqiIndex: number | null;
   condition: WeatherCondition;
   weatherCode: number;    // WMO code (or approximated from WeatherKit condition)
   isDay: boolean;

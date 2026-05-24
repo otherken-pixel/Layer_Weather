@@ -67,6 +67,7 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
     windDirection: cur.windDirection as number,
     precipProb: cur.precipProb as number,
     uvIndex: cur.uvIndex as number ?? 0,
+    aqiIndex: null,
     condition: cur.condition as WeatherCondition,
     weatherCode: cur.weatherCode as number,
     isDay: cur.isDay as boolean,
@@ -200,7 +201,8 @@ async function fetchFromOpenMeteo(
     windSpeed: Math.round(cur.wind_speed_10m as number),
     windDirection: Math.round(cur.wind_direction_10m as number),
     precipProb: Math.round(cur.precipitation_probability as number),
-    uvIndex: 0, // Open-Meteo free tier doesn't include UV index
+    uvIndex: 0,
+    aqiIndex: null,
     condition: wmoToCondition(cur.weather_code as number),
     weatherCode: cur.weather_code as number,
     isDay: (cur.is_day as number) === 1,
@@ -236,6 +238,31 @@ async function fetchFromOpenMeteo(
   }));
 
   return { current, hourly: hourlyData, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
+}
+
+// ── Air Quality Index (Open-Meteo Air Quality API, free) ─────────────────────
+export async function fetchAQIIndex(
+  latitude: number,
+  longitude: number,
+): Promise<number | null> {
+  try {
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      current: "us_aqi",
+    });
+    const res = await fetchWithTimeout(
+      `https://air-quality-api.open-meteo.com/v1/air-quality?${params}`,
+      {},
+      8_000,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const val = (json?.current as Record<string, unknown>)?.us_aqi;
+    return typeof val === "number" ? Math.round(val) : null;
+  } catch {
+    return null;
+  }
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────

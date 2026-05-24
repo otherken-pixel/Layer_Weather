@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -8,9 +8,10 @@ import Register from "@/pages/auth/Register";
 import Onboarding from "@/pages/onboarding/Onboarding";
 import AppLayout from "@/components/layout/AppLayout";
 import Home from "@/pages/app/Home";
-import Radar from "@/pages/app/Radar";
 import Packing from "@/pages/app/Packing";
 import Settings from "@/pages/app/Settings";
+
+const Radar = lazy(() => import("@/pages/app/Radar"));
 
 function useHashError() {
   const [hashError, setHashError] = useState<{ code: string; description: string } | null>(null);
@@ -78,7 +79,7 @@ export default function App() {
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Navigate to="home" replace />} />
               <Route path="home" element={<Home />} />
-              <Route path="radar" element={<Radar />} />
+              <Route path="radar" element={<Suspense fallback={<div style={{ flex: 1, background: "#0d1117" }} />}><Radar /></Suspense>} />
               <Route path="packing" element={<Packing />} />
               <Route path="settings" element={<Settings />} />
             </Route>
