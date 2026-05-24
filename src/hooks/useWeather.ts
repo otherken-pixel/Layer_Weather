@@ -55,11 +55,11 @@ async function resolveCoordinates(
   }
 
   const cached = useAppStore.getState().location;
-  if (location?.latitude != null && location?.longitude != null) {
-    return { latitude: location.latitude, longitude: location.longitude };
-  }
   if (cached?.latitude != null && cached?.longitude != null) {
     return { latitude: cached.latitude, longitude: cached.longitude };
+  }
+  if (location?.latitude != null && location?.longitude != null) {
+    return { latitude: location.latitude, longitude: location.longitude };
   }
   if (profile?.last_latitude != null && profile?.last_longitude != null) {
     return { latitude: profile.last_latitude, longitude: profile.last_longitude };
