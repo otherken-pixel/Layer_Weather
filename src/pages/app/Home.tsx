@@ -91,12 +91,18 @@ export default function Home() {
   // Geofence: trigger weather refresh when user moves significantly
   useEffect(() => {
     if (!location) return;
-    startGeofence({
-      currentLocation: location,
-      onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
-    }).catch(() => {});
+    let cancelled = false;
+    void (async () => {
+      await stopGeofence();
+      if (cancelled) return;
+      await startGeofence({
+        currentLocation: location,
+        onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
+      });
+    })().catch(() => {});
     return () => {
-      stopGeofence().catch(() => {});
+      cancelled = true;
+      void stopGeofence().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
