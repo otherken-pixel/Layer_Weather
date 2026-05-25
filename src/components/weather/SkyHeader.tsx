@@ -111,7 +111,7 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
         <button
           type="button"
           onClick={onLocationPress}
-          className="truncate max-w-full px-12 text-center border-0 bg-transparent cursor-pointer"
+          className="max-w-full min-w-0 px-12 text-center border-0 bg-transparent cursor-pointer"
           style={{
             fontSize: 12,
             fontWeight: 600,
@@ -125,12 +125,12 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
           title={`${locationLabel} — tap to change`}
           aria-label={`Location: ${locationLabel}. Tap to change.`}
         >
-          <MapPin size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
-          {locationLabel}
+          <MapPin className="shrink-0" size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
+          <span className="truncate min-w-0">{locationLabel}</span>
         </button>
       ) : (
         <span
-          className="truncate max-w-full px-12 text-center"
+          className="max-w-full min-w-0 px-12 text-center"
           style={{
             fontSize: 12,
             fontWeight: 600,
@@ -142,8 +142,8 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
             gap: 5,
           }}
         >
-          <MapPin size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
-          {locationLabel}
+          <MapPin className="shrink-0" size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
+          <span className="truncate min-w-0">{locationLabel}</span>
         </span>
       )}
 
