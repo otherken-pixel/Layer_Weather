@@ -11,21 +11,57 @@ interface Props {
   alerts: WeatherAlert[];
 }
 
-export function AlertBanner({ alerts }: Props) {
-  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+const STORAGE_KEY = "dismissedRainAlerts";
 
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(dismissed: Set<string>): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([...dismissed]));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
+export function AlertBanner({ alerts }: Props) {
+  const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed);
+
+  // Cleanup: remove dismissed entries whose alerts are no longer active,
+  // so storage doesn't grow unboundedly and stale dismissals don't block future alerts.
   useEffect(() => {
-    setDismissed(new Set());
+    const activeMessages = new Set(alerts.map((a) => a.message));
+    setDismissed((prev) => {
+      const cleaned = new Set([...prev].filter((msg) => activeMessages.has(msg)));
+      if (cleaned.size !== prev.size) {
+        saveDismissed(cleaned);
+        return cleaned;
+      }
+      return prev;
+    });
   }, [alerts]);
 
-  const visible = alerts.filter((_, i) => !dismissed.has(i));
+  function dismiss(message: string) {
+    setDismissed((prev) => {
+      const next = new Set([...prev, message]);
+      saveDismissed(next);
+      return next;
+    });
+  }
+
+  const visible = alerts.filter((a) => !dismissed.has(a.message));
   if (visible.length === 0) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <AnimatePresence>
-        {visible.map((alert, _originalIdx) => {
-          const idx = alerts.indexOf(alert);
+        {visible.map((alert) => {
           const isInfo = alert.type === "info";
           const bannerBg = isInfo ? "#EFF6FF" : "#FEF3C7";
           const bannerBorder = isInfo ? "#BFDBFE" : "#F59E0B";
@@ -34,7 +70,7 @@ export function AlertBanner({ alerts }: Props) {
           const bannerIcon = isInfo ? "ℹ️" : "⚠️";
           return (
             <motion.div
-              key={idx}
+              key={alert.message}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
@@ -56,7 +92,7 @@ export function AlertBanner({ alerts }: Props) {
               </p>
               <button
                 type="button"
-                onClick={() => setDismissed((prev) => new Set([...prev, idx]))}
+                onClick={() => dismiss(alert.message)}
                 aria-label="Dismiss alert"
                 style={{
                   flexShrink: 0,
