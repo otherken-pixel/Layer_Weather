@@ -1,5 +1,6 @@
 node_modules/
 dist/
+*.tsbuildinfo
 *.jks
 *.p8
 *.p12
