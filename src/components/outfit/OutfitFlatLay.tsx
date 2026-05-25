@@ -42,7 +42,9 @@ const ITEM_ANIM = {
 const STAGGER = 0.06;
 
 function SvgIcon({ id, size }: { id: string; size: number }) {
-  return <StorageSvg id={id} size={size} />;
+  return (
+    <StorageSvg id={id} size={size} loading="eager" fetchPriority="high" />
+  );
 }
 
 function FootwearIcon({ kind, size }: { kind: FootwearKind; size: number }) {
