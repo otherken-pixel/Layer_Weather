@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
-import { getWeatherWardrobes, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
+import { getWeatherWardrobes, getWardrobeItems, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
 import { SCENARIOS, SVG_CATALOG, catalogForPreference, getScenarioMeta } from "@/lib/wardrobeCatalog";
 import type { SvgCategory } from "@/lib/wardrobeCatalog";
 import type { WeatherScenario, WeatherWardrobePreset } from "@/types";
@@ -484,6 +484,7 @@ export default function Wardrobe() {
   const profile  = useAppStore((s) => s.profile);
   const weatherWardrobes  = useAppStore((s) => s.weatherWardrobes);
   const setWeatherWardrobes = useAppStore((s) => s.setWeatherWardrobes);
+  const setWardrobeItems = useAppStore((s) => s.setWardrobeItems);
   const isDark = profile?.theme_preference === "dark";
 
   const [loading, setLoading] = useState(true);
@@ -504,10 +505,16 @@ export default function Wardrobe() {
       setWeatherWardrobes(data);
     } catch {
       // table may not exist in dev; silently ignore
+    }
+    try {
+      const items = await getWardrobeItems(userId);
+      setWardrobeItems(items);
+    } catch {
+      // table may not exist in dev; silently ignore
     } finally {
       setLoading(false);
     }
-  }, [userId, setWeatherWardrobes]);
+  }, [userId, setWeatherWardrobes, setWardrobeItems]);
 
   useEffect(() => { void loadPresets(); }, [loadPresets]);
 

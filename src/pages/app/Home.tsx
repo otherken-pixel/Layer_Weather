@@ -16,7 +16,7 @@ import { useAppStore } from "@/store";
 import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
-import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWeatherWardrobes } from "@/lib/supabase";
+import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWeatherWardrobes, getWardrobeItems } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
@@ -47,6 +47,7 @@ export default function Home() {
     savedLocations, setSavedLocations,
     setProfile, setCalibration, setLocation, weatherLastFetched,
     weatherWardrobes, setWeatherWardrobes,
+    setWardrobeItems,
   } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
@@ -62,6 +63,9 @@ export default function Home() {
     let cancelled = false;
     void getWeatherWardrobes(userId)
       .then((data) => { if (!cancelled) setWeatherWardrobes(data); })
+      .catch(() => {});
+    void getWardrobeItems(userId)
+      .then((data) => { if (!cancelled) setWardrobeItems(data); })
       .catch(() => {});
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
