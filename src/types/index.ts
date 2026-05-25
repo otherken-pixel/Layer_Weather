@@ -278,3 +278,31 @@ export interface PackingItem {
   quantity: number;
   reason?: string;
 }
+
+export interface SerializedDailyForecast {
+  date: string;
+  tempMin: number;
+  tempMax: number;
+  feelsLikeMin: number;
+  feelsLikeMax: number;
+  precipProb: number;
+  condition: WeatherCondition;
+  weatherCode: number;
+  sunrise: string;
+  sunset: string;
+}
+
+export interface SavedPackingTrip {
+  id: string;
+  user_id: string;
+  destination: string;
+  latitude: number;
+  longitude: number;
+  country_code: string | null;
+  departure_date: string;
+  return_date: string;
+  packing_list: PackingItem[] | null;
+  weather_snapshot: SerializedDailyForecast[] | null;
+  last_generated_at: string | null;
+  created_at: string;
+}

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario } from "@/types";
+import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast } from "@/types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -168,6 +168,46 @@ export async function deleteWeatherWardrobe(userId: string, scenario: WeatherSce
     .delete()
     .eq("user_id", userId)
     .eq("scenario", scenario);
+  if (error) throw error;
+}
+
+// ── Packing Trips ─────────────────────────────────────────────────────────────
+
+export async function getPackingTrips(userId: string): Promise<SavedPackingTrip[]> {
+  const { data, error } = await supabase
+    .from("packing_trips")
+    .select("*")
+    .eq("user_id", userId)
+    .order("departure_date", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as SavedPackingTrip[];
+}
+
+export async function savePackingTrip(
+  trip: Omit<SavedPackingTrip, "id" | "created_at">
+): Promise<SavedPackingTrip> {
+  const { data, error } = await supabase
+    .from("packing_trips")
+    .insert(trip)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as SavedPackingTrip;
+}
+
+export async function updatePackingTrip(
+  id: string,
+  updates: { packing_list?: PackingItem[]; weather_snapshot?: SerializedDailyForecast[]; last_generated_at?: string }
+): Promise<void> {
+  const { error } = await supabase
+    .from("packing_trips")
+    .update(updates)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deletePackingTrip(id: string): Promise<void> {
+  const { error } = await supabase.from("packing_trips").delete().eq("id", id);
   if (error) throw error;
 }
 
