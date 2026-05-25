@@ -107,8 +107,9 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   const { topSz, bottomSz: baseBottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
   const footwearSz = Math.round(accSz * 1.25);
 
-  const wrap = (node: React.ReactNode, delay: number, sz = accSz) => (
+  const wrap = (node: React.ReactNode, delay: number, sz = accSz, reactKey?: React.Key) => (
     <motion.div
+      key={reactKey}
       {...ITEM_ANIM}
       transition={{ delay, type: "spring", stiffness: 280, damping: 22 }}
       className="flex items-center justify-center"
@@ -179,8 +180,8 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
             className="flex flex-wrap justify-center items-center gap-1"
             style={{ gridColumn: 2, gridRow: 2, minHeight: footwearSz }}
           >
-            {override.accessories.map((name, i) =>
-              wrap(<SvgIcon id={name} size={accSz} />, (3 + i) * STAGGER)
+            {override.accessories.map((svgId, i) =>
+              wrap(<SvgIcon id={svgId} size={accSz} />, (3 + i) * STAGGER, accSz, svgId)
             )}
           </div>
         </div>
@@ -191,12 +192,12 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   // ── Standard mode: system-generated outfit ──
   const isDress = outfit === "dress";
   const accessories = [
-    umbrella && <SvgIcon id={accessoryMap.umbrella} size={accSz} />,
-    sunglasses && <SvgIcon id={accessoryMap.sunglasses} size={accSz} />,
-    scarf && <SvgIcon id={accessoryMap.scarf} size={accSz} />,
-    beanie && <SvgIcon id={accessoryMap.beanie} size={accSz} />,
-    gloves && <SvgIcon id={accessoryMap.gloves} size={accSz} />,
-  ].filter(Boolean) as React.ReactElement[];
+    umbrella && { key: "umbrella", node: <SvgIcon id={accessoryMap.umbrella} size={accSz} /> },
+    sunglasses && { key: "sunglasses", node: <SvgIcon id={accessoryMap.sunglasses} size={accSz} /> },
+    scarf && { key: "scarf", node: <SvgIcon id={accessoryMap.scarf} size={accSz} /> },
+    beanie && { key: "beanie", node: <SvgIcon id={accessoryMap.beanie} size={accSz} /> },
+    gloves && { key: "gloves", node: <SvgIcon id={accessoryMap.gloves} size={accSz} /> },
+  ].filter((item): item is { key: string; node: React.ReactElement } => Boolean(item));
 
   return (
     <motion.div
@@ -271,8 +272,8 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
             className="flex flex-wrap justify-center items-center gap-1"
             style={{ gridColumn: 2, gridRow: 2, minHeight: footwearSz }}
           >
-            {accessories.map((acc, i) =>
-              wrap(acc, (3 + i) * STAGGER)
+            {accessories.map(({ key, node }, i) =>
+              wrap(node, (3 + i) * STAGGER, accSz, key)
             )}
           </div>
         </motion.div>
