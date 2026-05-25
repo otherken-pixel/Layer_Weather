@@ -530,6 +530,7 @@ export default function Settings() {
                   background: isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.10)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 16,
+                  color: rowTextColor,
                 }}>
                   ?
                 </div>
