@@ -648,7 +648,7 @@ function TimelinePeriodDetail({
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <WeatherIcon condition={period.condition} size="lg" isDark={isDark} />
+      <WeatherIcon condition={period.condition} size="lg" />
       {period.precipProb > 20 && (
         <span style={{ fontSize: 13, color: mutedText }}>
           {period.precipProb}% rain

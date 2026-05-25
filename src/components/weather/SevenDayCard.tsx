@@ -127,7 +127,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               </span>
 
               {/* Weather icon */}
-              <WeatherIcon condition={day.condition} size="md" isDark={isDark} />
+              <WeatherIcon condition={day.condition} size="md" />
 
               {/* Precip % */}
               <span
@@ -301,7 +301,7 @@ function HourlyDrillDown({
               >
                 {h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
-              <WeatherIcon condition={condKey} size="sm" isDark={isDark} />
+              <WeatherIcon condition={condKey} size="sm" />
               <span style={{ fontSize: 15, fontWeight: 700, color: tempColor }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
