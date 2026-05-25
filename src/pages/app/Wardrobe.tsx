@@ -194,7 +194,17 @@ function EditorSheet({
 
   function handleSingleSelect(category: SvgCategory, name: string) {
     hapticLight();
-    if (category === "tops")      setTopSvg((v)      => v === name ? null : name);
+    if (category === "tops") {
+      setTopSvg((v) => {
+        const next = v === name ? null : name;
+        if (next === "Dress") {
+          setBottomSvg(null);
+          setActiveTab("outerwear");
+        }
+        return next;
+      });
+      return;
+    }
     if (category === "bottoms")   setBottomSvg((v)   => v === name ? null : name);
     if (category === "outerwear") setOuterwearSvg((v) => v === name ? null : name);
     if (category === "footwear")  setFootwearSvg((v) => v === name ? null : name);
@@ -287,12 +297,13 @@ function EditorSheet({
             onDragEnd={(_, info) => {
               if (info.offset.y > 120 || info.velocity.y > 500) onClose();
             }}
-            className="fixed left-0 right-0 bottom-0 z-[90] rounded-t-[28px] flex flex-col"
-            style={{ maxHeight: "92vh", background: surface, boxShadow: "0 -8px 40px rgba(0,0,0,0.22)" }}
+            className="fixed inset-0 z-[90] flex flex-col"
+            style={{ height: "100dvh", background: surface }}
           >
             {/* Drag handle + header */}
             <div
-              className="pt-4 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+              className="px-5 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+              style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
               onPointerDown={(e) => dragControls.start(e)}
             >
               <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
@@ -326,6 +337,7 @@ function EditorSheet({
               <div className="flex gap-2" style={{ width: "max-content" }}>
                 {EDITOR_TABS.map((tab) => {
                   const active = activeTab === tab.key;
+                  const isDressBottom = tab.key === "bottoms" && topSvg === "Dress";
                   return (
                     <button
                       key={tab.key}
@@ -339,7 +351,7 @@ function EditorSheet({
                         fontSize: 13,
                         cursor: "pointer",
                         background: active ? "var(--accent-primary)" : tabBg,
-                        color: active ? "#FFFFFF" : textSecondary,
+                        color: active ? "#FFFFFF" : isDressBottom ? (isDark ? "#4B5563" : "#D1D5DB") : textSecondary,
                         flexShrink: 0,
                       }}
                     >
@@ -372,7 +384,15 @@ function EditorSheet({
                 </p>
               )}
 
-              {currentOptions.length === 0 ? (
+              {activeTab === "bottoms" && topSvg === "Dress" ? (
+                <div style={{ textAlign: "center", paddingTop: 60, color: textSecondary }}>
+                  <p style={{ fontSize: 40, marginBottom: 12 }}>👗</p>
+                  <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: textPrimary }}>
+                    Dress selected
+                  </p>
+                  <p style={{ fontSize: 13 }}>No bottom needed — a dress is a full outfit.</p>
+                </div>
+              ) : currentOptions.length === 0 ? (
                 <div style={{ textAlign: "center", paddingTop: 32, color: textSecondary }}>
                   <p style={{ fontSize: 32, marginBottom: 8 }}>🚫</p>
                   <p style={{ fontSize: 14 }}>No options for your style preference in this category.</p>
