@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { LocationData } from "@/types";
 
 interface Props {
@@ -21,6 +21,10 @@ export function LocationTabs({
   onDelete,
 }: Props) {
   const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    if (locations.length === 0) setEditMode(false);
+  }, [locations.length]);
 
   return (
     <div

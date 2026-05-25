@@ -97,9 +97,11 @@ export function useWeather() {
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
 
   const refresh = useCallback(async (force = false, options: RefreshOptions = {}) => {
-    if (!force && !isStale && weather) return;
-
     const { useDeviceLocation = false, cacheKey } = options;
+    // Skip global freshness short-circuit when cacheKey is set: stale/fresh is per fetch,
+    // not necessarily for the city that cacheKey refers to (tab switch).
+    if (!force && !cacheKey && !isStale && weather) return;
+
     const generation = ++refreshGeneration.current;
 
     // Check per-city cache before hitting the network.
@@ -107,6 +109,7 @@ export function useWeather() {
     if (!force && cacheKey) {
       const cached = cityWeatherCache[cacheKey];
       if (cached && Date.now() - cached.fetchedAt.getTime() < STALE_AFTER_MS) {
+        setWeatherError(null);
         setWeather(cached.weather);
         setOutfit(cached.outfit);
         setOutfitTimeline(cached.outfitTimeline);
