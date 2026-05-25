@@ -613,21 +613,25 @@ export default function Wardrobe() {
                 gap: 12,
               }}
             >
-              {SCENARIOS.map((scenario, i) => (
-                <motion.div
-                  key={scenario.key}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <ScenarioCard
-                    scenario={scenario}
-                    preset={presetForScenario(scenario.key)}
-                    onEdit={() => setEditingScenario(scenario.key)}
-                    isDark={isDark}
-                  />
-                </motion.div>
-              ))}
+              {SCENARIOS.map((scenario, i) => {
+                const isOrphan = SCENARIOS.length % 2 !== 0 && i === SCENARIOS.length - 1;
+                return (
+                  <motion.div
+                    key={scenario.key}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    style={isOrphan ? { gridColumn: "1 / -1" } : undefined}
+                  >
+                    <ScenarioCard
+                      scenario={scenario}
+                      preset={presetForScenario(scenario.key)}
+                      onEdit={() => setEditingScenario(scenario.key)}
+                      isDark={isDark}
+                    />
+                  </motion.div>
+                );
+              })}
             </div>
           </>
         )}

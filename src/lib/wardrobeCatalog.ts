@@ -81,17 +81,24 @@ export const SCENARIOS: ScenarioMeta[] = [
   },
   {
     key: "warm",
-    label: "Nice Day",
+    label: "Warm Day",
     emoji: "🌤️",
-    description: "60–71°F",
+    description: "65–71°F",
     defaults: { top: "TShirt", bottom: "Pants", outerwear: null, footwear: "Sneakers", accessories: [] },
+  },
+  {
+    key: "mild",
+    label: "Mild Day",
+    emoji: "🧥",
+    description: "60–64°F",
+    defaults: { top: "LongSleeve", bottom: "Pants", outerwear: "Jacket", footwear: "Sneakers", accessories: [] },
   },
   {
     key: "cool",
     label: "Chilly Day",
     emoji: "🍂",
     description: "45–59°F",
-    defaults: { top: "LongSleeve", bottom: "Pants", outerwear: "Jacket", footwear: "Sneakers", accessories: [] },
+    defaults: { top: "LongSleeve", bottom: "Pants", outerwear: "HeavyJacket", footwear: "Sneakers", accessories: [] },
   },
   {
     key: "cold",
