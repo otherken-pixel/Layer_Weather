@@ -97,28 +97,35 @@ function matchAccessories(
   needed: { scarf: boolean; beanie: boolean; gloves: boolean }
 ): WardrobeItem[] {
   const accessories = items.filter((i) => i.category === "accessories");
-  const matched: WardrobeItem[] = [];
+  type Slot = { pattern: RegExp; warmth: [number, number] };
+  const slots: Slot[] = [];
+  if (needed.scarf) slots.push({ pattern: /scarf|wrap/i, warmth: [3, 5] });
+  if (needed.beanie) slots.push({ pattern: /beanie|toque|hat|cap/i, warmth: [4, 5] });
+  if (needed.gloves) slots.push({ pattern: /gloves?|mittens?/i, warmth: [4, 5] });
 
-  function pick(pattern: RegExp, warmthRange: [number, number]): WardrobeItem | null {
-    const byName = accessories.filter((i) => pattern.test(i.name) && !matched.includes(i));
-    if (byName.length > 0) return byName[0];
-    return pickBest(accessories.filter((i) => !matched.includes(i)), warmthRange);
-  }
+  const assigned: (WardrobeItem | null)[] = slots.map(() => null);
 
-  if (needed.scarf) {
-    const m = pick(/scarf|wrap/i, [3, 5]);
-    if (m) matched.push(m);
-  }
-  if (needed.beanie) {
-    const m = pick(/beanie|toque|hat|cap/i, [4, 5]);
-    if (m) matched.push(m);
-  }
-  if (needed.gloves) {
-    const m = pick(/gloves?|mittens?/i, [4, 5]);
-    if (m) matched.push(m);
+  function poolUnused(): WardrobeItem[] {
+    const taken = new Set(
+      assigned.filter((x): x is WardrobeItem => x !== null).map((i) => i.id)
+    );
+    return accessories.filter((i) => !taken.has(i.id));
   }
 
-  return matched;
+  // Name matches first for every slot so warmth fallback cannot consume items
+  // another slot would match by name on a later iteration.
+  for (let s = 0; s < slots.length; s++) {
+    const pool = poolUnused();
+    const byName = pool.filter((i) => slots[s].pattern.test(i.name));
+    if (byName.length > 0) assigned[s] = byName[0];
+  }
+  for (let s = 0; s < slots.length; s++) {
+    if (assigned[s]) continue;
+    const m = pickBest(poolUnused(), slots[s].warmth);
+    if (m) assigned[s] = m;
+  }
+
+  return assigned.filter((x): x is WardrobeItem => x !== null);
 }
 
 export function matchWardrobeToOutfit(
@@ -164,16 +171,6 @@ export function matchWardrobeToOutfit(
     accessories: matchAccessories(items, { scarf, beanie, gloves }),
     gaps,
   };
-}
-
-export function hasAnyMatch(match: WardrobeMatch): boolean {
-  return !!(
-    match.top ||
-    match.bottom ||
-    match.outerwear ||
-    match.footwear ||
-    match.accessories.length > 0
-  );
 }
 
 function findWardrobeItemForPacking(

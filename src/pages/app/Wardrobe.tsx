@@ -497,7 +497,7 @@ export default function Wardrobe() {
   useEffect(() => { loadItems(); }, [loadItems]);
 
   async function handleDelete(id: string) {
-    setWardrobeItems(wardrobeItems.filter((i) => i.id !== id));
+    setWardrobeItems((prev) => prev.filter((i) => i.id !== id));
     try {
       await deleteWardrobeItem(id);
     } catch {
@@ -506,10 +506,10 @@ export default function Wardrobe() {
   }
 
   function handleSaved(item: WardrobeItem) {
-    setWardrobeItems(
-      wardrobeItems.some((i) => i.id === item.id)
-        ? wardrobeItems.map((i) => (i.id === item.id ? item : i))
-        : [item, ...wardrobeItems]
+    setWardrobeItems((prev) =>
+      prev.some((i) => i.id === item.id)
+        ? prev.map((i) => (i.id === item.id ? item : i))
+        : [item, ...prev]
     );
   }
 
