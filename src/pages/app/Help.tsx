@@ -125,81 +125,86 @@ const SECTIONS: HelpSection[] = [
     title: "Wardrobe",
     items: [
       {
-        question: "How do I add a clothing item?",
+        question: "How does the Wardrobe feature work?",
         answer: (
           <>
-            <p>Navigate to the Wardrobe tab and tap the + button in the top right corner. Fill in:</p>
-            <ol style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>Category</strong> — Choose from Tops, Bottoms, Outerwear, Footwear, or Accessories.</li>
-              <li><strong>Color</strong> — Enter the color name or pick from common options.</li>
-              <li><strong>Warmth rating</strong> — Rate from 1 (very light, like a tank top) to 5 (very warm, like a heavy coat).</li>
-              <li><strong>Style tags</strong> — Select all that apply: Casual, Formal, Activewear, Outdoor, Work, or Smart-casual.</li>
-            </ol>
-            <p style={{ marginTop: 8 }}>Tap Save to add the item to your wardrobe.</p>
+            <p>Your Wardrobe lets you build a personal outfit for each of six weather types using the app's clothing illustrations. Once set up, WearToday automatically shows your chosen outfit on the Today screen whenever the weather matches that type — no guessing, no generic suggestions.</p>
+            <p style={{ marginTop: 8 }}>For example, if you set up a Rainy Day wardrobe with a rain jacket, jeans, and rain boots, that exact outfit will appear every time it rains.</p>
           </>
         ),
       },
       {
-        question: "What are the clothing categories?",
+        question: "What are the six weather types?",
         answer: (
-          <ul style={{ paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-            <li><strong>👕 Tops</strong> — T-shirts, shirts, blouses, sweaters, hoodies.</li>
-            <li><strong>👖 Bottoms</strong> — Pants, jeans, shorts, skirts, leggings.</li>
-            <li><strong>🧥 Outerwear</strong> — Jackets, coats, raincoats, vests.</li>
-            <li><strong>👟 Footwear</strong> — Sneakers, boots, sandals, dress shoes.</li>
-            <li><strong>🧣 Accessories</strong> — Scarves, hats, gloves, belts, bags.</li>
+          <ul style={{ paddingLeft: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+            <li><strong>☀️ Hot Day</strong> — Feels like 72°F (22°C) or above, no rain or snow. Typically shorts and a t-shirt kind of day.</li>
+            <li><strong>🌤️ Nice Day</strong> — Feels like 60–71°F (15–21°C), clear or partly cloudy. A comfortable layer-optional day.</li>
+            <li><strong>🍂 Chilly Day</strong> — Feels like 45–59°F (7–14°C). Light jacket weather.</li>
+            <li><strong>🧤 Cold Day</strong> — Feels like below 45°F (7°C), no snow. Time for a heavy coat and warm layers.</li>
+            <li><strong>🌧️ Rainy Day</strong> — Rain expected at any temperature. Takes priority over the temperature bands above.</li>
+            <li><strong>❄️ Snowy Day</strong> — Snow expected. Takes the highest priority regardless of temperature.</li>
           </ul>
         ),
       },
       {
-        question: "How does the warmth rating work?",
+        question: "How do I set up a wardrobe for a weather type?",
         answer: (
           <>
-            <p>The warmth rating (1–5) tells the app how much warmth an item provides. Use this scale as a guide:</p>
-            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>1</strong> — Very light. Tank tops, shorts, sandals.</li>
-              <li><strong>2</strong> — Light. T-shirts, light linen shirts, light sneakers.</li>
-              <li><strong>3</strong> — Medium. Long-sleeve shirts, jeans, light fleece.</li>
-              <li><strong>4</strong> — Warm. Heavy sweaters, lined pants, ankle boots.</li>
-              <li><strong>5</strong> — Very warm. Heavy coats, thermal layers, insulated boots.</li>
-            </ul>
-            <p style={{ marginTop: 8 }}>The app uses these ratings to build outfits that match the day's temperature range.</p>
+            <p>Go to the <strong>Wardrobe tab</strong>. You'll see six cards, one for each weather type. Tap any card to open the outfit editor. Inside the editor:</p>
+            <ol style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li>A <strong>live preview</strong> at the top shows your outfit as you build it — it updates instantly as you make selections.</li>
+              <li>Use the <strong>category tabs</strong> — Top, Bottom, Outer, Shoes, Extras — to switch between clothing slots.</li>
+              <li>Tap any <strong>clothing illustration</strong> in the grid to select it. The selected item gets a colored border. Tap it again to deselect.</li>
+              <li>The <strong>Extras tab</strong> (accessories) supports multiple selections — pick as many as you like, such as an umbrella and sunglasses together.</li>
+              <li>Outerwear is optional — leave it unselected if the weather type doesn't call for a layer.</li>
+              <li>Tap <strong>Save Wardrobe</strong> when you're happy with the outfit.</li>
+            </ol>
+            <p style={{ marginTop: 8 }}>The card in the grid will immediately show a mini preview of your saved outfit.</p>
           </>
         ),
       },
       {
-        question: "What are style tags and why do they matter?",
+        question: "How does my wardrobe appear on the Today screen?",
         answer: (
           <>
-            <p>Style tags describe the context in which you'd wear an item. They help WearToday suggest outfits that match your agenda for the day.</p>
-            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>Casual</strong> — Everyday, relaxed wear.</li>
-              <li><strong>Formal</strong> — Business dress, suits, formalwear.</li>
-              <li><strong>Activewear</strong> — Gym, running, sports.</li>
-              <li><strong>Outdoor</strong> — Hiking, camping, rugged activities.</li>
-              <li><strong>Work</strong> — Office-appropriate attire.</li>
-              <li><strong>Smart-casual</strong> — Polished but not formal; restaurant-ready.</li>
-            </ul>
-            <p style={{ marginTop: 8 }}>If your Today agenda is set to "Work," the app will prioritize items tagged Work or Formal.</p>
+            <p>When the current weather matches one of your saved wardrobes, the Today tab automatically shows your outfit instead of the default system illustration. You'll also see a banner at the bottom of the outfit card confirming which wardrobe is active — for example, <em>"Your Rainy Day wardrobe"</em> — with an Edit shortcut.</p>
+            <p style={{ marginTop: 8 }}>If the weather matches a type you haven't set up yet, a dashed prompt appears: <em>"Set up your wardrobe for this weather →"</em>. Tap it to go directly to that editor.</p>
           </>
         ),
       },
       {
-        question: "How do I edit or delete an item?",
+        question: "What is Style Preference and how do I set it?",
         answer: (
           <>
-            <p>In the Wardrobe tab, tap on any item to open its detail view. From there:</p>
+            <p>Style Preference filters which clothing illustrations appear in the wardrobe editor so you only see options relevant to you. It's found in <strong>Settings → Wardrobe Style</strong>. The three options are:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li>Tap the <strong>edit icon</strong> (pencil) to modify the category, color, warmth rating, or style tags.</li>
-              <li>Tap the <strong>delete icon</strong> (trash) and confirm to permanently remove the item.</li>
+              <li><strong>Feminine</strong> — Shows dresses, women's cuts, and shared styles. For example, the Dress and Women's Jeans options will appear.</li>
+              <li><strong>Masculine</strong> — Shows men's cuts and shared styles. Gender-specific feminine options are hidden.</li>
+              <li><strong>Show All</strong> — Every clothing illustration is available regardless of style. Good if you want the full selection.</li>
             </ul>
+            <p style={{ marginTop: 8 }}>Changing this setting filters what you see in the editor — it doesn't affect wardrobes you've already saved.</p>
           </>
         ),
       },
       {
-        question: "How does my wardrobe connect to outfit suggestions?",
+        question: "Do I need to set up all six wardrobes?",
         answer: (
-          <p>When your wardrobe is populated, the Today tab will suggest specific items from your closet rather than generic clothing types. For example, instead of "wear a medium-weight jacket," it might say "wear your Navy Casual Jacket." The more items you add, the more personalized your daily outfit becomes.</p>
+          <p>No — you can set up as many or as few as you like. For any weather type you haven't configured, WearToday falls back to its standard system-generated outfit recommendation based on your temperature calibration. The app works fine with just one or two wardrobes set up for the conditions you care about most.</p>
+        ),
+      },
+      {
+        question: "Can I choose a dress instead of separate top and bottom?",
+        answer: (
+          <p>Yes. Under the <strong>Top tab</strong>, select the Dress illustration. When a dress is chosen, the Bottom slot is automatically ignored — the dress spans the full top row of the outfit preview. You can still choose footwear and accessories as normal. To go back to a separate top and bottom, simply select a different item in the Top tab (like a T-Shirt or Sweater), and the Bottom tab becomes active again.</p>
+        ),
+      },
+      {
+        question: "How do I edit or clear a saved wardrobe?",
+        answer: (
+          <>
+            <p>Tap the scenario card on the Wardrobe tab. The editor opens pre-filled with your current selections. Make any changes and tap <strong>Save Wardrobe</strong> to update.</p>
+            <p style={{ marginTop: 8 }}>To remove a wardrobe entirely, tap <strong>Clear this wardrobe</strong> at the bottom of the editor. The card will return to its empty placeholder state and the weather type will fall back to system recommendations.</p>
+          </>
         ),
       },
     ],
