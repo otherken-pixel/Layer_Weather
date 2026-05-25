@@ -67,11 +67,15 @@ function daysToReturn(returnDateStr: string): number {
   return Math.ceil((ret.getTime() - today.getTime()) / 86400000);
 }
 
-function forecastStatus(returnDateStr: string): "full" | "extended" | "unavailable" {
-  const d = daysToReturn(returnDateStr);
-  if (d <= 10) return "full";
-  if (d <= 16) return "extended";
-  return "unavailable";
+function forecastStatus(departureDateStr: string, returnDateStr: string): "full" | "extended" | "unavailable" {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dep = new Date(departureDateStr + "T00:00:00");
+  const ret = new Date(returnDateStr + "T00:00:00");
+  const daysUntilDep = Math.ceil((dep.getTime() - today.getTime()) / 86400000);
+  const daysUntilRet = Math.ceil((ret.getTime() - today.getTime()) / 86400000);
+  if (daysUntilDep > 16) return "unavailable";
+  if (daysUntilRet <= 10) return "full";
+  return "extended";
 }
 
 function forecastAvailableOn(departureDateStr: string): string {
@@ -369,8 +373,8 @@ export default function Packing() {
           )}
 
           {/* Date pickers */}
-          <div style={{ marginTop: 14, display: "flex", gap: 12 }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
                 Departure
               </p>
@@ -385,7 +389,7 @@ export default function Packing() {
                 style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "10px 12px", fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div>
               <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
                 Return
               </p>
@@ -403,9 +407,9 @@ export default function Packing() {
             <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>
               {tripLengthDays(departureDate, returnDate)} day{tripLengthDays(departureDate, returnDate) !== 1 ? "s" : ""}
               {" · "}
-              {forecastStatus(returnDate) === "full" && <span style={{ color: "#22C55E" }}>Full forecast available</span>}
-              {forecastStatus(returnDate) === "extended" && <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>}
-              {forecastStatus(returnDate) === "unavailable" && <span style={{ color: "#9CA3AF" }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
+              {forecastStatus(departureDate, returnDate) === "full" && <span style={{ color: "#22C55E" }}>Full forecast available</span>}
+              {forecastStatus(departureDate, returnDate) === "extended" && <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>}
+              {forecastStatus(departureDate, returnDate) === "unavailable" && <span style={{ color: "#9CA3AF" }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
             </p>
           )}
         </div>
@@ -414,7 +418,7 @@ export default function Packing() {
         {error && (
           <div style={{ background: "#FEF2F2", borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
             <p style={{ fontSize: 13, color: "#EF4444", margin: 0, flex: 1 }}>{error}</p>
-            {selected && departureDate && returnDate && forecastStatus(returnDate) === "unavailable" && (
+            {selected && departureDate && returnDate && forecastStatus(departureDate, returnDate) === "unavailable" && (
               <button
                 onClick={saveTripWithoutForecast}
                 disabled={saving || !userId}
@@ -505,7 +509,7 @@ export default function Packing() {
               const isExpanded = expandedTripId === trip.id;
               const isPast = isPastTrip(trip.return_date);
               const countdown = tripCountdown(trip.departure_date);
-              const fStatus = forecastStatus(trip.return_date);
+              const fStatus = forecastStatus(trip.departure_date, trip.return_date);
               const isRefreshing = refreshingTripId === trip.id;
               const diff = tripDiffs[trip.id];
               const items = tripItems[trip.id] ?? [];
