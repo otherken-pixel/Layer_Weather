@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
 import { getWeatherWardrobes, getWardrobeItems, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
@@ -267,7 +268,7 @@ function EditorSheet({
     accessories,
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -530,7 +531,8 @@ function EditorSheet({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
