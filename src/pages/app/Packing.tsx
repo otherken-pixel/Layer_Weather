@@ -74,7 +74,7 @@ function forecastStatus(departureDateStr: string, returnDateStr: string): "full"
 
 function forecastAvailableOn(departureDateStr: string): string {
   const dep = new Date(departureDateStr + "T00:00:00");
-  const avail = new Date(dep.getTime() - 16 * 86400000);
+  const avail = new Date(dep.getTime() - 15 * 86400000);
   return avail.toLocaleDateString("en", { month: "short", day: "numeric" });
 }
 
