@@ -298,13 +298,17 @@ export async function fetchWeatherForDateRange(
 ): Promise<{ forecasts: DailyForecast[]; isForecastComplete: boolean } | null> {
   const today = new Date();
   const todayKey = toLocalDayKey(today);
+  const depKey = toLocalDayKey(departureDate);
   const retKey = toLocalDayKey(returnDate);
 
   const todayMidnight = new Date(todayKey + "T00:00:00").getTime();
+  const depMidnight = new Date(depKey + "T00:00:00").getTime();
   const retMidnight = new Date(retKey + "T00:00:00").getTime();
+  const daysToDeparture = Math.ceil((depMidnight - todayMidnight) / 86400000);
   const daysToReturn = Math.ceil((retMidnight - todayMidnight) / 86400000);
 
-  if (daysToReturn > 16) return null;
+  // If even the departure is beyond 16 days, no forecast data exists yet
+  if (daysToDeparture > 16) return null;
 
   let allDaily: DailyForecast[];
 
@@ -319,13 +323,12 @@ export async function fetchWeatherForDateRange(
     allDaily = (await fetchFromOpenMeteo(latitude, longitude, 16)).daily;
   }
 
-  const depKey = toLocalDayKey(departureDate);
   const forecasts = allDaily.filter((d) => {
     const key = toLocalDayKey(d.date);
     return key >= depKey && key <= retKey;
   });
 
-  const expectedDays = Math.round((retMidnight - new Date(depKey + "T00:00:00").getTime()) / 86400000) + 1;
+  const expectedDays = Math.round((retMidnight - depMidnight) / 86400000) + 1;
 
   return { forecasts, isForecastComplete: forecasts.length >= expectedDays };
 }
