@@ -39,11 +39,15 @@ async function resolveCoordinates(
   force: boolean,
   useDeviceLocation: boolean,
 ): Promise<{ latitude: number; longitude: number }> {
-  if (useDeviceLocation) {
-    // Use the shared helper which handles both native (20 s timeout) and web.
-    const coords = await resolveDeviceCoordinates();
-    if (coords) return coords;
-    // GPS unavailable — fall through to saved coordinates below.
+  if (force && useDeviceLocation) {
+    try {
+      // Use the shared helper which handles both native (20 s timeout) and web.
+      const coords = await resolveDeviceCoordinates();
+      if (coords) return coords;
+    } catch {
+      // Native GPS can reject before the helper timeout (e.g. position unavailable).
+    }
+    // GPS unavailable or skipped — fall through to saved coordinates below.
   }
 
   const { location, profile } = useAppStore.getState();
