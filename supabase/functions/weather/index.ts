@@ -144,10 +144,14 @@ Deno.serve(async (req) => {
     const days: Record<string, unknown>[] = wk.forecastDaily?.days ?? [];
     const nextHour = wk.forecastNextHour ?? null;
 
-    const curPrecipProb =
-      hours.length > 0
-        ? Math.round(((hours[0].precipitationChance as number) ?? 0) * 100)
-        : 0;
+    const nowMs = Date.now();
+    const currentHourEntry = hours.find(h => {
+      const t = new Date(h.forecastStart as string).getTime();
+      return t <= nowMs && nowMs < t + 3_600_000;
+    }) ?? hours[0];
+    const curPrecipProb = currentHourEntry
+      ? Math.round(((currentHourEntry.precipitationChance as number) ?? 0) * 100)
+      : 0;
 
     const out = {
       _source: "weatherkit",

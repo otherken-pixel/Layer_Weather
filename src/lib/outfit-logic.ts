@@ -288,12 +288,23 @@ export function getOutfitRecommendation(opts: {
     if (humidity > 60 && feelsLike < 50) effectiveFeelsLike -= 2;
   }
 
+  // Use next-2-hour max precipProb when hourly data is available.
+  // Prevents afternoon/evening rain from driving the morning outfit recommendation.
+  const now = new Date();
+  const nearTermHours = hourly.filter(h => {
+    const diff = (h.time.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diff >= 0 && diff <= 2;
+  });
+  const effectivePrecipProb = nearTermHours.length > 0
+    ? Math.max(...nearTermHours.map(h => h.precipProb))
+    : precipProb;
+
   const isRainy =
-    precipProb > 40 ||
+    effectivePrecipProb > 40 ||
     (weatherCode >= 51 && weatherCode <= 82) ||
     weatherCode >= 95;
   const isHeavyRain =
-    precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+    effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
   const isWindy = windSpeed > 15;
   const isSnowy = weatherCode >= 71 && weatherCode <= 77;
 
@@ -333,7 +344,7 @@ export function getOutfitRecommendation(opts: {
   const umbrella =
     outfit === "rain_light" ||
     outfit === "rain_heavy" ||
-    (precipProb > 60 && calibration.rain_tolerance !== "high");
+    (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high");
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
   const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie = effectiveFeelsLike < 30 || isSnowy;
