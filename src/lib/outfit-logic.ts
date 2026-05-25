@@ -383,7 +383,7 @@ export function getOutfitRecommendation(opts: {
     outfit,
     effectivePrecipProb,
     label: getOutfitLabel(outfit),
-    description: buildDescription(effectiveFeelsLike, outfit, isWindy, precipProb, isSnowy),
+    description: buildDescription(effectiveFeelsLike, outfit, isWindy, effectivePrecipProb, isSnowy),
     rainGear: isRainy,
     umbrella,
     sunglasses,
