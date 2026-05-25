@@ -394,7 +394,7 @@ export default function Packing() {
                   setDepartureDate(e.target.value);
                   if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value);
                 }}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "6px 12px", fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none" }}
               />
             </div>
             <div>
@@ -406,7 +406,7 @@ export default function Packing() {
                 min={departureDate || today}
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "6px 12px", fontSize: 14, color: returnDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: returnDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none" }}
               />
             </div>
           </div>
