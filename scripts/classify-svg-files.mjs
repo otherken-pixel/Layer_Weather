@@ -103,6 +103,11 @@ const entries = FILES.map((file) => {
   };
 });
 
+// Stored under outerwear/ but selected in the wardrobe "tops" tab (matches legacy catalog).
+for (const e of entries) {
+  if (e.id === "outerwear-neutral-sweater") e.category = "tops";
+}
+
 // Resolve duplicate ids
 const seen = new Map();
 for (const e of entries) {

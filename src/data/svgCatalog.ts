@@ -63,7 +63,7 @@ export const SVG_CATALOG: SvgCatalogEntry[] = [
     "id": "outerwear-neutral-sweater",
     "path": "neutral/outerwear/008-sweater.svg",
     "label": "Sweater",
-    "category": "outerwear",
+    "category": "tops",
     "style": "neutral"
   },
   {

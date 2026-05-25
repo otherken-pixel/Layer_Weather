@@ -9,11 +9,11 @@ Files start at the bucket root (e.g. `005-tshirt.svg`). The app expects:
 Deploy and invoke the `organize-svg-clothes` edge function (service role copies each file, then removes the root copy):
 
 ```bash
-curl -s "https://kbldfsxvfzanmjwjttvd.supabase.co/functions/v1/organize-svg-clothes?secret=cursor-svg-organize-7397" \
+curl -s "https://<YOUR_PROJECT_REF>.supabase.co/functions/v1/organize-svg-clothes?secret=<ORGANIZE_SVG_SECRET_VALUE>" \
   -H "Authorization: Bearer YOUR_ANON_KEY"
 ```
 
-Set `ORGANIZE_SVG_SECRET` in the function's secrets and rotate/remove the default token after a successful run.
+Set `ORGANIZE_SVG_SECRET` in the function's secrets to a strong random value, then invoke with that same value as the `secret` query parameter.
 
 ## Regenerate catalog after reclassification
 

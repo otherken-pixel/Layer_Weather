@@ -11,7 +11,13 @@ const cors = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
-  const secret = Deno.env.get("ORGANIZE_SVG_SECRET") ?? "cursor-svg-organize-7397";
+  const secret = Deno.env.get("ORGANIZE_SVG_SECRET");
+  if (!secret) {
+    return new Response(JSON.stringify({ error: "server_misconfigured" }), {
+      status: 500,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
   const provided = new URL(req.url).searchParams.get("secret");
   if (!provided || provided !== secret) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
