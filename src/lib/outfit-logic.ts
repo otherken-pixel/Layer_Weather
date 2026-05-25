@@ -600,8 +600,9 @@ export function getOutfitRecommendation(opts: {
   const { outfitType: outfit, label, garmentTop, garmentBottom, descriptionTemplate } = mapping;
 
   // Resolve description from template
+  // User-facing copy uses raw feels-like (matches header); tier selection uses effectiveFeelsLike.
   const description = buildDescription(
-    descriptionTemplate, garmentTop, garmentBottom, effectiveFeelsLike,
+    descriptionTemplate, garmentTop, garmentBottom, feelsLike,
     isWindy, effectivePrecipProb, isSnowy,
   );
 

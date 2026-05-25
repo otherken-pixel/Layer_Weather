@@ -20,6 +20,8 @@ import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
+import { buildDisplayCopyFromOverride } from "@/lib/outfitDisplayCopy";
+import { sanitizeWardrobeOverrideForRain } from "@/lib/outfitRainDisplay";
 import { getWeatherScenario } from "@/lib/wardrobeScenario";
 import { addSavedLocation, getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
 import { DEVICE_LOCATION_KEY } from "@/store";
@@ -50,6 +52,7 @@ export default function Home() {
     setProfile, setCalibration, setLocation, weatherLastFetched,
     weatherWardrobes, setWeatherWardrobes,
     setWardrobeItems,
+    svgCatalogById,
   } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
@@ -233,17 +236,45 @@ export default function Home() {
 
   const outfitReason = useMemo(() => {
     if (!weather || !outfit) return null;
-    return getOutfitReason({
-      feelsLike: weather.current.feelsLike,
+    const feelsLikeRounded = Math.round(weather.current.feelsLike);
+    const reasonBase = {
+      feelsLike: feelsLikeRounded,
       windSpeed: weather.current.windSpeed,
       precipProb: outfit.effectivePrecipProb ?? weather.current.precipProb,
       humidity: weather.current.humidity,
       weatherCode: weather.current.weatherCode,
       outfit: outfit.outfit,
+    };
+
+    if (activePreset) {
+      const override = sanitizeWardrobeOverrideForRain(
+        {
+          top: activePreset.top_svg,
+          bottom: activePreset.bottom_svg,
+          outerwear: activePreset.outerwear_svg,
+          footwear: activePreset.footwear_svg,
+          accessories: activePreset.accessory_svgs,
+        },
+        outfit.rainGear
+      );
+      const copy = buildDisplayCopyFromOverride(override, svgCatalogById, {
+        displayFeelsLike: weather.current.feelsLike,
+        rainGear: outfit.rainGear,
+        outfitType: outfit.outfit,
+      });
+      return getOutfitReason({
+        ...reasonBase,
+        garmentTop: copy.garmentTop,
+        garmentBottom: copy.garmentBottom,
+      });
+    }
+
+    return getOutfitReason({
+      ...reasonBase,
       garmentTop: outfit.garmentTop,
       garmentBottom: outfit.garmentBottom,
     });
-  }, [weather, outfit]);
+  }, [weather, outfit, activePreset, svgCatalogById]);
 
   const feelsLikeExplanation = useMemo(() => {
     if (!weather) return null;
