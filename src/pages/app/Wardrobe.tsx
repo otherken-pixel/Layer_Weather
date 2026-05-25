@@ -292,7 +292,7 @@ function EditorSheet({
           >
             {/* Drag handle + header */}
             <div
-              className="pt-4 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing"
+              className="pt-4 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
               onPointerDown={(e) => dragControls.start(e)}
             >
               <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
