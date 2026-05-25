@@ -195,14 +195,12 @@ function EditorSheet({
   function handleSingleSelect(category: SvgCategory, name: string) {
     hapticLight();
     if (category === "tops") {
-      setTopSvg((v) => {
-        const next = v === name ? null : name;
-        if (next === "Dress") {
-          setBottomSvg(null);
-          setActiveTab("outerwear");
-        }
-        return next;
-      });
+      const next = topSvg === name ? null : name;
+      setTopSvg(next);
+      if (next === "Dress") {
+        setBottomSvg(null);
+        setActiveTab("outerwear");
+      }
       return;
     }
     if (category === "bottoms")   setBottomSvg((v)   => v === name ? null : name);
