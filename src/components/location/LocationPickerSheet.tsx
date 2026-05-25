@@ -12,6 +12,8 @@ interface LocationPickerSheetProps {
   onSaved?: (ctx?: { fromCitySave?: boolean }) => void | Promise<void>;
   /** When true, sheet uses light styling for the Today sky header context */
   variant?: "sky" | "card";
+  /** "add" shows "Add a city" copy and clears the input; "update" (default) pre-fills current city. */
+  mode?: "add" | "update";
 }
 
 export function LocationPickerSheet({
@@ -19,6 +21,7 @@ export function LocationPickerSheet({
   onClose,
   onSaved,
   variant = "card",
+  mode = "update",
 }: LocationPickerSheetProps) {
   const location = useAppStore((s) => s.location);
   const profile = useAppStore((s) => s.profile);
@@ -29,10 +32,10 @@ export function LocationPickerSheet({
 
   useEffect(() => {
     if (open) {
-      setCityQuery(location?.city || profile?.last_city || "");
+      setCityQuery(mode === "add" ? "" : (location?.city || profile?.last_city || ""));
       setError("");
     }
-  }, [open, location?.city, profile?.last_city, setError]);
+  }, [open, mode, location?.city, profile?.last_city, setError]);
 
   const isSky = variant === "sky";
 
@@ -114,10 +117,12 @@ export function LocationPickerSheet({
               className="text-lg font-bold text-center mb-1"
               style={{ color: titleColor }}
             >
-              Update location
+              {mode === "add" ? "Add a city" : "Update location"}
             </h2>
             <p className="text-sm text-center mb-4" style={{ color: subtitleColor }}>
-              Use your phone&apos;s location or search for a city.
+              {mode === "add"
+                ? "Search for a city to add to your list."
+                : "Use your phone’s location or search for a city."}
             </p>
 
             <input
