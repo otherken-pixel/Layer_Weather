@@ -20,15 +20,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   thunderstorm: CloudLightning,
 };
 
-const SIZE_PX: Record<"sm" | "md" | "lg", number> = {
+const SIZE_PX: Record<"sm" | "md" | "lg" | "xl", number> = {
   sm: 20,
   md: 26,
   lg: 28,
+  xl: 52,
 };
 
 interface WeatherIconProps {
   condition: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   /** Override the icon color. Pass "white" when the icon sits on an accent-colored background. */
   color?: string;
 }
