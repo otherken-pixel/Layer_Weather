@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
 import {
   getWardrobeItems,
@@ -65,6 +65,7 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
   const [tags, setTags] = useState<StyleTag[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (open) {
@@ -161,177 +162,200 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed left-0 right-0 bottom-0 z-[90] rounded-t-[28px] px-5 pt-5 overflow-y-auto"
+            drag="y"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.4 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                onClose();
+              }
+            }}
+            className="fixed left-0 right-0 bottom-0 z-[90] rounded-t-[28px] flex flex-col"
             style={{
               maxHeight: "90vh",
               background: "#FFFFFF",
               boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
-              paddingBottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
             }}
           >
-            <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
-            <h2
-              id="add-item-title"
-              className="text-lg font-bold text-center mb-4"
-              style={{ color: "#111827" }}
+            {/* Drag handle — pointer down here starts the swipe-to-dismiss gesture */}
+            <div
+              className="pt-5 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing"
+              onPointerDown={(e) => dragControls.start(e)}
             >
-              {editItem ? "Edit Item" : "Add Wardrobe Item"}
-            </h2>
-
-            {/* Category */}
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-              Category
-            </p>
-            <div className="flex gap-2 flex-wrap mb-4">
-              {CATEGORIES.filter((c) => c.key !== "all").map((cat) => (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setCategory(cat.key as WardrobeCategory)}
-                  className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
-                  style={{
-                    background: category === cat.key ? "var(--accent-primary)" : "#F3F4F6",
-                    color: category === cat.key ? "#FFFFFF" : "#374151",
-                  }}
-                >
-                  {cat.emoji} {cat.label}
-                </button>
-              ))}
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
+              <h2
+                id="add-item-title"
+                className="text-lg font-bold text-center mb-4"
+                style={{ color: "#111827" }}
+              >
+                {editItem ? "Edit Item" : "Add Wardrobe Item"}
+              </h2>
             </div>
 
-            {/* Name */}
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-              Name
-            </p>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Grey Merino Sweater"
-              className="w-full rounded-2xl px-4 py-3 text-base font-semibold mb-4"
-              style={{
-                background: "#F3F4F6",
-                border: "1.5px solid #E5E7EB",
-                color: "#111827",
-                outline: "none",
-              }}
-            />
-
-            {/* Color */}
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-              Color (optional)
-            </p>
-            <input
-              type="text"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              placeholder="e.g. Navy, Olive, Charcoal"
-              className="w-full rounded-2xl px-4 py-3 text-base mb-4"
-              style={{
-                background: "#F3F4F6",
-                border: "1.5px solid #E5E7EB",
-                color: "#111827",
-                outline: "none",
-              }}
-            />
-
-            {/* Warmth */}
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-              Warmth — {WARMTH_LABELS[warmth]}
-            </p>
-            <div className="flex gap-2 mb-4">
-              {([1, 2, 3, 4, 5] as const).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setWarmth(n)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
-                  style={{
-                    background: warmth === n ? "var(--accent-primary)" : "#F3F4F6",
-                    color: warmth === n ? "#FFFFFF" : "#6B7280",
-                  }}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-
-            {/* Waterproof */}
-            <div className="flex items-center justify-between mb-4 px-1">
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "#111827" }}>
-                  Waterproof / Water-resistant
-                </p>
-                <p className="text-xs" style={{ color: "#6B7280" }}>
-                  Used to suggest rain gear alternatives
-                </p>
+            {/* Scrollable form body */}
+            <div className="flex-1 overflow-y-auto px-5">
+              {/* Category */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
+                Category
+              </p>
+              <div className="flex gap-2 flex-wrap mb-4">
+                {CATEGORIES.filter((c) => c.key !== "all").map((cat) => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => setCategory(cat.key as WardrobeCategory)}
+                    className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
+                    style={{
+                      background: category === cat.key ? "var(--accent-primary)" : "#F3F4F6",
+                      color: category === cat.key ? "#FFFFFF" : "#374151",
+                    }}
+                  >
+                    {cat.emoji} {cat.label}
+                  </button>
+                ))}
               </div>
+
+              {/* Name */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
+                Name
+              </p>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Grey Merino Sweater"
+                className="w-full rounded-2xl px-4 py-3 text-base font-semibold mb-4"
+                style={{
+                  background: "#F3F4F6",
+                  border: "1.5px solid #E5E7EB",
+                  color: "#111827",
+                  outline: "none",
+                }}
+              />
+
+              {/* Color */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
+                Color (optional)
+              </p>
+              <input
+                type="text"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="e.g. Navy, Olive, Charcoal"
+                className="w-full rounded-2xl px-4 py-3 text-base mb-4"
+                style={{
+                  background: "#F3F4F6",
+                  border: "1.5px solid #E5E7EB",
+                  color: "#111827",
+                  outline: "none",
+                }}
+              />
+
+              {/* Warmth */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
+                Warmth — {WARMTH_LABELS[warmth]}
+              </p>
+              <div className="flex gap-2 mb-4">
+                {([1, 2, 3, 4, 5] as const).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setWarmth(n)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
+                    style={{
+                      background: warmth === n ? "var(--accent-primary)" : "#F3F4F6",
+                      color: warmth === n ? "#FFFFFF" : "#6B7280",
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+
+              {/* Waterproof */}
+              <div className="flex items-center justify-between mb-4 px-1">
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: "#111827" }}>
+                    Waterproof / Water-resistant
+                  </p>
+                  <p className="text-xs" style={{ color: "#6B7280" }}>
+                    Used to suggest rain gear alternatives
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { hapticLight(); setWaterproof((v) => !v); }}
+                  className="relative rounded-full border-0 cursor-pointer flex-shrink-0"
+                  style={{
+                    width: 50,
+                    height: 30,
+                    background: waterproof ? "var(--accent-primary)" : "#D1D5DB",
+                    transition: "background 0.2s",
+                  }}
+                  aria-checked={waterproof}
+                  role="switch"
+                >
+                  <motion.div
+                    animate={{ x: waterproof ? 22 : 2 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    style={{
+                      position: "absolute",
+                      top: 3,
+                      width: 24,
+                      height: 24,
+                      borderRadius: "50%",
+                      background: "#FFFFFF",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* Style Tags */}
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
+                Style Tags (optional)
+              </p>
+              <div className="flex gap-2 flex-wrap pb-4">
+                {STYLE_TAGS.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => toggleTag(t.key)}
+                    className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
+                    style={{
+                      background: tags.includes(t.key) ? "var(--accent-tab-bg)" : "#F3F4F6",
+                      color: tags.includes(t.key) ? "var(--accent-text)" : "#6B7280",
+                      border: tags.includes(t.key) ? "1.5px solid var(--accent-light)" : "1.5px solid transparent",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sticky footer — always visible above the safe area */}
+            <div
+              className="px-5 flex-shrink-0 pt-3"
+              style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
+            >
+              {error && (
+                <p className="text-sm mb-3" style={{ color: "#EF4444" }}>
+                  {error}
+                </p>
+              )}
               <button
                 type="button"
-                onClick={() => { hapticLight(); setWaterproof((v) => !v); }}
-                className="relative rounded-full border-0 cursor-pointer flex-shrink-0"
-                style={{
-                  width: 50,
-                  height: 30,
-                  background: waterproof ? "var(--accent-primary)" : "#D1D5DB",
-                  transition: "background 0.2s",
-                }}
-                aria-checked={waterproof}
-                role="switch"
+                disabled={saving || !name.trim()}
+                onClick={handleSave}
+                className="w-full min-h-[52px] rounded-2xl border-0 font-bold text-white cursor-pointer disabled:opacity-50"
+                style={{ background: "var(--accent-primary)", fontSize: 16 }}
               >
-                <motion.div
-                  animate={{ x: waterproof ? 22 : 2 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  style={{
-                    position: "absolute",
-                    top: 3,
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    background: "#FFFFFF",
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                  }}
-                />
+                {saving ? "Saving…" : editItem ? "Save Changes" : "Add to Wardrobe"}
               </button>
             </div>
-
-            {/* Style Tags */}
-            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-              Style Tags (optional)
-            </p>
-            <div className="flex gap-2 flex-wrap mb-5">
-              {STYLE_TAGS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => toggleTag(t.key)}
-                  className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
-                  style={{
-                    background: tags.includes(t.key) ? "var(--accent-tab-bg)" : "#F3F4F6",
-                    color: tags.includes(t.key) ? "var(--accent-text)" : "#6B7280",
-                    border: tags.includes(t.key) ? "1.5px solid var(--accent-light)" : "1.5px solid transparent",
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            {error && (
-              <p className="text-sm mb-3" style={{ color: "#EF4444" }}>
-                {error}
-              </p>
-            )}
-
-            <button
-              type="button"
-              disabled={saving || !name.trim()}
-              onClick={handleSave}
-              className="w-full min-h-[52px] rounded-2xl border-0 font-bold text-white cursor-pointer disabled:opacity-50"
-              style={{ background: "var(--accent-primary)", fontSize: 16 }}
-            >
-              {saving ? "Saving…" : editItem ? "Save Changes" : "Add to Wardrobe"}
-            </button>
           </motion.div>
         </>
       )}
