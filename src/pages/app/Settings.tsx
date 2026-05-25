@@ -247,6 +247,7 @@ export default function Settings() {
                 format={(u) => `°${u}`}
                 pillBg={pillBg}
                 pillInactiveText={pillInactiveText}
+                accentColor={ACCENT}
               />
             </div>
           </ThemedCard>
@@ -269,6 +270,7 @@ export default function Settings() {
                 format={(m) => m === "visual" ? "Visual" : "Text Only"}
                 pillBg={pillBg}
                 pillInactiveText={pillInactiveText}
+                accentColor={ACCENT}
               />
             </div>
           </ThemedCard>
@@ -516,6 +518,12 @@ export default function Settings() {
                   <line x1="20" y1="32" x2="20" y2="36" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="20" cy="20" r="20" fill="rgba(124,58,237,0.15)" />
+                  <circle cx="20" cy="20" r="7" fill="var(--accent-primary)" />
+                  <line x1="20" y1="4" x2="20" y2="8" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="20" y1="32" x2="20" y2="36" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>WearToday</span>
               </div>
@@ -603,6 +611,7 @@ function PillToggle<T extends string>({
   format,
   pillBg,
   pillInactiveText,
+  accentColor,
 }: {
   options: readonly T[];
   active: T;
@@ -610,6 +619,7 @@ function PillToggle<T extends string>({
   format: (v: T) => string;
   pillBg: string;
   pillInactiveText: string;
+  accentColor: string;
 }) {
   return (
     <div className="flex rounded-full p-1 gap-0.5" style={{ background: pillBg }}>
@@ -621,7 +631,7 @@ function PillToggle<T extends string>({
           aria-pressed={active === o}
           className="min-h-[44px] min-w-[44px] px-4 rounded-full text-sm font-bold border-0 cursor-pointer transition-colors"
           style={{
-            background: active === o ? ACCENT : "transparent",
+            background: active === o ? accentColor : "transparent",
             color: active === o ? "white" : pillInactiveText,
           }}
         >

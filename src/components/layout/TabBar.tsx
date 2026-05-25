@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useIsDark } from "@/hooks/useDarkMode";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { Colors } from "@/constants/colors";
 
 function IconToday() {
@@ -127,6 +128,7 @@ export function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isDark = useIsDark();
+  const { accent } = useAccentColor();
 
   return (
     <nav
@@ -151,7 +153,7 @@ export function TabBar() {
               className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[52px] px-2 py-1.5 rounded-2xl"
               style={{
                 color: active
-                  ? Colors.brand.textSafe
+                  ? accent
                   : isDark ? Colors.dark.textMuted : Colors.text.muted,
               }}
             >

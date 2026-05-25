@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/store";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { fetchWeatherData } from "@/lib/weather";
 import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { annotatePackingListWithWardrobe, type AnnotatedPackingItem } from "@/lib/wardrobe-matching";
@@ -14,6 +15,7 @@ const ACCENT = "var(--accent-primary)";
 
 export default function Packing() {
   const { calibration, wardrobeItems } = useAppStore();
+  const { accent, accentSolid } = useAccentColor();
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
   const [destination, setDestination] = useState("");
@@ -93,7 +95,7 @@ export default function Packing() {
               onClick={search}
               disabled={searching}
               style={{
-                width: 48, height: 48, borderRadius: 14, background: ACCENT,
+                width: 48, height: 48, borderRadius: 14, background: accentSolid,
                 border: "none", display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 18, cursor: searching ? "not-allowed" : "pointer", flexShrink: 0,
                 opacity: searching ? 0.7 : 1,
@@ -157,7 +159,7 @@ export default function Packing() {
           onClick={generate}
           disabled={!selected || loading}
           style={{
-            background: selected ? ACCENT : "#E5E7EB",
+            background: selected ? accentSolid : "#E5E7EB",
             color: selected ? "white" : "#9CA3AF",
             border: "none", borderRadius: 16, padding: "16px 0",
             fontSize: 16, fontWeight: 700, width: "100%",
@@ -193,7 +195,7 @@ export default function Packing() {
                         <span style={{
                           minWidth: 36, height: 36, borderRadius: 12,
                           background: item.ownedItem ? "#DCFCE7" : "#EDE9FE",
-                          color: item.ownedItem ? "#15803D" : ACCENT,
+                          color: item.ownedItem ? "#15803D" : accent,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 12, fontWeight: 800,
                         }}>

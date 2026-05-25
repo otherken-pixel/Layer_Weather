@@ -495,7 +495,7 @@ function HourlyStrip({
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
-              <WeatherIcon condition={condKey} size="md" isDark={isDark} plain={isNow} />
+              <WeatherIcon condition={condKey} size="md" color={isNow ? "white" : undefined} />
               <span style={{ fontSize: 17, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
