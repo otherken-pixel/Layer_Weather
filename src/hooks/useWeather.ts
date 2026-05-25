@@ -182,6 +182,7 @@ export function useWeather() {
           const formalityPref = storeProfile?.formality_preference ?? formality;
           const rec = getOutfitRecommendation({
             feelsLike: data.current.feelsLike,
+            temp: data.current.temp,
             weatherCode: data.current.weatherCode,
             windSpeed: data.current.windSpeed,
             precipProb: data.current.precipProb,

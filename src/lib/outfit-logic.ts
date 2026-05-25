@@ -348,10 +348,7 @@ export function resolveFootwear(opts: {
 
   // Business formality: no flip-flops ever; promote to dress shoes
   if (formality === "business") {
-    if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
-      return style === "feminine" ? "dress_flats" : "loafers";
-    }
-    if (effectiveFeelsLike >= 60) {
+    if (effectiveFeelsLike >= SNOW_BOOTS_BELOW_TEMP_F) {
       return style === "feminine" ? "dress_flats" : "loafers";
     }
     return "snow_boots"; // cold business → still snow boots
@@ -518,6 +515,8 @@ export const DEFAULT_CALIBRATION: UserCalibration = {
 
 export function getOutfitRecommendation(opts: {
   feelsLike: number;
+  /** Dry-bulb air temperature (°F). Used for heat-index / wind-chill formulas; defaults to feelsLike if omitted. */
+  temp?: number;
   weatherCode: number;
   windSpeed: number;
   precipProb: number;
@@ -537,6 +536,7 @@ export function getOutfitRecommendation(opts: {
     isDay = true,
     commuteStart, commuteEnd,
   } = opts;
+  const airTemp = opts.temp ?? feelsLike;
 
   const style = normalizeStyle(stylePreference);
 
@@ -557,9 +557,9 @@ export function getOutfitRecommendation(opts: {
   let effectiveFeelsLike = feelsLike;
   if (calibration.humidity_sensitivity) {
     if (feelsLike > 75 && humidity > 40) {
-      effectiveFeelsLike = computeHeatIndex(feelsLike, humidity);
+      effectiveFeelsLike = computeHeatIndex(airTemp, humidity);
     } else if (feelsLike < 50 && windSpeed > 3) {
-      effectiveFeelsLike = computeWindChill(feelsLike, windSpeed);
+      effectiveFeelsLike = computeWindChill(airTemp, windSpeed);
     }
   }
 
@@ -742,6 +742,7 @@ function buildCommuteAlert(
     const outfitAtCommute = recalc
       ? getOutfitRecommendation({
           feelsLike: closest.feelsLike,
+          temp: closest.temp,
           weatherCode: closest.weatherCode,
           windSpeed: closest.windSpeed,
           precipProb: closest.precipProb,
@@ -822,6 +823,7 @@ export function getDayOutfitTimeline(
     const minFeelsLike = Math.min(...feelsLikes);
     const maxFeelsLike = Math.max(...feelsLikes);
     const avgFeelsLike = Math.round(feelsLikes.reduce((s, v) => s + v, 0) / feelsLikes.length);
+    const avgTemp = Math.round(block.reduce((s, h) => s + h.temp, 0) / block.length);
 
     const conditionCounts = block.reduce<Record<string, number>>((acc, h) => {
       acc[h.condition] = (acc[h.condition] ?? 0) + 1;
@@ -850,6 +852,7 @@ export function getDayOutfitTimeline(
 
     const recommendation = getOutfitRecommendation({
       feelsLike: avgFeelsLike,
+      temp: avgTemp,
       weatherCode,
       windSpeed: avgWindSpeed,
       precipProb: maxPrecipProb,
