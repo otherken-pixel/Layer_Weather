@@ -91,6 +91,18 @@ function matchFootwear(items: WardrobeItem[], kind: FootwearKind): WardrobeItem 
       const named = byName(/rain.?boot|wellington|welly|rubber.?boot/i);
       return named[0] ?? pickBest(footwear, [2, 4]);
     }
+    case "athletic_sneakers": {
+      const named = byName(/athletic|running|trainer|sport|runner/i);
+      return named[0] ?? pickBest(footwear, [2, 3]);
+    }
+    case "loafers": {
+      const named = byName(/loafer|dress.?shoe|oxford|derby/i);
+      return named[0] ?? pickBest(footwear, [2, 3]);
+    }
+    case "dress_flats": {
+      const named = byName(/flat|ballet|pump|dress.?shoe/i);
+      return named[0] ?? pickBest(footwear, [2, 3]);
+    }
   }
 }
 

@@ -358,8 +358,6 @@ export function resolveFootwear(opts: {
   }
 
   if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
-    // Business already handled above; activewear and casual get flip-flops
-    if (formality === "business") return style === "feminine" ? "dress_flats" : "loafers";
     return "flip_flops";
   }
 

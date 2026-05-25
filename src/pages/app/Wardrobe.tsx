@@ -4,7 +4,7 @@ import { useAppStore } from "@/store";
 import { getWeatherWardrobes, getWardrobeItems, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
 import { SCENARIOS, SVG_CATALOG, catalogForPreference, getScenarioMeta } from "@/lib/wardrobeCatalog";
 import type { SvgCategory } from "@/lib/wardrobeCatalog";
-import type { WeatherScenario, WeatherWardrobePreset } from "@/types";
+import type { WeatherScenario, WeatherWardrobePreset, StylePreference } from "@/types";
 import { svgRegistry } from "@/components/outfit/svg/index";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
@@ -136,7 +136,7 @@ interface EditorSheetProps {
   scenario: WeatherScenario;
   preset: WeatherWardrobePreset | undefined;
   userId: string;
-  stylePreference: "feminine" | "masculine" | "all";
+  stylePreference: StylePreference;
   isDark: boolean;
   onClose: () => void;
   onSaved: (preset: WeatherWardrobePreset) => void;
