@@ -3,19 +3,22 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
 import { getWeatherWardrobes, getWardrobeItems, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
-import { SCENARIOS, SVG_CATALOG, catalogForPreference, getScenarioMeta } from "@/lib/wardrobeCatalog";
+import {
+  SCENARIOS,
+  catalogForPreference,
+  getScenarioMeta,
+  normalizeSvgId,
+} from "@/lib/wardrobeCatalog";
 import type { SvgCategory } from "@/lib/wardrobeCatalog";
 import type { WeatherScenario, WeatherWardrobePreset, StylePreference } from "@/types";
-import { svgRegistry } from "@/components/outfit/svg/index";
+import StorageSvg from "@/components/outfit/StorageSvg";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 
-// ── Tiny SVG preview used in the picker grid ──────────────────────────────────
+const DRESS_SVG_ID = "tops-feminine-dress";
 
-function SvgThumb({ name, size = 52 }: { name: string; size?: number }) {
-  const Component = svgRegistry[name];
-  if (!Component) return null;
-  return <Component size={size} />;
+function SvgThumb({ id, size = 52 }: { id: string; size?: number }) {
+  return <StorageSvg id={id} size={size} />;
 }
 
 // ── Scenario grid card ────────────────────────────────────────────────────────
@@ -172,11 +175,13 @@ function EditorSheet({
     if (!open) return;
     setActiveTab("tops");
     if (preset) {
-      setTopSvg(preset.top_svg);
-      setBottomSvg(preset.bottom_svg);
-      setOuterwearSvg(preset.outerwear_svg);
-      setFootwearSvg(preset.footwear_svg);
-      setAccessories(preset.accessory_svgs);
+      setTopSvg(normalizeSvgId(preset.top_svg));
+      setBottomSvg(normalizeSvgId(preset.bottom_svg));
+      setOuterwearSvg(normalizeSvgId(preset.outerwear_svg));
+      setFootwearSvg(normalizeSvgId(preset.footwear_svg));
+      setAccessories(
+        preset.accessory_svgs.map((a) => normalizeSvgId(a) ?? a).filter(Boolean) as string[]
+      );
     } else {
       setTopSvg(meta.defaults.top);
       setBottomSvg(meta.defaults.bottom);
@@ -198,7 +203,7 @@ function EditorSheet({
     if (category === "tops") {
       setTopSvg((v) => {
         const next = v === name ? null : name;
-        if (next === "Dress") {
+        if (next === DRESS_SVG_ID) {
           setBottomSvg(null);
           setActiveTab("outerwear");
         }
@@ -227,7 +232,7 @@ function EditorSheet({
         user_id: userId,
         scenario,
         top_svg: topSvg,
-        bottom_svg: topSvg === "Dress" ? null : bottomSvg,
+        bottom_svg: topSvg === DRESS_SVG_ID ? null : bottomSvg,
         outerwear_svg: outerwearSvg,
         footwear_svg: footwearSvg,
         accessory_svgs: accessories,
@@ -262,7 +267,7 @@ function EditorSheet({
   // Live preview override
   const previewOverride = {
     top: topSvg,
-    bottom: topSvg === "Dress" ? null : bottomSvg,
+    bottom: topSvg === DRESS_SVG_ID ? null : bottomSvg,
     outerwear: outerwearSvg,
     footwear: footwearSvg,
     accessories,
@@ -338,7 +343,7 @@ function EditorSheet({
               <div className="flex gap-2" style={{ width: "max-content" }}>
                 {EDITOR_TABS.map((tab) => {
                   const active = activeTab === tab.key;
-                  const isDressBottom = tab.key === "bottoms" && topSvg === "Dress";
+                  const isDressBottom = tab.key === "bottoms" && topSvg === DRESS_SVG_ID;
                   return (
                     <button
                       key={tab.key}
@@ -385,7 +390,7 @@ function EditorSheet({
                 </p>
               )}
 
-              {activeTab === "bottoms" && topSvg === "Dress" ? (
+              {activeTab === "bottoms" && topSvg === DRESS_SVG_ID ? (
                 <div style={{ textAlign: "center", paddingTop: 60, color: textSecondary }}>
                   <p style={{ fontSize: 40, marginBottom: 12 }}>👗</p>
                   <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 6, color: textPrimary }}>
@@ -446,16 +451,16 @@ function EditorSheet({
                   )}
 
                   {currentOptions.map((entry) => {
-                    const selected = isSelected(activeTab, entry.name);
+                    const selected = isSelected(activeTab, entry.id);
                     const isMulti = activeTab === "accessories";
                     return (
                       <button
-                        key={entry.name}
+                        key={entry.id}
                         type="button"
                         onClick={() =>
                           isMulti
-                            ? toggleAccessory(entry.name)
-                            : handleSingleSelect(activeTab, entry.name)
+                            ? toggleAccessory(entry.id)
+                            : handleSingleSelect(activeTab, entry.id)
                         }
                         style={{
                           display: "flex",
@@ -475,7 +480,7 @@ function EditorSheet({
                           transition: "border-color 0.15s, background 0.15s",
                         }}
                       >
-                        <SvgThumb name={entry.name} size={56} />
+                        <SvgThumb id={entry.id} size={56} />
                         <span
                           style={{
                             fontSize: 11,

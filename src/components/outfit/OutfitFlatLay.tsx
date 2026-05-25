@@ -1,7 +1,7 @@
 import React, { memo, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
-import { svgRegistry } from "./svg/index";
+import StorageSvg from "./StorageSvg";
 import { accessoryMap, bottomMap, footwearMap, topMap } from "./outfitMap";
 
 /** When provided, bypasses outfit-type lookups and renders user-chosen SVG names directly. */
@@ -41,24 +41,22 @@ const ITEM_ANIM = {
 
 const STAGGER = 0.06;
 
-function SvgIcon({ name, size }: { name: string; size: number }) {
-  const Component = svgRegistry[name];
-  if (!Component) return null;
-  return <Component size={size} />;
+function SvgIcon({ id, size }: { id: string; size: number }) {
+  return <StorageSvg id={id} size={size} />;
 }
 
 function FootwearIcon({ kind, size }: { kind: FootwearKind; size: number }) {
-  return <SvgIcon name={footwearMap[kind]} size={size} />;
+  return <SvgIcon id={footwearMap[kind]} size={size} />;
 }
 
 function TopGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
-  return <SvgIcon name={topMap[outfit]} size={size} />;
+  return <SvgIcon id={topMap[outfit]} size={size} />;
 }
 
 function BottomGarment({ outfit, size }: { outfit: OutfitType; size: number }) {
-  const name = bottomMap[outfit];
-  if (!name) return null;
-  return <SvgIcon name={name} size={size} />;
+  const id = bottomMap[outfit];
+  if (!id) return null;
+  return <SvgIcon id={id} size={size} />;
 }
 
 /** Layout width (px) the base sizes below are tuned for — scaling uses measured container width / this value. */
@@ -124,7 +122,8 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   // ── Override mode: render user-chosen SVGs directly ──
   if (override) {
     const topSvg = override.outerwear ?? override.top;
-    const isDressOverride = override.top === "Dress" && !override.outerwear;
+    const isDressOverride =
+      (override.top === "tops-feminine-dress" || override.top === "Dress") && !override.outerwear;
     return (
       <motion.div
         ref={containerRef}
@@ -148,7 +147,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
               className="flex justify-center items-center"
               style={{ gridColumn: "1 / 3", gridRow: 1, minHeight: topSz }}
             >
-              {topSvg && <SvgIcon name={topSvg} size={topSz} />}
+              {topSvg && <SvgIcon id={topSvg} size={topSz} />}
             </motion.div>
           ) : (
             <>
@@ -158,7 +157,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                 className="flex justify-center items-center"
                 style={{ gridColumn: 1, gridRow: 1, minHeight: topSz }}
               >
-                {topSvg && <SvgIcon name={topSvg} size={topSz} />}
+                {topSvg && <SvgIcon id={topSvg} size={topSz} />}
               </motion.div>
               <motion.div
                 {...ITEM_ANIM}
@@ -166,7 +165,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
                 className="flex justify-center items-center"
                 style={{ gridColumn: 2, gridRow: 1, minHeight: topSz }}
               >
-                {override.bottom && <SvgIcon name={override.bottom} size={baseBottomSz} />}
+                {override.bottom && <SvgIcon id={override.bottom} size={baseBottomSz} />}
               </motion.div>
             </>
           )}
@@ -175,14 +174,14 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
             style={{ gridColumn: 1, gridRow: 2, minHeight: footwearSz }}
           >
             {override.footwear &&
-              wrap(<SvgIcon name={override.footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
+              wrap(<SvgIcon id={override.footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
           </div>
           <div
             className="flex flex-wrap justify-center items-center gap-1"
             style={{ gridColumn: 2, gridRow: 2, minHeight: footwearSz }}
           >
-            {override.accessories.map((name, i) =>
-              wrap(<SvgIcon name={name} size={accSz} />, (3 + i) * STAGGER)
+            {override.accessories.map((svgId, i) =>
+              wrap(<SvgIcon id={svgId} size={accSz} />, (3 + i) * STAGGER, accSz, svgId)
             )}
           </div>
         </div>
@@ -193,11 +192,11 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   // ── Standard mode: system-generated outfit ──
   const isDress = outfit === "dress";
   const accessories = [
-    umbrella && { key: "umbrella", node: <SvgIcon name={accessoryMap.umbrella} size={accSz} /> },
-    sunglasses && { key: "sunglasses", node: <SvgIcon name={accessoryMap.sunglasses} size={accSz} /> },
-    scarf && { key: "scarf", node: <SvgIcon name={accessoryMap.scarf} size={accSz} /> },
-    beanie && { key: "beanie", node: <SvgIcon name={accessoryMap.beanie} size={accSz} /> },
-    gloves && { key: "gloves", node: <SvgIcon name={accessoryMap.gloves} size={accSz} /> },
+    umbrella && { key: "umbrella", node: <SvgIcon id={accessoryMap.umbrella} size={accSz} /> },
+    sunglasses && { key: "sunglasses", node: <SvgIcon id={accessoryMap.sunglasses} size={accSz} /> },
+    scarf && { key: "scarf", node: <SvgIcon id={accessoryMap.scarf} size={accSz} /> },
+    beanie && { key: "beanie", node: <SvgIcon id={accessoryMap.beanie} size={accSz} /> },
+    gloves && { key: "gloves", node: <SvgIcon id={accessoryMap.gloves} size={accSz} /> },
   ].filter((item): item is { key: string; node: React.ReactElement } => Boolean(item));
 
   return (

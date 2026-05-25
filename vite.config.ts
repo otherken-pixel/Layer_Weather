@@ -31,6 +31,14 @@ export default defineConfig({
             handler: "NetworkFirst",
             options: { cacheName: "weather-api", expiration: { maxAgeSeconds: 900 } },
           },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/svg_clothes_files\/.*/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "svg-clothes",
+              expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
         ],
       },
     }),

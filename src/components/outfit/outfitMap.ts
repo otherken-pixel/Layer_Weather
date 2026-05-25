@@ -1,45 +1,46 @@
 import type { FootwearKind, OutfitType } from "@/types";
 
+/** Algorithmic outfit → default catalog svg ids (neutral staples). */
 export const topMap: Record<OutfitType, string> = {
-  shorts_tshirt: "TShirt",
-  pants_shortsleeve: "TShirt",
-  pants_longsleeve: "LongSleeve",
-  light_jacket: "Jacket",
-  heavy_jacket: "HeavyJacket",
-  heavy_coat: "HeavyCoat",
-  rain_light: "RainJacket",
-  rain_light_shorts: "RainJacket",
-  rain_heavy: "RainJacket",
-  dress: "Dress",
+  shorts_tshirt: "tops-neutral-tshirt",
+  pants_shortsleeve: "tops-neutral-tshirt",
+  pants_longsleeve: "tops-neutral-shirt",
+  light_jacket: "outerwear-neutral-jacket",
+  heavy_jacket: "outerwear-neutral-jacket-1",
+  heavy_coat: "outerwear-neutral-coat",
+  rain_light: "outerwear-neutral-raincoat",
+  rain_light_shorts: "outerwear-neutral-raincoat",
+  rain_heavy: "outerwear-neutral-raincoat",
+  dress: "tops-feminine-dress",
 };
 
 export const bottomMap: Record<OutfitType, string | null> = {
-  shorts_tshirt: "Shorts",
-  pants_shortsleeve: "Pants",
-  pants_longsleeve: "Pants",
-  light_jacket: "Pants",
-  heavy_jacket: "Pants",
-  heavy_coat: "Pants",
-  rain_light: "Pants",
-  rain_light_shorts: "Shorts",
-  rain_heavy: "Pants",
+  shorts_tshirt: "bottoms-neutral-shorts",
+  pants_shortsleeve: "bottoms-neutral-trousers",
+  pants_longsleeve: "bottoms-neutral-trousers",
+  light_jacket: "bottoms-neutral-trousers",
+  heavy_jacket: "bottoms-neutral-trousers",
+  heavy_coat: "bottoms-neutral-trousers",
+  rain_light: "bottoms-neutral-trousers",
+  rain_light_shorts: "bottoms-neutral-shorts",
+  rain_heavy: "bottoms-neutral-trousers",
   dress: null,
 };
 
 export const footwearMap: Record<FootwearKind, string> = {
-  flip_flops:        "FlipFlops",
-  sneakers:          "Sneakers",
-  athletic_sneakers: "Sneakers",   // reuse until dedicated SVG is added
-  loafers:           "Sneakers",   // reuse until dedicated SVG is added
-  dress_flats:       "Sneakers",   // reuse until dedicated SVG is added
-  snow_boots:        "SnowBoots",
-  rain_boots:        "RainBoots",
+  flip_flops: "footwear-neutral-flip-flops",
+  sneakers: "footwear-neutral-sneakers",
+  athletic_sneakers: "footwear-neutral-sneakers",
+  loafers: "footwear-feminine-flat-shoes",
+  dress_flats: "footwear-feminine-flat-shoes",
+  snow_boots: "footwear-masculine-boots",
+  rain_boots: "footwear-masculine-boot",
 };
 
 export const accessoryMap = {
-  umbrella: "Umbrella",
-  sunglasses: "Sunglasses",
-  scarf: "Scarf",
-  beanie: "Beanie",
-  gloves: "Gloves",
+  umbrella: "accessories-neutral-umbrella",
+  sunglasses: "accessories-neutral-sunglasses",
+  scarf: "accessories-neutral-scarf",
+  beanie: "accessories-neutral-beanie",
+  gloves: "accessories-neutral-gloves",
 } as const;
