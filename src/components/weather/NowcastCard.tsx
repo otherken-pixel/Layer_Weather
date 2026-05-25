@@ -30,7 +30,7 @@ export function NowcastCard({ data, isDark = false }: Props) {
     if (firstClearIdx > 0) {
       return `Rain stops in ~${firstClearIdx} min`;
     }
-    return "Rain expected for the next hour";
+    return "Rainy next hour";
   }
 
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
