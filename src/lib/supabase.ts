@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast } from "@/types";
+import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -209,6 +210,19 @@ export async function updatePackingTrip(
 export async function deletePackingTrip(id: string): Promise<void> {
   const { error } = await supabase.from("packing_trips").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ── SVG clothes catalog (public metadata for svg_clothes_files bucket) ─────
+
+export async function getSvgCatalog(): Promise<SvgCatalogEntry[]> {
+  const { data, error } = await supabase
+    .from("svg_clothes")
+    .select("id, label, style, category, storage_path, sort_order, active")
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as SvgCatalogEntry[];
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────

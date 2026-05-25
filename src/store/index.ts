@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference } from "@/types";
+import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 
 export interface CachedCityWeather {
   weather: WeatherData;
@@ -34,10 +35,19 @@ interface AppState {
   wardrobeItems: WardrobeItem[];
   weatherWardrobes: WeatherWardrobePreset[];
 
+  // SVG catalog (from svg_clothes table)
+  svgCatalog: SvgCatalogEntry[];
+  svgCatalogById: Record<string, SvgCatalogEntry>;
+  svgCatalogLoading: boolean;
+  svgCatalogError: string | null;
+
   setWardrobeItems: (
     items: WardrobeItem[] | ((prev: WardrobeItem[]) => WardrobeItem[])
   ) => void;
   setWeatherWardrobes: (presets: WeatherWardrobePreset[]) => void;
+  setSvgCatalog: (catalog: SvgCatalogEntry[], byId: Record<string, SvgCatalogEntry>) => void;
+  setSvgCatalogLoading: (loading: boolean) => void;
+  setSvgCatalogError: (error: string | null) => void;
 
   // Outfit personalization
   formality: FormalityPreference;
@@ -76,6 +86,10 @@ const initialState = {
   activeLocationIsDevice: false,
   wardrobeItems: [] as WardrobeItem[],
   weatherWardrobes: [] as WeatherWardrobePreset[],
+  svgCatalog: [] as SvgCatalogEntry[],
+  svgCatalogById: {} as Record<string, SvgCatalogEntry>,
+  svgCatalogLoading: false,
+  svgCatalogError: null as string | null,
   weather: null,
   outfit: null,
   outfitTimeline: null,
@@ -104,6 +118,9 @@ export const useAppStore = create<AppState>((set) => ({
           : itemsOrUpdater,
     })),
   setWeatherWardrobes: (weatherWardrobes) => set({ weatherWardrobes }),
+  setSvgCatalog: (svgCatalog, svgCatalogById) => set({ svgCatalog, svgCatalogById }),
+  setSvgCatalogLoading: (svgCatalogLoading) => set({ svgCatalogLoading }),
+  setSvgCatalogError: (svgCatalogError) => set({ svgCatalogError }),
   setWeather: (weather) => set({ weather }),
   setOutfit: (outfit) => set({ outfit }),
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),

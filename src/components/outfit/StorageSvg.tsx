@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useState } from "react";
 import { getSvgPublicUrl } from "@/lib/svgStorage";
-import { SVG_CATALOG_BY_ID, resolveSvgId } from "@/data/svgCatalog";
+import { resolveSvgId } from "@/lib/svgCatalog";
+import { useAppStore } from "@/store";
 
 interface Props {
   /** Stable catalog id (e.g. tops-neutral-tshirt) or legacy PascalCase key. */
@@ -11,15 +12,15 @@ interface Props {
 }
 
 function StorageSvg({ id, size = 100, className, alt }: Props) {
-  const resolved = resolveSvgId(id);
+  const svgCatalogById = useAppStore((s) => s.svgCatalogById);
+  const resolved = resolveSvgId(id, svgCatalogById);
   const [urlIndex, setUrlIndex] = useState(0);
 
-  const entry = resolved ? SVG_CATALOG_BY_ID[resolved] : undefined;
+  const entry = resolved ? svgCatalogById[resolved] : undefined;
   const urls = useMemo(() => {
     if (!entry) return [];
-    const filename = entry.path.split("/").pop()!;
-    const candidates = [entry.path, filename];
-    return [...new Set(candidates)].map((p) => getSvgPublicUrl(p));
+    const path = entry.storage_path;
+    return [getSvgPublicUrl(path)];
   }, [entry]);
 
   if (!entry || urls.length === 0) return null;
