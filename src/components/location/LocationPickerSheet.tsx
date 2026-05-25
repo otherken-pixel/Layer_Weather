@@ -144,7 +144,7 @@ export function LocationPickerSheet({
               disabled={saving || !cityQuery.trim()}
               onClick={handleCitySave}
               className="w-full min-h-[48px] rounded-2xl border-0 font-bold text-white mb-2 cursor-pointer disabled:opacity-50"
-              style={{ background: "#7C3AED" }}
+              style={{ background: "var(--accent-primary)" }}
             >
               {saving ? "Saving…" : "Save city"}
             </button>

@@ -3,6 +3,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent-primary: #7C3AED;
+  --accent-dark: #4A3FDB;
+  --accent-light: #C4B5FD;
+  --accent-surface: rgba(124,58,237,0.12);
+  --accent-tab-bg: #F5F3FF;
+  --accent-text: #5B21B6;
+  --accent-rgb: 124,58,237;
+}
+
 @layer base {
   html,
   body,
@@ -263,9 +273,9 @@ input[type="range"]::-webkit-slider-thumb {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #6c63ff;
+  background: var(--accent-primary);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.5);
   transition: transform 0.15s ease;
 }
 
@@ -277,10 +287,10 @@ input[type="range"]::-moz-range-thumb {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #6c63ff;
+  background: var(--accent-primary);
   cursor: pointer;
   border: none;
-  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.5);
+  box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.5);
 }
 
 /* ── Time input styling ──────────────────────────────────────────── */

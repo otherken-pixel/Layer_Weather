@@ -11,8 +11,24 @@ import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
 import type { LocationData } from "@/types";
 import { Colors } from "@/constants/colors";
+import { applyAccentPalette, saveAccentLocal, loadAccentLocal, ACCENT_DEFAULT } from "@/hooks/useAccentTheme";
 
-const ACCENT = "#7C3AED";
+const ACCENT = "var(--accent-primary)";
+
+const ACCENT_SWATCHES = [
+  { label: "Red",     hex: "#DC2626" },
+  { label: "Orange",  hex: "#EA580C" },
+  { label: "Amber",   hex: "#D97706" },
+  { label: "Lime",    hex: "#65A30D" },
+  { label: "Green",   hex: "#16A34A" },
+  { label: "Teal",    hex: "#0D9488" },
+  { label: "Sky",     hex: "#0284C7" },
+  { label: "Blue",    hex: "#2563EB" },
+  { label: "Indigo",  hex: "#4F46E5" },
+  { label: "Purple",  hex: "#7C3AED" },
+  { label: "Pink",    hex: "#DB2777" },
+  { label: "Magenta", hex: "#C026D3" },
+] as const;
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -26,6 +42,7 @@ export default function Settings() {
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
+  const [accentColor, setAccentColor] = useState<string>(profile?.accent_color ?? loadAccentLocal());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
@@ -58,9 +75,23 @@ export default function Settings() {
   async function saveSettings() {
     if (!userId) return;
     setSaving(true);
+    saveAccentLocal(accentColor);
     try {
-      const updated = await upsertProfile(userId, { temp_unit: tempUnit, outfit_display_mode: displayMode, commute_start: commuteStart, commute_end: commuteEnd });
-      if (updated) setProfile(updated);
+      const updated = await upsertProfile(userId, {
+        temp_unit: tempUnit,
+        outfit_display_mode: displayMode,
+        commute_start: commuteStart,
+        commute_end: commuteEnd,
+      });
+      if (updated) {
+        // Sync accent_color to DB if the column exists; ignore error if it doesn't
+        try {
+          const withAccent = await upsertProfile(userId, { accent_color: accentColor });
+          if (withAccent) setProfile(withAccent);
+        } catch {
+          setProfile(updated);
+        }
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -118,7 +149,7 @@ export default function Settings() {
       >
         <div style={{
           width: 80, height: 80, borderRadius: "50%",
-          background: "linear-gradient(135deg,#7C3AED,#4A3FDB)",
+          background: "linear-gradient(135deg,var(--accent-primary),var(--accent-dark))",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 28, fontWeight: 900, color: "white", letterSpacing: "-0.02em",
         }}>
@@ -243,6 +274,79 @@ export default function Settings() {
           </ThemedCard>
         </Section>
 
+        {/* Theme */}
+        <Section title="Theme" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, marginBottom: 4 }}>Accent Color</p>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 14 }}>
+              Personalizes highlights, buttons, and labels throughout the app.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 10, marginBottom: 16 }}>
+              {ACCENT_SWATCHES.map((swatch) => {
+                const isSelected = accentColor === swatch.hex;
+                return (
+                  <button
+                    key={swatch.hex}
+                    type="button"
+                    onClick={() => {
+                      setAccentColor(swatch.hex);
+                      applyAccentPalette(swatch.hex);
+                    }}
+                    aria-label={swatch.label}
+                    aria-pressed={isSelected}
+                    style={{
+                      aspectRatio: "1",
+                      borderRadius: "50%",
+                      background: swatch.hex,
+                      border: isSelected
+                        ? `3px solid ${isDark ? "#FFFFFF" : "#111827"}`
+                        : "3px solid transparent",
+                      cursor: "pointer",
+                      transition: "transform 0.12s, border-color 0.12s",
+                      transform: isSelected ? "scale(1.18)" : "scale(1)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 0,
+                    }}
+                  >
+                    {isSelected && (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M2.5 7L5.5 10L11.5 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Live preview strip */}
+            <div style={{
+              background: isDark ? Colors.dark.cellBg : "#F3F4F6",
+              borderRadius: 14, padding: "12px 14px",
+              display: "flex", alignItems: "center", gap: 10,
+            }}>
+              <div style={{
+                background: accentColor, borderRadius: 10,
+                padding: "6px 12px", color: "white",
+                fontSize: 12, fontWeight: 700, flexShrink: 0,
+              }}>
+                NOW
+              </div>
+              <div style={{ flex: 1, height: 6, borderRadius: 3, background: isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB", overflow: "hidden" }}>
+                <div style={{ width: "65%", height: "100%", background: accentColor, borderRadius: 3 }} />
+              </div>
+              <span style={{
+                fontSize: 11, fontWeight: 700,
+                color: accentColor,
+                borderBottom: `2px solid ${accentColor}`,
+                paddingBottom: 2,
+              }}>
+                Active
+              </span>
+            </div>
+          </ThemedCard>
+        </Section>
+
         {/* Commute */}
         <Section title="Commute" labelColor={sectionLabelColor}>
           <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
@@ -329,19 +433,19 @@ export default function Settings() {
                       display: "flex", alignItems: "center", gap: 12,
                       padding: "10px 12px", borderRadius: 14, textAlign: "left",
                       background: active
-                        ? (isDark ? "rgba(109,40,217,0.25)" : "#EDE9FE")
+                        ? (isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)")
                         : (isDark ? "#3A3A3C" : "#F9FAFB"),
-                      border: `1.5px solid ${active ? ACCENT : (isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6")}`,
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : (isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6")}`,
                       cursor: "pointer", width: "100%",
                     }}
                   >
                     <span style={{ fontSize: 20 }}>{info.emoji}</span>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? (isDark ? "#C4B5FD" : ACCENT) : rowTextColor, margin: 0 }}>{info.label}</p>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? (isDark ? "var(--accent-light)" : "var(--accent-primary)") : rowTextColor, margin: 0 }}>{info.label}</p>
                       {/* Description — #4B5563 on both light bg types (passes AA ✓) */}
                       <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>{info.description}</p>
                     </div>
-                    {active && <span style={{ color: isDark ? "#C4B5FD" : ACCENT, fontSize: 16 }}>✓</span>}
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16 }}>✓</span>}
                   </button>
                 );
               })}
@@ -363,8 +467,8 @@ export default function Settings() {
                       {loc.city === location?.city && (
                         <span style={{
                           fontSize: 10, fontWeight: 700,
-                          color: isDark ? "#C4B5FD" : "#7C3AED",
-                          background: isDark ? "rgba(109,40,217,0.2)" : "#EDE9FE",
+                          color: isDark ? "var(--accent-light)" : "var(--accent-primary)",
+                          background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
                           padding: "2px 8px", borderRadius: 999,
                         }}>
                           ACTIVE
@@ -406,12 +510,12 @@ export default function Settings() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
-                  <circle cx="20" cy="20" r="20" fill="rgba(124,58,237,0.15)" />
-                  <circle cx="20" cy="20" r="7" fill="#7C3AED" />
-                  <line x1="20" y1="4" x2="20" y2="8" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="20" y1="32" x2="20" y2="36" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="4" y1="20" x2="8" y2="20" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="32" y1="20" x2="36" y2="20" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle cx="20" cy="20" r="20" fill="var(--accent-surface)" />
+                  <circle cx="20" cy="20" r="7" fill="var(--accent-primary)" />
+                  <line x1="20" y1="4" x2="20" y2="8" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="20" y1="32" x2="20" y2="36" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>WearToday</span>
               </div>

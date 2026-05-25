@@ -182,8 +182,7 @@ export function OutfitRecommendationCard({
   const primaryText = isDark ? "#F4F4F5" : "#111827";
   const secondaryText = isDark ? "#D1D5DB" : "#4B5563";
   const mutedText = isDark ? "#9BA4B4" : "#4B5563";
-  // Outfit reason purple — #7C3AED on white (5.3:1 ✓); #C4B5FD on dark (5.3:1 ✓)
-  const outfitReasonColor = isDark ? "#C4B5FD" : "#7C3AED";
+  const outfitReasonColor = isDark ? "var(--accent-light)" : "var(--accent-primary)";
   // "ⓘ" hint icon — use mutedText
   const infoIconColor = mutedText;
   // Rain badge — blue on white (6.7:1 ✓); light blue on dark (4.5:1 ✓)
@@ -191,11 +190,11 @@ export function OutfitRecommendationCard({
   const rainBadgeText = isDark ? "#93C5FD" : "#1D4ED8";
   // Section label (on white card) — #4B5563 (7.4:1 ✓)
   const sectionLabelColor = isDark ? "#9BA4B4" : "#4B5563";
-  const tabActiveBg = isDark ? "rgba(108,99,255,0.2)" : "#EDE9FE";
-  const tabActiveBorder = "#6C63FF";
+  const tabActiveBg = isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)";
+  const tabActiveBorder = "var(--accent-primary)";
   const tabInactiveBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const tabInactiveBorder = isDark ? "rgba(255,255,255,0.06)" : "#E5E7EB";
-  const tabActiveText = isDark ? "#A5B4FC" : "#6C63FF";
+  const tabActiveText = isDark ? "var(--accent-light)" : "var(--accent-primary)";
   const tabInactiveText = isDark ? "#9BA4B4" : "#4B5563";
   const periodPanelBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const periodPanelBorder = isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6";
@@ -382,11 +381,11 @@ export function OutfitRecommendationCard({
                           gap: 4,
                           padding: "4px 10px",
                           borderRadius: 999,
-                          background: isDark ? "rgba(124,58,237,0.18)" : "#F5F3FF",
-                          border: `1px solid ${isDark ? "rgba(167,139,250,0.25)" : "#DDD6FE"}`,
+                          background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
+                          border: `1px solid ${isDark ? "var(--accent-surface)" : "var(--accent-light)"}`,
                           fontSize: 13,
                           fontWeight: 600,
-                          color: isDark ? "#C4B5FD" : "#6D28D9",
+                          color: isDark ? "var(--accent-light)" : "var(--accent-text)",
                         }}
                       >
                         {WARDROBE_CATEGORY_EMOJI[item.category] ?? "👗"} {item.name}
@@ -568,7 +567,7 @@ export function OutfitRecommendationCard({
                 marginLeft: "auto",
               }}
             >
-              {shared ? <span style={{ fontSize: 11, fontWeight: 700, color: "#7C3AED" }}>Shared!</span> : "⬆"}
+              {shared ? <span style={{ fontSize: 11, fontWeight: 700, color: "var(--accent-primary)" }}>Shared!</span> : "⬆"}
             </button>
           </div>
 

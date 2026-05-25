@@ -344,7 +344,7 @@ export default function Radar() {
         <Circle
           center={center}
           radius={1500}
-          pathOptions={{ color: "#6C63FF", fillColor: "#6C63FF", fillOpacity: 0.7, weight: 2 }}
+          pathOptions={{ color: "var(--accent-primary)", fillColor: "var(--accent-primary)", fillOpacity: 0.7, weight: 2 }}
         />
       </MapContainer>
 
@@ -359,7 +359,7 @@ export default function Radar() {
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
           <div
             style={{
-              background: isPast ? badgeBg : "rgba(108,99,255,0.85)",
+              background: isPast ? badgeBg : "rgba(var(--accent-rgb),0.85)",
               borderRadius: 999, padding: "4px 14px",
               border: `1px solid ${isPast ? badgeBorder : "rgba(255,255,255,0.12)"}`,
             }}
@@ -473,7 +473,7 @@ export default function Radar() {
                 }}
                 style={{
                   padding: "8px 20px", borderRadius: 999, border: "none",
-                  background: "#7C3AED", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                  background: "var(--accent-primary)", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer",
                 }}
               >
                 Retry
