@@ -4,6 +4,11 @@ import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import OutfitTextView from "@/components/outfit/OutfitTextView";
 import { Card } from "@/components/ui/Card";
 import { getLayerChangeDirection } from "@/lib/outfit-logic";
+import {
+  displayFootwearForRain,
+  displaySunglassesForRain,
+  sanitizeWardrobeOverrideForRain,
+} from "@/lib/outfitRainDisplay";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
@@ -158,7 +163,11 @@ export function OutfitRecommendationCard({
   // to show that period's outfit. Current-conditions data (commuteAlert, avatarCondition,
   // outfitReason, feelsLikeExplanation) only applies when viewing the current period.
   const displayedRec = isViewingNow ? recommendation : (activeEntry?.recommendation ?? recommendation);
-  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } = displayedRec;
+  const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } =
+    displayedRec;
+
+  const showSunglasses = displaySunglassesForRain(sunglasses, rainGear);
+  const showFootwear = displayFootwearForRain(footwear, rainGear);
 
   const displayFeelsLike = (() => {
     if (isViewingNow) {
@@ -314,23 +323,26 @@ export function OutfitRecommendationCard({
           {(() => {
             const presetOverride: OutfitOverride | null =
               wardrobePreset && isViewingNow
-                ? {
-                    top: wardrobePreset.top_svg,
-                    bottom: wardrobePreset.bottom_svg,
-                    outerwear: wardrobePreset.outerwear_svg,
-                    footwear: wardrobePreset.footwear_svg,
-                    accessories: wardrobePreset.accessory_svgs,
-                  }
+                ? sanitizeWardrobeOverrideForRain(
+                    {
+                      top: wardrobePreset.top_svg,
+                      bottom: wardrobePreset.bottom_svg,
+                      outerwear: wardrobePreset.outerwear_svg,
+                      footwear: wardrobePreset.footwear_svg,
+                      accessories: wardrobePreset.accessory_svgs,
+                    },
+                    rainGear
+                  )
                 : null;
             return textOnly ? (
               <OutfitTextView
                 outfit={outfit}
                 umbrella={umbrella}
-                sunglasses={sunglasses}
+                sunglasses={showSunglasses}
                 scarf={scarf}
                 beanie={beanie}
                 gloves={gloves}
-                footwear={footwear}
+                footwear={showFootwear ?? null}
                 isDark={isDark}
               />
             ) : (
@@ -338,11 +350,11 @@ export function OutfitRecommendationCard({
                 outfit={outfit}
                 rainGear={rainGear}
                 umbrella={umbrella}
-                sunglasses={sunglasses}
+                sunglasses={showSunglasses}
                 scarf={scarf}
                 beanie={beanie}
                 gloves={gloves}
-                footwear={footwear}
+                footwear={showFootwear ?? null}
                 colorScheme="light"
                 override={presetOverride}
               />
