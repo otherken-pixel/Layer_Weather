@@ -61,12 +61,6 @@ function formatDateRange(dep: string, ret: string): string {
   return `${d.toLocaleDateString("en", opts)} – ${r.toLocaleDateString("en", opts)}${sameYear ? "" : `, ${r.getFullYear()}`}`;
 }
 
-function daysToReturn(returnDateStr: string): number {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const ret = new Date(returnDateStr + "T00:00:00");
-  return Math.ceil((ret.getTime() - today.getTime()) / 86400000);
-}
-
 function forecastStatus(departureDateStr: string, returnDateStr: string): "full" | "extended" | "unavailable" {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const dep = new Date(departureDateStr + "T00:00:00");

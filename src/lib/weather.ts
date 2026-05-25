@@ -286,8 +286,8 @@ function toLocalDayKey(d: Date): string {
 
 /**
  * Fetch daily forecasts for a specific date range using Apple WeatherKit (primary)
- * or Open-Meteo (fallback / extended range). Returns null when the trip is more
- * than 16 days away (no reliable forecast exists yet).
+ * or Open-Meteo (fallback / extended range). Returns null when departure is more
+ * than 16 days away (no reliable forecast exists yet), matching UI gating.
  */
 export async function fetchWeatherForDateRange(
   latitude: number,
@@ -298,13 +298,16 @@ export async function fetchWeatherForDateRange(
 ): Promise<{ forecasts: DailyForecast[]; isForecastComplete: boolean } | null> {
   const today = new Date();
   const todayKey = toLocalDayKey(today);
+  const depKey = toLocalDayKey(departureDate);
   const retKey = toLocalDayKey(returnDate);
 
   const todayMidnight = new Date(todayKey + "T00:00:00").getTime();
+  const depMidnight = new Date(depKey + "T00:00:00").getTime();
   const retMidnight = new Date(retKey + "T00:00:00").getTime();
+  const daysUntilDep = Math.ceil((depMidnight - todayMidnight) / 86400000);
   const daysToReturn = Math.ceil((retMidnight - todayMidnight) / 86400000);
 
-  if (daysToReturn > 16) return null;
+  if (daysUntilDep > 16) return null;
 
   let allDaily: DailyForecast[];
 
@@ -319,7 +322,6 @@ export async function fetchWeatherForDateRange(
     allDaily = (await fetchFromOpenMeteo(latitude, longitude, 16)).daily;
   }
 
-  const depKey = toLocalDayKey(departureDate);
   const forecasts = allDaily.filter((d) => {
     const key = toLocalDayKey(d.date);
     return key >= depKey && key <= retKey;
