@@ -57,11 +57,17 @@ export default function Home() {
   const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
   const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
-  const wardrobeLoadedRef = useRef(false);
   useEffect(() => {
-    if (!userId || wardrobeLoadedRef.current) return;
-    wardrobeLoadedRef.current = true;
-    getWardrobeItems(userId).then(setWardrobeItems).catch(() => {});
+    if (!userId) return;
+    let cancelled = false;
+    void getWardrobeItems(userId)
+      .then((data) => {
+        if (!cancelled) setWardrobeItems(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 

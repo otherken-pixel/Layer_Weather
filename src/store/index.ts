@@ -18,7 +18,9 @@ interface AppState {
 
   // Wardrobe
   wardrobeItems: WardrobeItem[];
-  setWardrobeItems: (items: WardrobeItem[]) => void;
+  setWardrobeItems: (
+    items: WardrobeItem[] | ((prev: WardrobeItem[]) => WardrobeItem[])
+  ) => void;
 
   // UI
   isLoadingWeather: boolean;
@@ -65,7 +67,13 @@ export const useAppStore = create<AppState>((set) => ({
   setIsOnboarded: (isOnboarded) => set({ isOnboarded }),
   setLocation: (location) => set({ location }),
   setSavedLocations: (savedLocations) => set({ savedLocations }),
-  setWardrobeItems: (wardrobeItems) => set({ wardrobeItems }),
+  setWardrobeItems: (itemsOrUpdater) =>
+    set((state) => ({
+      wardrobeItems:
+        typeof itemsOrUpdater === "function"
+          ? itemsOrUpdater(state.wardrobeItems)
+          : itemsOrUpdater,
+    })),
   setWeather: (weather) => set({ weather }),
   setOutfit: (outfit) => set({ outfit }),
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),
