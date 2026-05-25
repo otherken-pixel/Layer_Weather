@@ -67,7 +67,7 @@ function forecastStatus(departureDateStr: string, returnDateStr: string): "full"
   const ret = new Date(returnDateStr + "T00:00:00");
   const daysUntilDep = Math.ceil((dep.getTime() - today.getTime()) / 86400000);
   const daysUntilRet = Math.ceil((ret.getTime() - today.getTime()) / 86400000);
-  if (daysUntilDep > 16) return "unavailable";
+  if (daysUntilDep >= 16) return "unavailable";
   if (daysUntilRet <= 10) return "full";
   return "extended";
 }
