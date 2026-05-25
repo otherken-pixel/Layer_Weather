@@ -7,6 +7,7 @@ import { getLayerChangeDirection } from "@/lib/outfit-logic";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
+import { WeatherIcon } from "@/components/weather/WeatherIcon";
 import type { WardrobeMatch } from "@/lib/wardrobe-matching";
 import type {
   FootwearKind,
@@ -31,10 +32,6 @@ const PERIOD_EMOJI: Record<DayPeriodLabel, string> = {
   Evening: "🌆",
 };
 
-const CONDITION_EMOJI: Record<string, string> = {
-  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
-  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
-};
 
 const AVATAR_CONDITION_EMOJI: Record<AvatarCondition, string> = {
   sunny: "☀️",
@@ -652,7 +649,7 @@ function TimelinePeriodDetail({
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ fontSize: 22 }}>{CONDITION_EMOJI[period.condition] ?? "🌤️"}</span>
+      <WeatherIcon condition={period.condition} size="lg" isDark={isDark} />
       {period.precipProb > 20 && (
         <span style={{ fontSize: 13, color: mutedText }}>
           {period.precipProb}% rain

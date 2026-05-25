@@ -2,11 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import type { DailyForecast, HourlyForecast } from "@/types";
-
-const EMOJI: Record<string, string> = {
-  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
-  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
-};
+import { WeatherIcon } from "@/components/weather/WeatherIcon";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -131,9 +127,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
               </span>
 
               {/* Weather icon */}
-              <span style={{ fontSize: 20, width: 28, flexShrink: 0 }}>
-                {EMOJI[day.condition] ?? "🌤️"}
-              </span>
+              <WeatherIcon condition={day.condition} size="md" isDark={isDark} />
 
               {/* Precip % */}
               <span
@@ -307,7 +301,7 @@ function HourlyDrillDown({
               >
                 {h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
-              <span style={{ fontSize: 16 }}>{EMOJI[condKey] ?? "🌤️"}</span>
+              <WeatherIcon condition={condKey} size="sm" isDark={isDark} />
               <span style={{ fontSize: 15, fontWeight: 700, color: tempColor }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
