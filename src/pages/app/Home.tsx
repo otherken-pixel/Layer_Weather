@@ -381,18 +381,20 @@ export default function Home() {
               condition={weather.current.condition}
               isDay={weather.current.isDay}
             />
+            {/* Location tabs float above the landscape inside the sky section so the
+                cards area (which has a negative top margin) never covers them. */}
+            <div style={{ position: "relative", zIndex: 5 }}>
+              <LocationTabs
+                locations={savedLocations}
+                activeCity={location?.city ?? null}
+                activeIsDevice={activeLocationIsDevice}
+                onSelect={handleTabSelect}
+                onSelectDevice={handleDeviceTabSelect}
+                onAdd={handleOpenAddCity}
+                onDelete={handleDeleteCity}
+              />
+            </div>
           </div>
-
-          {/* Location tab switcher — always visible once at least one city is saved */}
-          <LocationTabs
-            locations={savedLocations}
-            activeCity={location?.city ?? null}
-            activeIsDevice={activeLocationIsDevice}
-            onSelect={handleTabSelect}
-            onSelectDevice={handleDeviceTabSelect}
-            onAdd={handleOpenAddCity}
-            onDelete={handleDeleteCity}
-          />
 
           {/* Cards area */}
           <div style={{
