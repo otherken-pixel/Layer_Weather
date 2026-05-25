@@ -25,12 +25,8 @@ import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
+import { WeatherIcon } from "@/components/weather/WeatherIcon";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
-
-const CONDITION_EMOJI: Record<string, string> = {
-  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
-  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
-};
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -499,7 +495,7 @@ function HourlyStrip({
               }}>
                 {isNow ? "Now" : h.time.toLocaleTimeString("en", { hour: "numeric" })}
               </span>
-              <span style={{ fontSize: 18 }}>{CONDITION_EMOJI[condKey] ?? "🌤️"}</span>
+              <WeatherIcon condition={condKey} size="md" isDark={isDark} plain={isNow} />
               <span style={{ fontSize: 17, fontWeight: 700, color: isNow ? "white" : isDark ? Colors.dark.textPrimary : "#111827" }}>
                 {toUnit(h.feelsLike, tempUnit)}°
               </span>
