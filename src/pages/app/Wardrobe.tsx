@@ -366,11 +366,6 @@ function EditorSheet({
 
             {/* SVG picker grid */}
             <div className="flex-1 overflow-y-auto px-5 pb-2">
-              {activeTab === "outerwear" && (
-                <p style={{ fontSize: 12, color: textSecondary, marginBottom: 10 }}>
-                  Optional — leave unselected if no layer needed.
-                </p>
-              )}
               {activeTab === "accessories" && (
                 <p style={{ fontSize: 12, color: textSecondary, marginBottom: 10 }}>
                   Select as many as you like.
@@ -391,6 +386,44 @@ function EditorSheet({
                     paddingBottom: 8,
                   }}
                 >
+                  {/* "None" tile — outerwear only */}
+                  {activeTab === "outerwear" && (
+                    <button
+                      type="button"
+                      onClick={() => { hapticLight(); setOuterwearSvg(null); }}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        padding: "12px 8px",
+                        borderRadius: 16,
+                        border: outerwearSvg === null
+                          ? "2.5px solid var(--accent-primary)"
+                          : isDark ? "2px solid #3A3A3C" : "2px solid #E5E7EB",
+                        background: outerwearSvg === null
+                          ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                          : isDark ? "#2C2C2E" : "#F9FAFB",
+                        cursor: "pointer",
+                        transition: "border-color 0.15s, background 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: 32, lineHeight: 1, opacity: outerwearSvg === null ? 1 : 0.4 }}>✕</span>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: outerwearSvg === null
+                            ? isDark ? "var(--accent-light)" : "var(--accent-text)"
+                            : textSecondary,
+                        }}
+                      >
+                        None
+                      </span>
+                    </button>
+                  )}
+
                   {currentOptions.map((entry) => {
                     const selected = isSelected(activeTab, entry.name);
                     const isMulti = activeTab === "accessories";
@@ -440,10 +473,14 @@ function EditorSheet({
               )}
             </div>
 
-            {/* Footer */}
+            {/* Footer — always visible, never inside the scroll area */}
             <div
               className="px-5 flex-shrink-0 pt-3 flex flex-col gap-2"
-              style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
+              style={{
+                background: surface,
+                borderTop: `1px solid ${isDark ? "#3A3A3C" : "#E5E7EB"}`,
+                paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+              }}
             >
               <button
                 type="button"
