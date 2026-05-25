@@ -108,8 +108,9 @@ export function OutfitRecommendationCard({
   wardrobePreset,
   onViewWardrobe,
 }: Props) {
-  const { profile, svgCatalogById } = useAppStore();
+  const { profile, svgCatalogById, svgCatalogError } = useAppStore();
   const textOnly = profile?.outfit_display_mode === "text";
+  const preferTextFlatLay = textOnly || Boolean(svgCatalogError);
   // avatarCondition/commuteAlert always reflect current conditions
   const { commuteAlert, avatarCondition } = recommendation;
   const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
@@ -348,7 +349,7 @@ export function OutfitRecommendationCard({
 
           {/* Outfit display */}
           {(() => {
-            return textOnly ? (
+            return preferTextFlatLay && !presetOverride ? (
               <OutfitTextView
                 outfit={outfit}
                 umbrella={umbrella}
@@ -371,6 +372,7 @@ export function OutfitRecommendationCard({
                 footwear={showFootwear ?? null}
                 colorScheme="light"
                 override={presetOverride}
+                forceTextFallback={preferTextFlatLay}
               />
             );
           })()}

@@ -1,8 +1,12 @@
-import React, { memo, useLayoutEffect, useRef, useState } from "react";
+import React, { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { FootwearKind, OutfitType } from "@/types";
 import StorageSvg from "./StorageSvg";
+import OutfitTextView from "./OutfitTextView";
 import { accessoryMap, bottomMap, footwearMap, topMap } from "./outfitMap";
+import { useAppStore } from "@/store";
+import { resolveSvgId } from "@/lib/svgCatalog";
+import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 
 /** When provided, bypasses outfit-type lookups and renders user-chosen SVG names directly. */
 export interface OutfitOverride {
@@ -31,6 +35,8 @@ interface Props {
   compact?: boolean;
   /** When provided, bypasses the system outfit-type maps and renders user-chosen SVGs. */
   override?: OutfitOverride | null;
+  /** Render garment labels instead of icons (catalog missing or load errors). */
+  forceTextFallback?: boolean;
 }
 
 const ITEM_ANIM = {
@@ -79,6 +85,11 @@ function iconSizesForWidth(compact: boolean, containerWidth: number | null) {
   };
 }
 
+function catalogHasSvg(id: string, byId: Record<string, SvgCatalogEntry>): boolean {
+  const resolved = resolveSvgId(id, byId);
+  return Boolean(resolved && byId[resolved]);
+}
+
 const OutfitFlatLay = memo(function OutfitFlatLay({
   outfit,
   rainGear,
@@ -90,7 +101,22 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   footwear = null,
   compact = false,
   override = null,
+  forceTextFallback = false,
 }: Props) {
+  const svgCatalogById = useAppStore((s) => s.svgCatalogById);
+  const svgCatalogError = useAppStore((s) => s.svgCatalogError);
+
+  const useTextMode = useMemo(() => {
+    if (forceTextFallback || svgCatalogError) return true;
+    if (override) return false;
+    const topId = topMap[outfit];
+    const bottomId = bottomMap[outfit];
+    if (!catalogHasSvg(topId, svgCatalogById)) return true;
+    if (bottomId && !catalogHasSvg(bottomId, svgCatalogById)) return true;
+    if (footwear && !catalogHasSvg(footwearMap[footwear], svgCatalogById)) return true;
+    return false;
+  }, [forceTextFallback, svgCatalogError, override, outfit, footwear, svgCatalogById]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
@@ -108,6 +134,20 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
 
   const { topSz, bottomSz: baseBottomSz, accSz } = iconSizesForWidth(compact, containerWidth);
   const footwearSz = Math.round(accSz * 1.25);
+
+  if (useTextMode && !override) {
+    return (
+      <OutfitTextView
+        outfit={outfit}
+        umbrella={umbrella}
+        sunglasses={sunglasses}
+        scarf={scarf}
+        beanie={beanie}
+        gloves={gloves}
+        footwear={footwear}
+      />
+    );
+  }
 
   const wrap = (node: React.ReactNode, delay: number, sz = accSz, reactKey?: React.Key) => (
     <motion.div

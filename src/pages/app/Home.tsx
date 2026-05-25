@@ -323,7 +323,11 @@ export default function Home() {
       {weatherError && !weather && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "120px 24px 24px" }}>
           <span style={{ fontSize: 48 }}>⚠️</span>
-          <p style={{ color: "rgba(255,255,255,0.9)", textAlign: "center", lineHeight: 1.5, maxWidth: 300 }}>{weatherError}</p>
+          <p style={{ color: "rgba(255,255,255,0.9)", textAlign: "center", lineHeight: 1.5, maxWidth: 300 }}>
+            {weatherError.includes("Unable to fetch weather data")
+              ? "Unable to fetch weather data. Check your connection and try again."
+              : weatherError}
+          </p>
           <button
             type="button"
             onClick={() => refresh(true)}
