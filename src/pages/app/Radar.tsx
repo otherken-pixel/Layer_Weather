@@ -4,6 +4,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
 import { useDarkMode } from "@/hooks/useDarkMode";
+import { deriveAccentPalette, loadAccentLocal } from "@/hooks/useAccentTheme";
 
 const RADAR_MAX_ZOOM = 12;
 /** RainViewer tiles are only served through zoom 7 (see rainviewer.com/api/weather-maps-api.html). */
@@ -282,6 +283,11 @@ export default function Radar() {
 
   const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
 
+  const radarCircleColor = useMemo(
+    () => deriveAccentPalette(profile?.accent_color ?? loadAccentLocal()).primary,
+    [profile?.accent_color],
+  );
+
   const baseTileUrl = isDark
     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
     : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
@@ -344,7 +350,7 @@ export default function Radar() {
         <Circle
           center={center}
           radius={1500}
-          pathOptions={{ color: "var(--accent-primary)", fillColor: "var(--accent-primary)", fillOpacity: 0.7, weight: 2 }}
+          pathOptions={{ color: radarCircleColor, fillColor: radarCircleColor, fillOpacity: 0.7, weight: 2 }}
         />
       </MapContainer>
 
