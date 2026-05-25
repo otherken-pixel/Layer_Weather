@@ -11,11 +11,10 @@ const CATEGORIES = ["outerwear", "tops", "bottoms", "footwear", "accessories"] a
 const CATEGORY_EMOJI: Record<string, string> = {
   outerwear: "🧥", tops: "👕", bottoms: "👖", footwear: "👟", accessories: "🧣",
 };
-const ACCENT = "var(--accent-primary)";
 
 export default function Packing() {
   const { calibration, wardrobeItems } = useAppStore();
-  const { accent, accentSolid } = useAccentColor();
+  const { accentSolid } = useAccentColor();
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
   const [destination, setDestination] = useState("");
@@ -195,7 +194,7 @@ export default function Packing() {
                         <span style={{
                           minWidth: 36, height: 36, borderRadius: 12,
                           background: item.ownedItem ? "#DCFCE7" : "#EDE9FE",
-                          color: item.ownedItem ? "#15803D" : accent,
+                          color: item.ownedItem ? "#15803D" : accentSolid,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 12, fontWeight: 800,
                         }}>
