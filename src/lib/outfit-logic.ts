@@ -403,13 +403,6 @@ export function lookupOutfitMapping(
   return syntheticMappingForTier(tier, defaultType);
 }
 
-/** Returns true when weather is present; packing/commute helpers should bail when false. */
-export function assertWeatherForOutfit(
-  weather: { current: { feelsLike: number } } | null | undefined,
-): weather is { current: { feelsLike: number } } {
-  return weather != null && Number.isFinite(weather.current?.feelsLike);
-}
-
 // ── Helper: string template interpolation ─────────────────────────────────────
 
 function interpolate(template: string, vars: Record<string, string>): string {

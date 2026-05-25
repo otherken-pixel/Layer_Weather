@@ -121,16 +121,20 @@ function formatCacheAge(d: Date): string {
 async function tryLoadStaleWeatherCache(
   cacheKey: string | undefined,
   useDeviceLocation: boolean,
+  isStaleCatchCurrent?: () => boolean,
 ): Promise<boolean> {
+  const stillCurrent = () => isStaleCatchCurrent?.() ?? true;
   const { cityWeatherCache } = useAppStore.getState();
 
   if (cacheKey) {
     const mem = cityWeatherCache[cacheKey];
     if (mem && isWeatherCacheFresh(mem.fetchedAt)) {
+      if (!stillCurrent()) return false;
       applyCachedEntry(mem, cacheKey, useDeviceLocation);
       return true;
     }
     const persisted = await loadCityWeatherCache(cacheKey);
+    if (!stillCurrent()) return false;
     if (persisted) {
       applyCachedEntry(persisted, cacheKey, useDeviceLocation);
       return true;
@@ -138,6 +142,7 @@ async function tryLoadStaleWeatherCache(
   }
 
   const global = await loadWeatherCache();
+  if (!stillCurrent()) return false;
   if (global) {
     applyCachedEntry(
       {
@@ -327,7 +332,12 @@ export function useWeather() {
             useAppStore.getState().profile?.last_city ||
             undefined);
 
-      const usedCache = await tryLoadStaleWeatherCache(resolvedKey, useDeviceLocation);
+      const usedCache = await tryLoadStaleWeatherCache(
+        resolvedKey,
+        useDeviceLocation,
+        () => generation === refreshGeneration.current,
+      );
+      if (generation !== refreshGeneration.current) return;
       if (!usedCache) {
         clearWeatherState();
         const mapped = mapWeatherError(err);

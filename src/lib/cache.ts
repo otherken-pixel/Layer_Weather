@@ -200,8 +200,22 @@ export async function loadCityWeatherCache(
 
 export async function clearWeatherCache(): Promise<void> {
   await storageRemove(WEATHER_CACHE_KEY);
+
+  const cityKeys = new Set<string>();
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) localStorage.removeItem(k);
+    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) cityKeys.add(k);
+  }
+  try {
+    const { Preferences } = await import("@capacitor/preferences");
+    const { keys } = await Preferences.keys();
+    for (const k of keys) {
+      if (k.startsWith(CITY_WEATHER_CACHE_PREFIX)) cityKeys.add(k);
+    }
+  } catch {
+    /* Preferences unavailable */
+  }
+  for (const k of cityKeys) {
+    await storageRemove(k);
   }
 }
