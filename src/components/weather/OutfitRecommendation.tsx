@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import OutfitTextView from "@/components/outfit/OutfitTextView";
 import { Card } from "@/components/ui/Card";
 import { getLayerChangeDirection } from "@/lib/outfit-logic";
+import { buildDisplayCopyFromOverride } from "@/lib/outfitDisplayCopy";
 import {
   displayFootwearForRain,
   displaySunglassesForRain,
@@ -107,7 +108,7 @@ export function OutfitRecommendationCard({
   wardrobePreset,
   onViewWardrobe,
 }: Props) {
-  const { profile } = useAppStore();
+  const { profile, svgCatalogById } = useAppStore();
   const textOnly = profile?.outfit_display_mode === "text";
   // avatarCondition/commuteAlert always reflect current conditions
   const { commuteAlert, avatarCondition } = recommendation;
@@ -143,8 +144,8 @@ export function OutfitRecommendationCard({
         conditionEmoji: AVATAR_CONDITION_EMOJI[avatarCondition],
         temp: feelsLike,
         tempUnit,
-        outfitLabel: label,
-        outfitDescription: description,
+        outfitLabel: displayLabel,
+        outfitDescription: displayDescription,
         city: loc?.city ?? "",
         region: loc?.region ?? "",
       });
@@ -165,6 +166,32 @@ export function OutfitRecommendationCard({
   const displayedRec = isViewingNow ? recommendation : (activeEntry?.recommendation ?? recommendation);
   const { outfit, label, description, rainGear, umbrella, sunglasses, scarf, beanie, gloves, footwear } =
     displayedRec;
+
+  const presetOverride: OutfitOverride | null = useMemo(() => {
+    if (!wardrobePreset || !isViewingNow) return null;
+    return sanitizeWardrobeOverrideForRain(
+      {
+        top: wardrobePreset.top_svg,
+        bottom: wardrobePreset.bottom_svg,
+        outerwear: wardrobePreset.outerwear_svg,
+        footwear: wardrobePreset.footwear_svg,
+        accessories: wardrobePreset.accessory_svgs,
+      },
+      rainGear
+    );
+  }, [wardrobePreset, isViewingNow, rainGear]);
+
+  const wardrobeDisplayCopy = useMemo(() => {
+    if (!presetOverride) return null;
+    return buildDisplayCopyFromOverride(presetOverride, svgCatalogById, {
+      displayFeelsLike: feelsLike,
+      rainGear,
+      outfitType: outfit,
+    });
+  }, [presetOverride, svgCatalogById, feelsLike, rainGear, outfit]);
+
+  const displayLabel = wardrobeDisplayCopy?.label ?? label;
+  const displayDescription = wardrobeDisplayCopy?.description ?? description;
 
   const showSunglasses = displaySunglassesForRain(sunglasses, rainGear);
   const showFootwear = displayFootwearForRain(footwear, rainGear);
@@ -232,7 +259,7 @@ export function OutfitRecommendationCard({
                   lineHeight: 1.15,
                 }}
               >
-                {label}
+                {displayLabel}
               </h2>
               {isViewingNow && outfitReason && (
                 <p style={{ fontSize: 13, color: outfitReasonColor, fontWeight: 500, marginTop: 3 }}>
@@ -321,19 +348,6 @@ export function OutfitRecommendationCard({
 
           {/* Outfit display */}
           {(() => {
-            const presetOverride: OutfitOverride | null =
-              wardrobePreset && isViewingNow
-                ? sanitizeWardrobeOverrideForRain(
-                    {
-                      top: wardrobePreset.top_svg,
-                      bottom: wardrobePreset.bottom_svg,
-                      outerwear: wardrobePreset.outerwear_svg,
-                      footwear: wardrobePreset.footwear_svg,
-                      accessories: wardrobePreset.accessory_svgs,
-                    },
-                    rainGear
-                  )
-                : null;
             return textOnly ? (
               <OutfitTextView
                 outfit={outfit}
@@ -363,7 +377,7 @@ export function OutfitRecommendationCard({
 
           {/* Description */}
           <p style={{ fontSize: 15, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
-            {description}
+            {displayDescription}
           </p>
 
           {/* Wardrobe preset banner */}
