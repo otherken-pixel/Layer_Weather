@@ -348,10 +348,7 @@ export function resolveFootwear(opts: {
 
   // Business formality: no flip-flops ever; promote to dress shoes
   if (formality === "business") {
-    if (effectiveFeelsLike >= SNOW_BOOTS_BELOW_TEMP_F) {
-      return style === "feminine" ? "dress_flats" : "loafers";
-    }
-    return "snow_boots"; // cold business → still snow boots
+    return style === "feminine" ? "dress_flats" : "loafers";
   }
 
   if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
@@ -556,9 +553,9 @@ export function getOutfitRecommendation(opts: {
   // Humidity / wind chill adjustment using standard meteorological formulas
   let effectiveFeelsLike = feelsLike;
   if (calibration.humidity_sensitivity) {
-    if (feelsLike > 75 && humidity > 40) {
+    if (airTemp > 75 && humidity > 40) {
       effectiveFeelsLike = computeHeatIndex(airTemp, humidity);
-    } else if (feelsLike < 50 && windSpeed > 3) {
+    } else if (airTemp < 50 && windSpeed > 3) {
       effectiveFeelsLike = computeWindChill(airTemp, windSpeed);
     }
   }
