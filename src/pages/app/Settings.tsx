@@ -509,7 +509,36 @@ export default function Settings() {
         {/* App info */}
         <Section title="App" labelColor={sectionLabelColor}>
           <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <button
+              type="button"
+              onClick={() => navigate("/app/help")}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.10)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 16,
+                }}>
+                  ?
+                </div>
+                <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>Help</span>
+              </div>
+              <span style={{ fontSize: 18, color: hintColor }}>›</span>
+            </button>
+            <Divider dividerColor={dividerColor} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
                   <circle cx="20" cy="20" r="20" fill="var(--accent-surface)" />

@@ -10,6 +10,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import Home from "@/pages/app/Home";
 import Packing from "@/pages/app/Packing";
 import Settings from "@/pages/app/Settings";
+import Help from "@/pages/app/Help";
 
 const Radar = lazy(() => import("@/pages/app/Radar"));
 const Wardrobe = lazy(() => import("@/pages/app/Wardrobe"));
@@ -84,6 +85,7 @@ export default function App() {
               <Route path="packing" element={<Packing />} />
               <Route path="wardrobe" element={<Suspense fallback={<div style={{ flex: 1, background: "#F2F2F7" }} />}><Wardrobe /></Suspense>} />
               <Route path="settings" element={<Settings />} />
+              <Route path="help" element={<Help />} />
             </Route>
             <Route path="*" element={<Navigate to="/app/home" replace />} />
           </>
