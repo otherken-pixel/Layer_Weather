@@ -3,13 +3,9 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
 import { getWeatherWardrobes, getWardrobeItems, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
-import {
-  SCENARIOS,
-  catalogForPreference,
-  getScenarioMeta,
-  normalizeSvgId,
-} from "@/lib/wardrobeCatalog";
-import type { SvgCategory } from "@/lib/wardrobeCatalog";
+import { SCENARIOS, getScenarioMeta, normalizeSvgId } from "@/lib/wardrobeCatalog";
+import { catalogForPreference } from "@/lib/svgCatalog";
+import type { SvgCategory } from "@/lib/svgCatalog";
 import type { WeatherScenario, WeatherWardrobePreset, StylePreference } from "@/types";
 import StorageSvg from "@/components/outfit/StorageSvg";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
@@ -160,6 +156,8 @@ function EditorSheet({
 }: EditorSheetProps) {
   const meta = getScenarioMeta(scenario);
   const dragControls = useDragControls();
+  const svgCatalog = useAppStore((s) => s.svgCatalog);
+  const svgCatalogLoading = useAppStore((s) => s.svgCatalogLoading);
 
   const [activeTab, setActiveTab] = useState<SvgCategory>("tops");
   const [topSvg,       setTopSvg]       = useState<string | null>(null);
@@ -262,7 +260,7 @@ function EditorSheet({
   const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
   const tabBg = isDark ? "#2C2C2E" : "#F3F4F6";
 
-  const currentOptions = catalogForPreference(stylePreference, activeTab);
+  const currentOptions = catalogForPreference(svgCatalog, stylePreference, activeTab);
 
   // Live preview override
   const previewOverride = {
@@ -397,6 +395,10 @@ function EditorSheet({
                     Dress selected
                   </p>
                   <p style={{ fontSize: 13 }}>No bottom needed — a dress is a full outfit.</p>
+                </div>
+              ) : svgCatalogLoading ? (
+                <div style={{ textAlign: "center", paddingTop: 32, color: textSecondary }}>
+                  <p style={{ fontSize: 14 }}>Loading clothing icons…</p>
                 </div>
               ) : currentOptions.length === 0 ? (
                 <div style={{ textAlign: "center", paddingTop: 32, color: textSecondary }}>

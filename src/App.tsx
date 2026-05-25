@@ -1,6 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useSvgCatalog } from "@/hooks/useSvgCatalog";
 
 import Welcome from "@/pages/auth/Welcome";
 import Login from "@/pages/auth/Login";
@@ -31,6 +32,7 @@ function useHashError() {
 export default function App() {
   const { isAuthenticated, isLoading } = useAuth();
   const hashError = useHashError();
+  useSvgCatalog();
 
   if (hashError) {
     return (

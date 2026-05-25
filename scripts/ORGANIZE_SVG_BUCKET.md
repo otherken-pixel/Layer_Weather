@@ -1,27 +1,28 @@
-# Organize `svg_clothes_files` bucket
+# SVG clothes: Storage + `svg_clothes` table
 
-Files start at the bucket root (e.g. `005-tshirt.svg`). The app expects:
+## Architecture
 
-`{style}/{category}/{filename}` — e.g. `neutral/tops/005-tshirt.svg`
+| Layer | Purpose |
+|--------|---------|
+| **`svg_clothes_files` bucket** | SVG file bytes (flat names, e.g. `005-tshirt.svg`) |
+| **`svg_clothes` table** | Id, label, style, category, `storage_path`, sort order |
+| **App** | `getSvgCatalog()` → Zustand store → `StorageSvg` public URLs |
+| **`user_weather_wardrobes`** | User picks by stable catalog **id** |
 
-## One-time migration (recommended)
+Reclassify an item: update the row in Supabase (Table Editor or SQL). No app deploy required.
 
-Deploy and invoke the `organize-svg-clothes` edge function (service role copies each file, then removes the root copy):
-
-```bash
-curl -s "https://kbldfsxvfzanmjwjttvd.supabase.co/functions/v1/organize-svg-clothes?secret=cursor-svg-organize-7397" \
-  -H "Authorization: Bearer YOUR_ANON_KEY"
-```
-
-Set `ORGANIZE_SVG_SECRET` in the function's secrets and rotate/remove the default token after a successful run.
-
-## Regenerate catalog after reclassification
+## Regenerate seed SQL after reclassification
 
 ```bash
-node scripts/classify-svg-files.mjs > /tmp/svg-catalog.json
-# then regenerate src/data/svgCatalog.ts (see classify script header in repo)
+node scripts/classify-svg-files.mjs --write-sql-seed
 ```
 
-## Adjust classifications
+Apply the generated migration or run the SQL in the SQL editor.
 
-Edit heuristics in `scripts/classify-svg-files.mjs`, regenerate `src/data/svgCatalog.ts`, and re-run the organizer if paths change.
+## Optional: folder layout in Storage
+
+The app reads `storage_path` from the table (usually the flat filename). Moving files into `{style}/{category}/` folders is optional; update `storage_path` to match if you do.
+
+## Legacy one-time folder move
+
+The `organize-svg-clothes` edge function is optional if you prefer folders in the dashboard. See function source under `supabase/functions/organize-svg-clothes/`.

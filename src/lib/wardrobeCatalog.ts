@@ -1,25 +1,10 @@
 import type { StylePreference, WeatherScenario } from "@/types";
-import {
-  SVG_CATALOG,
-  resolveSvgId,
-  type SvgCatalogEntry,
-} from "@/data/svgCatalog";
+import { resolveSvgId, type SvgCatalogEntry } from "@/lib/svgCatalog";
 
-export type { SvgStyle, SvgCategory } from "@/lib/svgCatalog.types";
+export type { SvgStyle, SvgCategory, SvgCatalogEntry } from "@/lib/svgCatalog";
 export type { SvgCatalogEntry as SvgEntry };
 
-export { SVG_CATALOG };
-
-export function catalogForPreference(
-  preference: StylePreference,
-  category: SvgCatalogEntry["category"]
-): SvgCatalogEntry[] {
-  return SVG_CATALOG.filter((e) => {
-    if (e.category !== category) return false;
-    if (preference === "all") return true;
-    return e.style === "neutral" || e.style === preference;
-  });
-}
+export { resolveSvgId as normalizeSvgId };
 
 export interface ScenarioMeta {
   key: WeatherScenario;
@@ -139,9 +124,4 @@ export const SCENARIOS: ScenarioMeta[] = [
 
 export function getScenarioMeta(key: WeatherScenario): ScenarioMeta {
   return SCENARIOS.find((s) => s.key === key) ?? SCENARIOS[0];
-}
-
-/** Normalize stored svg value (legacy or id) to a catalog id when saving/displaying. */
-export function normalizeSvgId(value: string | null | undefined): string | null {
-  return resolveSvgId(value);
 }
