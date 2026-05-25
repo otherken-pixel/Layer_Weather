@@ -33,22 +33,6 @@ export const CONDITION_LABEL: Record<WeatherCondition, string> = {
   thunderstorm: "Thunderstorm",
 };
 
-// ── Accent color presets (theme engine) ──────────────────────────────────────
-export type AccentKey = "purple" | "blue" | "teal" | "rose";
-
-export const ACCENT_PRESETS: Record<AccentKey, {
-  light: string;       // on white/light cards
-  dark: string;        // on dark cards
-  surface: string;     // semi-transparent tint for selected states
-  gradientEnd: string; // for gradient fills (avatar, etc.)
-  label: string;
-}> = {
-  purple: { light: "#7C3AED", dark: "#A78BFA", surface: "rgba(124,58,237,0.15)", gradientEnd: "#4A3FDB", label: "Purple" },
-  blue:   { light: "#2563EB", dark: "#60A5FA", surface: "rgba(37,99,235,0.15)",  gradientEnd: "#1D4ED8", label: "Blue"   },
-  teal:   { light: "#0D9488", dark: "#2DD4BF", surface: "rgba(13,148,136,0.15)", gradientEnd: "#0F766E", label: "Teal"   },
-  rose:   { light: "#E11D48", dark: "#FB7185", surface: "rgba(225,29,72,0.15)",  gradientEnd: "#BE123C", label: "Rose"   },
-};
-
 // ── Brand palette ─────────────────────────────────────────────────────────────
 export const Colors = {
   brand: {

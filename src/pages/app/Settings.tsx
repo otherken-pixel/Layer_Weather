@@ -518,12 +518,6 @@ export default function Settings() {
                   <line x1="20" y1="32" x2="20" y2="36" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
-                  <circle cx="20" cy="20" r="20" fill="rgba(124,58,237,0.15)" />
-                  <circle cx="20" cy="20" r="7" fill="var(--accent-primary)" />
-                  <line x1="20" y1="4" x2="20" y2="8" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="20" y1="32" x2="20" y2="36" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
-                  <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
                 <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>WearToday</span>
               </div>
