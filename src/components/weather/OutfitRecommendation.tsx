@@ -66,6 +66,7 @@ interface Props {
   onRecalibrate?: () => void;
   isDark?: boolean;
   wardrobeMatch?: WardrobeMatch | null;
+  onViewWardrobe?: () => void;
 }
 
 const URGENCY_COLORS = {
@@ -105,6 +106,7 @@ export function OutfitRecommendationCard({
   onRecalibrate,
   isDark = false,
   wardrobeMatch,
+  onViewWardrobe,
 }: Props) {
   const { profile } = useAppStore();
   const textOnly = profile?.outfit_display_mode === "text";
@@ -355,7 +357,8 @@ export function OutfitRecommendationCard({
               wardrobeMatch.footwear,
               ...wardrobeMatch.accessories,
             ].filter(Boolean) as NonNullable<typeof wardrobeMatch.top>[];
-            if (slots.length === 0) return null;
+            const gaps = wardrobeMatch.gaps;
+            if (slots.length === 0 && gaps.length === 0) return null;
             return (
               <div style={{ marginTop: 14 }}>
                 <p style={{
@@ -368,27 +371,55 @@ export function OutfitRecommendationCard({
                 }}>
                   From your wardrobe
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {slots.map((item) => (
-                    <span
-                      key={item.id}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                        background: isDark ? "rgba(124,58,237,0.18)" : "#F5F3FF",
-                        border: `1px solid ${isDark ? "rgba(167,139,250,0.25)" : "#DDD6FE"}`,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: isDark ? "#C4B5FD" : "#6D28D9",
-                      }}
-                    >
-                      {WARDROBE_CATEGORY_EMOJI[item.category] ?? "👗"} {item.name}
-                    </span>
-                  ))}
-                </div>
+                {slots.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: gaps.length > 0 ? 8 : 0 }}>
+                    {slots.map((item) => (
+                      <span
+                        key={item.id}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: isDark ? "rgba(124,58,237,0.18)" : "#F5F3FF",
+                          border: `1px solid ${isDark ? "rgba(167,139,250,0.25)" : "#DDD6FE"}`,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: isDark ? "#C4B5FD" : "#6D28D9",
+                        }}
+                      >
+                        {WARDROBE_CATEGORY_EMOJI[item.category] ?? "👗"} {item.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {gaps.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {gaps.map((gap) => (
+                      <button
+                        key={gap}
+                        type="button"
+                        onClick={onViewWardrobe}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "4px 10px",
+                          borderRadius: 999,
+                          background: isDark ? "rgba(239,68,68,0.1)" : "#FEF2F2",
+                          border: `1px solid ${isDark ? "rgba(239,68,68,0.25)" : "#FECACA"}`,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: isDark ? "#FCA5A5" : "#DC2626",
+                          cursor: onViewWardrobe ? "pointer" : "default",
+                        }}
+                      >
+                        {WARDROBE_CATEGORY_EMOJI[gap] ?? "👗"} No {gap} — add one →
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}

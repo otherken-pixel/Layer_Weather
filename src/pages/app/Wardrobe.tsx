@@ -4,6 +4,7 @@ import { useAppStore } from "@/store";
 import {
   getWardrobeItems,
   addWardrobeItem,
+  updateWardrobeItem,
   deleteWardrobeItem,
 } from "@/lib/supabase";
 import type { WardrobeItem, WardrobeCategory, StyleTag } from "@/types";
@@ -52,9 +53,10 @@ interface AddSheetProps {
   onClose: () => void;
   onSaved: (item: WardrobeItem) => void;
   userId: string;
+  editItem?: WardrobeItem | null;
 }
 
-function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
+function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProps) {
   const [category, setCategory] = useState<WardrobeCategory>("tops");
   const [name, setName] = useState("");
   const [warmth, setWarmth] = useState<1 | 2 | 3 | 4 | 5>(3);
@@ -66,15 +68,24 @@ function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
 
   useEffect(() => {
     if (open) {
-      setCategory("tops");
-      setName("");
-      setWarmth(3);
-      setWaterproof(false);
-      setColor("");
-      setTags([]);
+      if (editItem) {
+        setCategory(editItem.category);
+        setName(editItem.name);
+        setWarmth(editItem.warmth_rating);
+        setWaterproof(editItem.is_waterproof);
+        setColor(editItem.color ?? "");
+        setTags(editItem.style_tags);
+      } else {
+        setCategory("tops");
+        setName("");
+        setWarmth(3);
+        setWaterproof(false);
+        setColor("");
+        setTags([]);
+      }
       setError("");
     }
-  }, [open]);
+  }, [open, editItem]);
 
   function toggleTag(tag: StyleTag) {
     hapticLight();
@@ -91,20 +102,35 @@ function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
     setSaving(true);
     setError("");
     try {
-      const item = await addWardrobeItem({
-        user_id: userId,
-        category,
-        name: name.trim(),
-        warmth_rating: warmth,
-        is_waterproof: waterproof,
-        style_tags: tags,
-        color: color.trim() || null,
-        active: true,
-      });
-      if (item) {
+      if (editItem) {
+        const updates = {
+          category,
+          name: name.trim(),
+          warmth_rating: warmth,
+          is_waterproof: waterproof,
+          style_tags: tags,
+          color: color.trim() || null,
+        };
+        await updateWardrobeItem(editItem.id, updates);
         hapticSuccess();
-        onSaved(item);
+        onSaved({ ...editItem, ...updates, updated_at: new Date().toISOString() });
         onClose();
+      } else {
+        const item = await addWardrobeItem({
+          user_id: userId,
+          category,
+          name: name.trim(),
+          warmth_rating: warmth,
+          is_waterproof: waterproof,
+          style_tags: tags,
+          color: color.trim() || null,
+          active: true,
+        });
+        if (item) {
+          hapticSuccess();
+          onSaved(item);
+          onClose();
+        }
       }
     } catch {
       setError("Failed to save. Please try again.");
@@ -149,7 +175,7 @@ function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
               className="text-lg font-bold text-center mb-4"
               style={{ color: "#111827" }}
             >
-              Add Wardrobe Item
+              {editItem ? "Edit Item" : "Add Wardrobe Item"}
             </h2>
 
             {/* Category */}
@@ -304,7 +330,7 @@ function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
               className="w-full min-h-[52px] rounded-2xl border-0 font-bold text-white cursor-pointer disabled:opacity-50"
               style={{ background: "#7C3AED", fontSize: 16 }}
             >
-              {saving ? "Saving…" : "Add to Wardrobe"}
+              {saving ? "Saving…" : editItem ? "Save Changes" : "Add to Wardrobe"}
             </button>
           </motion.div>
         </>
@@ -316,9 +342,10 @@ function AddItemSheet({ open, onClose, onSaved, userId }: AddSheetProps) {
 interface ItemCardProps {
   item: WardrobeItem;
   onDelete: (id: string) => void;
+  onEdit: (item: WardrobeItem) => void;
 }
 
-function ItemCard({ item, onDelete }: ItemCardProps) {
+function ItemCard({ item, onDelete, onEdit }: ItemCardProps) {
   const cat = CATEGORIES.find((c) => c.key === item.category);
   return (
     <motion.div
@@ -354,7 +381,11 @@ function ItemCard({ item, onDelete }: ItemCardProps) {
       >
         {cat?.emoji ?? "👗"}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <button
+        type="button"
+        onClick={() => onEdit(item)}
+        style={{ flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <p
             style={{
@@ -405,7 +436,7 @@ function ItemCard({ item, onDelete }: ItemCardProps) {
             </span>
           ))}
         </div>
-      </div>
+      </button>
       <button
         type="button"
         onClick={() => { hapticLight(); onDelete(item.id); }}
@@ -434,12 +465,14 @@ function ItemCard({ item, onDelete }: ItemCardProps) {
 export default function Wardrobe() {
   const userId = useAppStore((s) => s.userId);
   const profile = useAppStore((s) => s.profile);
+  const wardrobeItems = useAppStore((s) => s.wardrobeItems);
+  const setWardrobeItems = useAppStore((s) => s.setWardrobeItems);
   const isDark = profile?.theme_preference === "dark";
 
-  const [items, setItems] = useState<WardrobeItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<WardrobeCategory | "all">("all");
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<WardrobeItem | null>(null);
   const [dbError, setDbError] = useState(false);
 
   const bgPage = isDark ? "#1C1C1E" : "#F2F2F7";
@@ -453,18 +486,18 @@ export default function Wardrobe() {
     setDbError(false);
     try {
       const data = await getWardrobeItems(userId);
-      setItems(data);
+      setWardrobeItems(data);
     } catch {
       setDbError(true);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, setWardrobeItems]);
 
   useEffect(() => { loadItems(); }, [loadItems]);
 
   async function handleDelete(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setWardrobeItems(wardrobeItems.filter((i) => i.id !== id));
     try {
       await deleteWardrobeItem(id);
     } catch {
@@ -473,18 +506,22 @@ export default function Wardrobe() {
   }
 
   function handleSaved(item: WardrobeItem) {
-    setItems((prev) => [item, ...prev]);
+    setWardrobeItems(
+      wardrobeItems.some((i) => i.id === item.id)
+        ? wardrobeItems.map((i) => (i.id === item.id ? item : i))
+        : [item, ...wardrobeItems]
+    );
   }
 
   const filtered =
     activeCategory === "all"
-      ? items
-      : items.filter((i) => i.category === activeCategory);
+      ? wardrobeItems
+      : wardrobeItems.filter((i) => i.category === activeCategory);
 
   const categoryCounts = Object.fromEntries(
     CATEGORIES.filter((c) => c.key !== "all").map((c) => [
       c.key,
-      items.filter((i) => i.category === c.key).length,
+      wardrobeItems.filter((i) => i.category === c.key).length,
     ])
   );
 
@@ -511,7 +548,7 @@ export default function Wardrobe() {
               My Wardrobe
             </h1>
             <p style={{ fontSize: 13, color: textSecondary, marginTop: 2 }}>
-              {items.length} {items.length === 1 ? "item" : "items"} saved
+              {wardrobeItems.length} {wardrobeItems.length === 1 ? "item" : "items"} saved
             </p>
           </div>
           <button
@@ -548,7 +585,7 @@ export default function Wardrobe() {
           }}
         >
           {CATEGORIES.map((cat) => {
-            const count = cat.key === "all" ? items.length : categoryCounts[cat.key] ?? 0;
+            const count = cat.key === "all" ? wardrobeItems.length : categoryCounts[cat.key] ?? 0;
             const active = activeCategory === cat.key;
             return (
               <button
@@ -685,7 +722,7 @@ export default function Wardrobe() {
         {!loading && !dbError && filtered.length > 0 && (
           <AnimatePresence mode="popLayout">
             {filtered.map((item) => (
-              <ItemCard key={item.id} item={item} onDelete={handleDelete} />
+              <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={(it) => { setEditItem(it); setShowAdd(true); }} />
             ))}
           </AnimatePresence>
         )}
@@ -695,9 +732,10 @@ export default function Wardrobe() {
       {userId && (
         <AddItemSheet
           open={showAdd}
-          onClose={() => setShowAdd(false)}
+          onClose={() => { setShowAdd(false); setEditItem(null); }}
           onSaved={handleSaved}
           userId={userId}
+          editItem={editItem}
         />
       )}
 

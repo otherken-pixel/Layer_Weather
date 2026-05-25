@@ -20,11 +20,12 @@ import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { matchWardrobeToOutfit, hasAnyMatch } from "@/lib/wardrobe-matching";
+import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
 import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
-import type { LocationData, OutfitFeedbackValue, WardrobeItem } from "@/types";
+import { useNavigate } from "react-router-dom";
+import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 const CONDITION_EMOJI: Record<string, string> = {
   clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
@@ -49,26 +50,28 @@ export default function Home() {
     profile, userId, calibration, outfitTimeline, location,
     savedLocations, setSavedLocations,
     setProfile, setCalibration, setLocation, weatherLastFetched,
+    wardrobeItems, setWardrobeItems,
   } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const isDark = useDarkMode(profile?.theme_preference ?? null);
+  const navigate = useNavigate();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
 
   const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
   const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
-  const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
-
+  const wardrobeLoadedRef = useRef(false);
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || wardrobeLoadedRef.current) return;
+    wardrobeLoadedRef.current = true;
     getWardrobeItems(userId).then(setWardrobeItems).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const wardrobeMatch = useMemo(() => {
     if (!outfit || wardrobeItems.length === 0) return null;
-    const match = matchWardrobeToOutfit(wardrobeItems, outfit);
-    return hasAnyMatch(match) ? match : null;
+    return matchWardrobeToOutfit(wardrobeItems, outfit);
   }, [outfit, wardrobeItems]);
 
   // Load saved locations on mount
@@ -384,6 +387,7 @@ export default function Home() {
               onFeedback={handleOutfitFeedback}
               isDark={isDark}
               wardrobeMatch={wardrobeMatch}
+              onViewWardrobe={() => navigate("/app/wardrobe")}
             />
 
             {/* Calendar style hint */}

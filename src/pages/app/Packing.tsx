@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAppStore } from "@/store";
 import { fetchWeatherData } from "@/lib/weather";
 import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import { annotatePackingListWithWardrobe, type AnnotatedPackingItem } from "@/lib/wardrobe-matching";
 
 interface GeoResult { name: string; latitude: number; longitude: number; country: string; admin1?: string; }
 
@@ -12,7 +13,7 @@ const CATEGORY_EMOJI: Record<string, string> = {
 const ACCENT = "#7C3AED";
 
 export default function Packing() {
-  const { calibration } = useAppStore();
+  const { calibration, wardrobeItems } = useAppStore();
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
   const [destination, setDestination] = useState("");
@@ -22,7 +23,7 @@ export default function Packing() {
   const [days, setDays] = useState("5");
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<{ category: string; name: string; quantity: number; reason?: string }[]>([]);
+  const [items, setItems] = useState<AnnotatedPackingItem[]>([]);
   const [error, setError] = useState("");
 
   async function search() {
@@ -45,7 +46,8 @@ export default function Packing() {
     try {
       const tripDays = Math.max(1, Math.min(14, parseInt(days) || 5));
       const weather = await fetchWeatherData(selected.latitude, selected.longitude);
-      setItems(generatePackingList(weather.daily.slice(0, tripDays), cal));
+      const rawList = generatePackingList(weather.daily.slice(0, tripDays), cal);
+      setItems(annotatePackingListWithWardrobe(rawList, wardrobeItems));
     } catch { setError("Could not fetch weather for this destination."); }
     finally { setLoading(false); }
   }
@@ -190,7 +192,8 @@ export default function Packing() {
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <span style={{
                           minWidth: 36, height: 36, borderRadius: 12,
-                          background: "#EDE9FE", color: ACCENT,
+                          background: item.ownedItem ? "#DCFCE7" : "#EDE9FE",
+                          color: item.ownedItem ? "#15803D" : ACCENT,
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: 12, fontWeight: 800,
                         }}>
@@ -198,9 +201,16 @@ export default function Packing() {
                         </span>
                         <div style={{ flex: 1 }}>
                           <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 }}>{item.name}</p>
-                          {item.reason && <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>{item.reason}</p>}
+                          {item.ownedItem && (
+                            <p style={{ fontSize: 12, color: "#15803D", margin: 0, fontWeight: 600 }}>
+                              ✓ You have: {item.ownedItem.name}
+                            </p>
+                          )}
+                          {item.reason && !item.ownedItem && (
+                            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>{item.reason}</p>
+                          )}
                         </div>
-                        <span style={{ fontSize: 16, color: "#D1D5DB" }}>✓</span>
+                        <span style={{ fontSize: 16, color: item.ownedItem ? "#22C55E" : "#D1D5DB" }}>✓</span>
                       </div>
                     ))}
                   </div>
