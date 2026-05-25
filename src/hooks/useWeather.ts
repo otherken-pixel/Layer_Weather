@@ -5,6 +5,7 @@ import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
 import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex } from "@/lib/weather";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import { prefetchSvgImages } from "@/lib/svgImageCache";
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
 import { saveWeatherCache } from "@/lib/cache";
@@ -199,6 +200,11 @@ export function useWeather() {
             commuteEnd: storeProfile?.commute_end ?? null,
           });
           setOutfit(rec);
+
+          const { svgCatalog, svgCatalogById } = useAppStore.getState();
+          if (svgCatalog.length > 0) {
+            prefetchSvgImages(svgCatalog, svgCatalogById, { rainGear: rec.rainGear });
+          }
 
           const today = new Date();
           const todayHourly = data.hourly.filter(

@@ -1,4 +1,5 @@
 import { SCENARIOS } from "@/lib/wardrobeCatalog";
+import { RAIN_EXCLUDED_SVG_IDS } from "@/lib/outfitRainDisplay";
 import {
   accessoryMap,
   bottomMap,
@@ -32,7 +33,8 @@ export function collectPrioritySvgIds(): string[] {
 function urlsForCatalog(
   catalog: SvgCatalogEntry[],
   byId: Record<string, SvgCatalogEntry>,
-  priorityIds: string[]
+  priorityIds: string[],
+  options?: { skipSvgIds?: Set<string> }
 ): string[] {
   const urls: string[] = [];
   const seen = new Set<string>();
@@ -43,12 +45,16 @@ function urlsForCatalog(
     urls.push(getSvgPublicUrl(path));
   };
 
+  const skipIds = options?.skipSvgIds ?? new Set<string>();
+
   for (const id of priorityIds) {
+    if (skipIds.has(id)) continue;
     addPath(byId[id]?.storage_path);
     if (urls.length >= PREFETCH_MAX_URLS) return urls;
   }
 
   for (const entry of catalog) {
+    if (skipIds.has(entry.id)) continue;
     addPath(entry.storage_path);
     if (urls.length >= PREFETCH_MAX_URLS) break;
   }
@@ -59,9 +65,14 @@ function urlsForCatalog(
 /** Warm HTTP + service worker cache without blocking UI. */
 export function prefetchSvgImages(
   catalog: SvgCatalogEntry[],
-  byId: Record<string, SvgCatalogEntry>
+  byId: Record<string, SvgCatalogEntry>,
+  options?: { skipSvgIds?: Set<string>; rainGear?: boolean }
 ): void {
-  const urls = urlsForCatalog(catalog, byId, collectPrioritySvgIds());
+  const skip = options?.skipSvgIds ?? new Set<string>();
+  if (options?.rainGear) {
+    for (const id of RAIN_EXCLUDED_SVG_IDS) skip.add(id);
+  }
+  const urls = urlsForCatalog(catalog, byId, collectPrioritySvgIds(), { skipSvgIds: skip });
   if (urls.length === 0) return;
 
   void prefetchUrlsInBatches(urls);

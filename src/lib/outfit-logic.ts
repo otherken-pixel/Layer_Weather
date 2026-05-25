@@ -354,6 +354,12 @@ export function resolveFootwear(opts: {
     return "snow_boots"; // cold business → still snow boots
   }
 
+  // Rain: never open footwear; warm rain → sneakers (rain boots handled above when appropriate)
+  if (isRainy) {
+    if (formality === "activewear") return "athletic_sneakers";
+    return "sneakers";
+  }
+
   if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
     return "flip_flops";
   }
@@ -600,8 +606,9 @@ export function getOutfitRecommendation(opts: {
   );
 
   // Accessories
-  // Sunglasses: clear to overcast (WMO 0–3) during daylight hours
-  const sunglasses = weatherCode <= 3 && isDay && effectiveFeelsLike > 68;
+  // Sunglasses: clear / mainly clear only (WMO 0–1), dry, warm, daytime — never when raining
+  const sunglasses =
+    !isRainy && weatherCode <= 1 && isDay && effectiveFeelsLike > 68;
   const scarf      = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
   const beanie     = effectiveFeelsLike < 30 || isSnowy;
   const gloves     = effectiveFeelsLike < 40 || isSnowy;
