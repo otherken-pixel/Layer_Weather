@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
-import type { FormalityPreference } from "@/types";
+import type { FormalityPreference, StylePreference } from "@/types";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { useIsDark } from "@/hooks/useDarkMode";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
@@ -40,7 +40,7 @@ export default function Settings() {
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
-  const [stylePreference, setStylePreference] = useState<"feminine" | "masculine" | "all">(profile?.style_preference ?? "all");
+  const [stylePreference, setStylePreference] = useState<StylePreference>(profile?.style_preference ?? "all");
   const [formality, setFormality] = useState<FormalityPreference>(profile?.formality_preference ?? "casual");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
