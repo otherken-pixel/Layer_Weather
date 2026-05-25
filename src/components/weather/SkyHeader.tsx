@@ -1,11 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { MapPin, ArrowUp, ArrowDown, Sunrise, Sunset } from "lucide-react";
 import type { CurrentWeather, DailyForecast } from "@/types";
 import { CONDITION_LABEL } from "@/constants/colors";
-
-const CONDITION_EMOJI: Record<string, string> = {
-  clear: "☀️", partly_cloudy: "⛅", cloudy: "☁️", foggy: "🌫️",
-  drizzle: "🌦️", rain: "🌧️", heavy_rain: "🌧️", snow: "❄️", thunderstorm: "⛈️",
-};
+import { WeatherIcon } from "@/components/weather/WeatherIcon";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -39,7 +36,6 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
     return () => clearInterval(id);
   }, [today]);
 
-  // Sunrise/sunset progress (0–1), recomputed as time advances
   const sunProgress = useMemo(() => {
     if (!today) return null;
     const now = sunNowMs;
@@ -49,7 +45,13 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
     return (now - rise) / (set - rise);
   }, [today, sunNowMs]);
 
-  const textShadow = "0 1px 8px rgba(0,0,0,0.55), 0 0 24px rgba(0,0,0,0.3)";
+  const frostedPill = {
+    background: "rgba(0,0,0,0.28)",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.18)",
+  } as const;
 
   return (
     <div
@@ -116,12 +118,15 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
             color: "rgba(255,255,255,0.9)",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            textShadow,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
           }}
           title={`${locationLabel} — tap to change`}
           aria-label={`Location: ${locationLabel}. Tap to change.`}
         >
-          📍 {locationLabel}
+          <MapPin size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
+          {locationLabel}
         </button>
       ) : (
         <span
@@ -132,18 +137,19 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
             color: "rgba(255,255,255,0.9)",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
-            textShadow,
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
           }}
         >
-          📍 {locationLabel}
+          <MapPin size={12} color="rgba(255,255,255,0.9)" strokeWidth={2.5} aria-hidden="true" />
+          {locationLabel}
         </span>
       )}
 
-      {/* Temperature + emoji row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 10 }}>
-        <span style={{ fontSize: 64, lineHeight: 1, filter: "drop-shadow(0 3px 10px rgba(0,0,0,0.3))" }}>
-          {CONDITION_EMOJI[weather.condition] ?? "🌤️"}
-        </span>
+      {/* Weather icon + temperature */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+        <WeatherIcon condition={weather.condition} size="xl" color="white" />
         <span
           style={{
             fontSize: 96,
@@ -159,64 +165,116 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
         </span>
       </div>
 
-      {/* Condition label — pill so it's always readable over clouds */}
-      <div
-        style={{
-          marginTop: 6,
-          background: "rgba(0,0,0,0.28)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          borderRadius: 999,
-          padding: "3px 14px",
-          border: "1px solid rgba(255,255,255,0.18)",
-        }}
-      >
+      {/* Condition label pill */}
+      <div style={{ marginTop: 6, ...frostedPill, padding: "3px 14px" }}>
         <span style={{ fontSize: 15, fontWeight: 500, color: "rgba(255,255,255,0.95)" }}>
           {CONDITION_LABEL[weather.condition]}
         </span>
       </div>
 
-      {/* H/L + sunrise/sunset row */}
+      {/* H/L + sunrise/sunset — unified frosted pill */}
       {hiTemp !== null && loTemp !== null && (
-        <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", fontWeight: 500, textShadow }}>
-            H: {hiTemp}° · L: {loTemp}°
-          </span>
+        <div
+          style={{
+            marginTop: 8,
+            ...frostedPill,
+            padding: "7px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          {/* High */}
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <ArrowUp size={12} color="rgba(255,220,180,1)" strokeWidth={2.5} aria-hidden="true" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
+              {hiTemp}°
+            </span>
+          </div>
+
+          {/* Low */}
+          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+            <ArrowDown size={12} color="rgba(180,220,255,1)" strokeWidth={2.5} aria-hidden="true" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
+              {loTemp}°
+            </span>
+          </div>
+
           {today && (
             <>
-              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>|</span>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", textShadow }}>
-                🌅 {formatTime12(today.sunrise)}
-              </span>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", textShadow }}>
-                🌇 {formatTime12(today.sunset)}
-              </span>
+              {/* Divider */}
+              <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.25)" }} />
+
+              {/* Sunrise */}
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Sunrise size={14} color="rgba(255,210,120,1)" strokeWidth={2.5} aria-hidden="true" />
+                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                  {formatTime12(today.sunrise)}
+                </span>
+              </div>
+
+              {/* Sunset */}
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <Sunset size={14} color="rgba(255,160,80,1)" strokeWidth={2.5} aria-hidden="true" />
+                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                  {formatTime12(today.sunset)}
+                </span>
+              </div>
             </>
           )}
         </div>
       )}
 
-      {/* Sun position progress bar */}
+      {/* Sun position progress bar with thumb */}
       {sunProgress !== null && (
         <div
           style={{
-            marginTop: 8,
+            marginTop: 10,
             width: "100%",
             maxWidth: 240,
-            height: 3,
-            background: "rgba(255,255,255,0.2)",
-            borderRadius: 2,
-            overflow: "hidden",
+            position: "relative",
+            height: 16,
+            display: "flex",
+            alignItems: "center",
           }}
         >
+          {/* Track */}
           <div
             style={{
-              height: "100%",
-              width: `${Math.round(sunProgress * 100)}%`,
-              background: "linear-gradient(90deg, #FFD700, #FF9500)",
+              position: "absolute",
+              left: 0,
+              right: 0,
+              height: 4,
+              background: "rgba(255,255,255,0.25)",
               borderRadius: 2,
-              transition: "width 2s ease",
+              overflow: "hidden",
             }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${Math.round(sunProgress * 100)}%`,
+                background: "linear-gradient(90deg, #FFD700, #FF9500)",
+                borderRadius: 2,
+                transition: "width 2s ease",
+              }}
+            />
+          </div>
+
+          {/* Sun thumb */}
+          <div
+            style={{
+              position: "absolute",
+              left: `calc(${Math.round(sunProgress * 100)}% - 8px)`,
+              width: 16,
+              height: 16,
+              borderRadius: "50%",
+              background: "radial-gradient(circle at 40% 40%, #FFF176, #FFD700 50%, #FF9500)",
+              boxShadow: "0 0 6px 2px rgba(255,185,0,0.5), 0 1px 3px rgba(0,0,0,0.3)",
+              transition: "left 2s ease",
+              flexShrink: 0,
+            }}
+            aria-hidden="true"
           />
         </div>
       )}
