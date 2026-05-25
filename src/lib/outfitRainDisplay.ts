@@ -1,7 +1,7 @@
 import type { FootwearKind } from "@/types";
 import type { OutfitOverride } from "@/components/outfit/OutfitFlatLay";
 import { accessoryMap, footwearMap } from "@/components/outfit/outfitMap";
-import { LEGACY_SVG_KEY_MAP, resolveSvgId } from "@/lib/svgCatalog";
+import { resolveSvgId } from "@/lib/svgCatalog";
 
 /** Catalog ids to hide / skip loading when it's raining. */
 export const RAIN_EXCLUDED_SVG_IDS = new Set([
@@ -9,15 +9,9 @@ export const RAIN_EXCLUDED_SVG_IDS = new Set([
   accessoryMap.sunglasses,
 ]);
 
-const SUNGLASSES_IDS = new Set([
-  accessoryMap.sunglasses,
-  LEGACY_SVG_KEY_MAP.Sunglasses,
-]);
+const SUNGLASSES_IDS = new Set<string>([accessoryMap.sunglasses]);
 
-const FLIP_FLOP_IDS = new Set([
-  footwearMap.flip_flops,
-  LEGACY_SVG_KEY_MAP.FlipFlops,
-]);
+const FLIP_FLOP_IDS = new Set<string>([footwearMap.flip_flops]);
 
 export function displaySunglassesForRain(
   sunglasses: boolean,

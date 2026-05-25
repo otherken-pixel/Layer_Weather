@@ -68,7 +68,7 @@ export function prefetchSvgImages(
   byId: Record<string, SvgCatalogEntry>,
   options?: { skipSvgIds?: Set<string>; rainGear?: boolean }
 ): void {
-  const skip = options?.skipSvgIds ?? new Set<string>();
+  const skip = new Set(options?.skipSvgIds);
   if (options?.rainGear) {
     for (const id of RAIN_EXCLUDED_SVG_IDS) skip.add(id);
   }
