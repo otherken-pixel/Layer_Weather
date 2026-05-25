@@ -74,9 +74,10 @@ export function buildDisplayCopyFromOverride(
   let description: string;
   if (opts.rainGear) {
     if (garmentBottom) {
+      const bottomLower = garmentBottom.toLowerCase();
       const warmShorts =
         opts.outfitType === "rain_light_shorts" ||
-        (garmentBottom.includes("short") && !garmentBottom.includes("sleeve"));
+        (bottomLower.includes("short") && !bottomLower.includes("sleeve"));
       description = warmShorts
         ? `${garmentTop} and ${garmentBottom} — warm rain at ${temp}°F.`
         : `${garmentTop} and ${garmentBottom} — rain at ${temp}°F.`;
