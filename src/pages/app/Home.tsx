@@ -16,11 +16,11 @@ import { useAppStore } from "@/store";
 import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
-import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWardrobeItems } from "@/lib/supabase";
+import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWeatherWardrobes } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
-import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
+import { getWeatherScenario } from "@/lib/wardrobeScenario";
 import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
@@ -46,7 +46,7 @@ export default function Home() {
     profile, userId, calibration, outfitTimeline, location,
     savedLocations, setSavedLocations,
     setProfile, setCalibration, setLocation, weatherLastFetched,
-    wardrobeItems, setWardrobeItems,
+    weatherWardrobes, setWeatherWardrobes,
   } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
@@ -60,21 +60,18 @@ export default function Home() {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    void getWardrobeItems(userId)
-      .then((data) => {
-        if (!cancelled) setWardrobeItems(data);
-      })
+    void getWeatherWardrobes(userId)
+      .then((data) => { if (!cancelled) setWeatherWardrobes(data); })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  const wardrobeMatch = useMemo(() => {
-    if (!outfit || wardrobeItems.length === 0) return null;
-    return matchWardrobeToOutfit(wardrobeItems, outfit);
-  }, [outfit, wardrobeItems]);
+  const activePreset = useMemo(() => {
+    if (!weather || weatherWardrobes.length === 0) return null;
+    const scenario = getWeatherScenario(weather);
+    return weatherWardrobes.find((p) => p.scenario === scenario) ?? null;
+  }, [weather, weatherWardrobes]);
 
   // Load saved locations on mount
   useEffect(() => {
@@ -388,7 +385,8 @@ export default function Home() {
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
               isDark={isDark}
-              wardrobeMatch={wardrobeMatch}
+              wardrobeMatch={null}
+              wardrobePreset={activePreset}
               onViewWardrobe={() => navigate("/app/wardrobe")}
             />
 

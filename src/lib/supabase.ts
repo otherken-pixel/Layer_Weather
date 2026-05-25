@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory } from "@/types";
+import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario } from "@/types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -133,6 +133,41 @@ export async function updateWardrobeItem(
 
 export async function deleteWardrobeItem(id: string): Promise<void> {
   const { error } = await supabase.from("user_wardrobe").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Weather Wardrobes ─────────────────────────────────────────────────────────
+
+export async function getWeatherWardrobes(userId: string): Promise<WeatherWardrobePreset[]> {
+  const { data, error } = await supabase
+    .from("user_weather_wardrobes")
+    .select("*")
+    .eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []) as WeatherWardrobePreset[];
+}
+
+export async function upsertWeatherWardrobe(
+  preset: Omit<WeatherWardrobePreset, "id" | "created_at" | "updated_at">
+): Promise<WeatherWardrobePreset> {
+  const { data, error } = await supabase
+    .from("user_weather_wardrobes")
+    .upsert(
+      { ...preset, updated_at: new Date().toISOString() },
+      { onConflict: "user_id,scenario" }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data as WeatherWardrobePreset;
+}
+
+export async function deleteWeatherWardrobe(userId: string, scenario: WeatherScenario): Promise<void> {
+  const { error } = await supabase
+    .from("user_weather_wardrobes")
+    .delete()
+    .eq("user_id", userId)
+    .eq("scenario", scenario);
   if (error) throw error;
 }
 

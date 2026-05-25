@@ -39,6 +39,7 @@ export default function Settings() {
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
+  const [stylePreference, setStylePreference] = useState<"feminine" | "masculine" | "all">(profile?.style_preference ?? "all");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
@@ -80,6 +81,7 @@ export default function Settings() {
       const updated = await upsertProfile(userId, {
         temp_unit: tempUnit,
         outfit_display_mode: displayMode,
+        style_preference: stylePreference,
         commute_start: commuteStart,
         commute_end: commuteEnd,
       });
@@ -272,6 +274,56 @@ export default function Settings() {
                 pillInactiveText={pillInactiveText}
                 accentColor={ACCENT}
               />
+            </div>
+          </ThemedCard>
+        </Section>
+
+        {/* Wardrobe style */}
+        <Section title="Wardrobe Style" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, marginBottom: 4 }}>Style Preference</p>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 12 }}>
+              Filters the clothing drawings shown when you set up your wardrobes.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(
+                [
+                  { key: "feminine",  label: "Feminine",  desc: "Dresses, women's cuts, and shared styles" },
+                  { key: "masculine", label: "Masculine",  desc: "Men's cuts and shared styles" },
+                  { key: "all",       label: "Show All",   desc: "Every clothing option available" },
+                ] as const
+              ).map(({ key, label, desc }) => {
+                const active = stylePreference === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStylePreference(key)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      textAlign: "left",
+                      background: active
+                        ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                        : isDark ? "#3A3A3C" : "#F9FAFB",
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? isDark ? "var(--accent-light)" : "var(--accent-primary)" : rowTextColor, margin: 0 }}>
+                        {label}
+                      </p>
+                      <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>{desc}</p>
+                    </div>
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16 }}>✓</span>}
+                  </button>
+                );
+              })}
             </div>
           </ThemedCard>
         </Section>

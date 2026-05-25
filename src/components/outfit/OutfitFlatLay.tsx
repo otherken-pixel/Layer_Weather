@@ -4,6 +4,15 @@ import type { FootwearKind, OutfitType } from "@/types";
 import { svgRegistry } from "./svg/index";
 import { accessoryMap, bottomMap, footwearMap, topMap } from "./outfitMap";
 
+/** When provided, bypasses outfit-type lookups and renders user-chosen SVG names directly. */
+export interface OutfitOverride {
+  top: string | null;
+  bottom: string | null;
+  outerwear: string | null;
+  footwear: string | null;
+  accessories: string[];
+}
+
 interface Props {
   outfit: OutfitType;
   rainGear: boolean;
@@ -20,6 +29,8 @@ interface Props {
    * than the default weather card (e.g. swipe calibration preview stacks).
    */
   compact?: boolean;
+  /** When provided, bypasses the system outfit-type maps and renders user-chosen SVGs. */
+  override?: OutfitOverride | null;
 }
 
 const ITEM_ANIM = {
@@ -78,6 +89,7 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
   gloves = false,
   footwear = null,
   compact = false,
+  override = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
@@ -108,6 +120,76 @@ const OutfitFlatLay = memo(function OutfitFlatLay({
     </motion.div>
   );
 
+  // ── Override mode: render user-chosen SVGs directly ──
+  if (override) {
+    const topSvg = override.outerwear ?? override.top;
+    const isDressOverride = override.top === "Dress" && !override.outerwear;
+    return (
+      <motion.div
+        ref={containerRef}
+        layout
+        className="mx-auto w-full overflow-hidden"
+        style={{ maxWidth: compact ? 270 : 320 }}
+        aria-label="Your wardrobe outfit"
+      >
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: "1fr 1fr",
+            gridTemplateRows: "auto auto",
+            gap: compact ? 8 : 12,
+          }}
+        >
+          {isDressOverride ? (
+            <motion.div
+              {...ITEM_ANIM}
+              transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
+              className="flex justify-center items-center"
+              style={{ gridColumn: "1 / 3", gridRow: 1, minHeight: topSz }}
+            >
+              {topSvg && <SvgIcon name={topSvg} size={topSz} />}
+            </motion.div>
+          ) : (
+            <>
+              <motion.div
+                {...ITEM_ANIM}
+                transition={{ delay: 0, type: "spring", stiffness: 300, damping: 20 }}
+                className="flex justify-center items-center"
+                style={{ gridColumn: 1, gridRow: 1, minHeight: topSz }}
+              >
+                {topSvg && <SvgIcon name={topSvg} size={topSz} />}
+              </motion.div>
+              <motion.div
+                {...ITEM_ANIM}
+                transition={{ delay: STAGGER, type: "spring", stiffness: 280, damping: 22 }}
+                className="flex justify-center items-center"
+                style={{ gridColumn: 2, gridRow: 1, minHeight: topSz }}
+              >
+                {override.bottom && <SvgIcon name={override.bottom} size={baseBottomSz} />}
+              </motion.div>
+            </>
+          )}
+          <div
+            className="flex justify-center items-center"
+            style={{ gridColumn: 1, gridRow: 2, minHeight: footwearSz }}
+          >
+            {override.footwear &&
+              wrap(<SvgIcon name={override.footwear} size={footwearSz} />, 2 * STAGGER, footwearSz)}
+          </div>
+          <div
+            className="flex flex-wrap justify-center items-center gap-1"
+            style={{ gridColumn: 2, gridRow: 2, minHeight: footwearSz }}
+          >
+            {override.accessories.map((name, i) =>
+              wrap(<SvgIcon name={name} size={accSz} />, (3 + i) * STAGGER)
+            )}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── Standard mode: system-generated outfit ──
   const isDress = outfit === "dress";
   const accessories = [
     umbrella && <SvgIcon name={accessoryMap.umbrella} size={accSz} />,

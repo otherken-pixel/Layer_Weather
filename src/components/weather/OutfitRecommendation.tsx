@@ -8,7 +8,9 @@ import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { shareOutfitCard } from "@/lib/share-card";
 import { useAppStore } from "@/store";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
+import type { OutfitOverride } from "@/components/outfit/OutfitFlatLay";
 import type { WardrobeMatch } from "@/lib/wardrobe-matching";
+import { getScenarioMeta } from "@/lib/wardrobeCatalog";
 import type {
   FootwearKind,
   OutfitFeedbackValue,
@@ -17,6 +19,7 @@ import type {
   DayPeriodLabel,
   OutfitTimelineEntry,
   AvatarCondition,
+  WeatherWardrobePreset,
 } from "@/types";
 
 const FOOTWEAR_PILLS: Record<FootwearKind, { label: string; emoji: string; color: string; bg: string }> = {
@@ -63,6 +66,7 @@ interface Props {
   onRecalibrate?: () => void;
   isDark?: boolean;
   wardrobeMatch?: WardrobeMatch | null;
+  wardrobePreset?: WeatherWardrobePreset | null;
   onViewWardrobe?: () => void;
 }
 
@@ -103,6 +107,7 @@ export function OutfitRecommendationCard({
   onRecalibrate,
   isDark = false,
   wardrobeMatch,
+  wardrobePreset,
   onViewWardrobe,
 }: Props) {
   const { profile } = useAppStore();
@@ -314,38 +319,119 @@ export function OutfitRecommendationCard({
           </div>
 
           {/* Outfit display */}
-          {textOnly ? (
-            <OutfitTextView
-              outfit={outfit}
-              umbrella={umbrella}
-              sunglasses={sunglasses}
-              scarf={scarf}
-              beanie={beanie}
-              gloves={gloves}
-              footwear={footwear}
-              isDark={isDark}
-            />
-          ) : (
-            <OutfitFlatLay
-              outfit={outfit}
-              rainGear={rainGear}
-              umbrella={umbrella}
-              sunglasses={sunglasses}
-              scarf={scarf}
-              beanie={beanie}
-              gloves={gloves}
-              footwear={footwear}
-              colorScheme="light"
-            />
-          )}
+          {(() => {
+            const presetOverride: OutfitOverride | null =
+              wardrobePreset && isViewingNow
+                ? {
+                    top: wardrobePreset.top_svg,
+                    bottom: wardrobePreset.bottom_svg,
+                    outerwear: wardrobePreset.outerwear_svg,
+                    footwear: wardrobePreset.footwear_svg,
+                    accessories: wardrobePreset.accessory_svgs,
+                  }
+                : null;
+            return textOnly ? (
+              <OutfitTextView
+                outfit={outfit}
+                umbrella={umbrella}
+                sunglasses={sunglasses}
+                scarf={scarf}
+                beanie={beanie}
+                gloves={gloves}
+                footwear={footwear}
+                isDark={isDark}
+              />
+            ) : (
+              <OutfitFlatLay
+                outfit={outfit}
+                rainGear={rainGear}
+                umbrella={umbrella}
+                sunglasses={sunglasses}
+                scarf={scarf}
+                beanie={beanie}
+                gloves={gloves}
+                footwear={footwear}
+                colorScheme="light"
+                override={presetOverride}
+              />
+            );
+          })()}
 
           {/* Description */}
           <p style={{ fontSize: 15, color: secondaryText, lineHeight: 1.55, marginTop: 14 }}>
             {description}
           </p>
 
-          {/* From your wardrobe */}
-          {wardrobeMatch && isViewingNow && (() => {
+          {/* Wardrobe preset banner */}
+          {isViewingNow && wardrobePreset && (
+            <div
+              style={{
+                marginTop: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                padding: "10px 14px",
+                borderRadius: 14,
+                background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
+                border: `1px solid ${isDark ? "var(--accent-surface)" : "var(--accent-light)"}`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 16 }}>{getScenarioMeta(wardrobePreset.scenario).emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? "var(--accent-light)" : "var(--accent-text)" }}>
+                  Your {getScenarioMeta(wardrobePreset.scenario).label} wardrobe
+                </span>
+              </div>
+              {onViewWardrobe && (
+                <button
+                  type="button"
+                  onClick={onViewWardrobe}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: isDark ? "var(--accent-light)" : "var(--accent-primary)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  Edit →
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Setup CTA when no preset exists for today's weather */}
+          {isViewingNow && !wardrobePreset && onViewWardrobe && (
+            <button
+              type="button"
+              onClick={onViewWardrobe}
+              style={{
+                marginTop: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 14px",
+                borderRadius: 14,
+                background: "none",
+                border: `1.5px dashed ${isDark ? "#4B5563" : "#D1D5DB"}`,
+                cursor: "pointer",
+                width: "100%",
+                textAlign: "left",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>👗</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#9CA3AF" : "#6B7280" }}>
+                Set up your wardrobe for this weather →
+              </span>
+            </button>
+          )}
+
+          {/* From your wardrobe (legacy — kept for backward compat, hidden when preset active) */}
+          {wardrobeMatch && !wardrobePreset && isViewingNow && (() => {
             const slots = [
               wardrobeMatch.top,
               wardrobeMatch.bottom,

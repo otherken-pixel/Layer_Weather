@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset } from "@/types";
 
 interface AppState {
   // Auth
@@ -18,9 +18,12 @@ interface AppState {
 
   // Wardrobe
   wardrobeItems: WardrobeItem[];
+  weatherWardrobes: WeatherWardrobePreset[];
+
   setWardrobeItems: (
     items: WardrobeItem[] | ((prev: WardrobeItem[]) => WardrobeItem[])
   ) => void;
+  setWeatherWardrobes: (presets: WeatherWardrobePreset[]) => void;
 
   // UI
   isLoadingWeather: boolean;
@@ -50,6 +53,7 @@ const initialState = {
   location: null,
   savedLocations: [] as LocationData[],
   wardrobeItems: [] as WardrobeItem[],
+  weatherWardrobes: [] as WeatherWardrobePreset[],
   weather: null,
   outfit: null,
   outfitTimeline: null,
@@ -74,6 +78,7 @@ export const useAppStore = create<AppState>((set) => ({
           ? itemsOrUpdater(state.wardrobeItems)
           : itemsOrUpdater,
     })),
+  setWeatherWardrobes: (weatherWardrobes) => set({ weatherWardrobes }),
   setWeather: (weather) => set({ weather }),
   setOutfit: (outfit) => set({ outfit }),
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),
