@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast } from "@/types";
+import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast, PackingAiInsights } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
@@ -198,7 +198,13 @@ export async function savePackingTrip(
 
 export async function updatePackingTrip(
   id: string,
-  updates: { packing_list?: PackingItem[]; weather_snapshot?: SerializedDailyForecast[]; last_generated_at?: string }
+  updates: {
+    packing_list?: PackingItem[];
+    weather_snapshot?: SerializedDailyForecast[];
+    last_generated_at?: string;
+    ai_insights?: PackingAiInsights | null;
+    ai_generated_at?: string | null;
+  }
 ): Promise<void> {
   const { error } = await supabase
     .from("packing_trips")
