@@ -129,6 +129,8 @@ export type AvatarCondition =
 
 export interface OutfitRecommendation {
   outfit: OutfitType;
+  /** Max precip % in the next 2 hours when hourly data exists; else snapshot `precipProb` passed in. */
+  effectivePrecipProb: number;
   label: string;            // "Light Jacket Weather"
   description: string;      // "Cool and breezy morning. Layer up."
   rainGear: boolean;
