@@ -5,7 +5,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "gemini-2.0-flash-lite";
+const MODEL = "gemini-2.5-flash-lite";
 const MAX_TRIP_DAYS = 21;
 
 interface PackingItem {

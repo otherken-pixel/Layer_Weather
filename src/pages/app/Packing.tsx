@@ -307,9 +307,19 @@ export default function Packing() {
       const newRawList: PackingItem[] = annotated.map(({ ownedItem: _o, ...rest }) => rest);
       const snapshot = serializeForecasts(result.forecasts);
       const lastGenAt = new Date().toISOString();
-      await updatePackingTrip(trip.id, { packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt });
+      await updatePackingTrip(trip.id, {
+        packing_list: newRawList,
+        weather_snapshot: snapshot,
+        last_generated_at: lastGenAt,
+        ai_insights: null,
+        ai_generated_at: null,
+      });
       setSavedTrips((prev) =>
-        prev.map((t) => t.id === trip.id ? { ...t, packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt } : t)
+        prev.map((t) =>
+          t.id === trip.id
+            ? { ...t, packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt, ai_insights: null, ai_generated_at: null }
+            : t,
+        ),
       );
       setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
     } catch { setError("Could not refresh weather."); }
