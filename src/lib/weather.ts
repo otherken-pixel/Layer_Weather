@@ -280,10 +280,6 @@ export async function fetchWeatherData(
   }
 }
 
-function toLocalDayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /**
  * Fetch daily forecasts for a specific date range using Apple WeatherKit (primary)
  * or Open-Meteo (fallback / extended range). Returns null when the trip is more
@@ -297,8 +293,8 @@ export async function fetchWeatherForDateRange(
   opts?: { countryCode?: string },
 ): Promise<{ forecasts: DailyForecast[]; isForecastComplete: boolean } | null> {
   const today = new Date();
-  const todayKey = toLocalDayKey(today);
-  const retKey = toLocalDayKey(returnDate);
+  const todayKey = localDateKey(today);
+  const retKey = localDateKey(returnDate);
 
   const todayMidnight = new Date(todayKey + "T00:00:00").getTime();
   const retMidnight = new Date(retKey + "T00:00:00").getTime();
@@ -319,9 +315,9 @@ export async function fetchWeatherForDateRange(
     allDaily = (await fetchFromOpenMeteo(latitude, longitude, 16)).daily;
   }
 
-  const depKey = toLocalDayKey(departureDate);
+  const depKey = localDateKey(departureDate);
   const forecasts = allDaily.filter((d) => {
-    const key = toLocalDayKey(d.date);
+    const key = localDateKey(d.date);
     return key >= depKey && key <= retKey;
   });
 
@@ -366,6 +362,7 @@ function parseLocalDateOnly(isoDate: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
+/** Local calendar day as YYYY-MM-DD (used for date-range filtering and hourly grouping). */
 function localDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }

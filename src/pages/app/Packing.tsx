@@ -12,7 +12,21 @@ import {
 } from "@/lib/supabase";
 import type { SavedPackingTrip, PackingItem, SerializedDailyForecast, DailyForecast } from "@/types";
 
-interface GeoResult { name: string; latitude: number; longitude: number; country: string; admin1?: string; }
+interface GeoResult {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country: string;
+  /** ISO 3166-1 alpha-2 from Open-Meteo (not the same as `country` name). */
+  country_code?: string;
+  admin1?: string;
+}
+
+function geoIsoCountryCode(g: GeoResult): string | undefined {
+  const raw = g.country_code?.trim();
+  if (raw && raw.length >= 2) return raw.slice(0, 2).toUpperCase();
+  return undefined;
+}
 
 const CATEGORIES = ["outerwear", "tops", "bottoms", "footwear", "accessories"] as const;
 const CATEGORY_EMOJI: Record<string, string> = {
@@ -74,9 +88,9 @@ function forecastStatus(returnDateStr: string): "full" | "extended" | "unavailab
   return "unavailable";
 }
 
-function forecastAvailableOn(departureDateStr: string): string {
-  const dep = new Date(departureDateStr + "T00:00:00");
-  const avail = new Date(dep.getTime() - 16 * 86400000);
+function forecastAvailableOn(returnDateStr: string): string {
+  const ret = new Date(returnDateStr + "T00:00:00");
+  const avail = new Date(ret.getTime() - 16 * 86400000);
   return avail.toLocaleDateString("en", { month: "short", day: "numeric" });
 }
 
@@ -137,7 +151,9 @@ export default function Packing() {
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
   const [tripItems, setTripItems] = useState<Record<string, AnnotatedPackingItem[]>>({});
   const [refreshingTripId, setRefreshingTripId] = useState<string | null>(null);
-  const [tripDiffs, setTripDiffs] = useState<Record<string, { added: string[]; removed: string[] }>>({});
+  const [tripDiffs, setTripDiffs] = useState<
+    Record<string, { added: string[]; removed: string[]; removedAnnotated?: AnnotatedPackingItem[] }>
+  >({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -169,13 +185,12 @@ export default function Packing() {
     try {
       const dep = new Date(departureDate + "T00:00:00");
       const ret = new Date(returnDate + "T00:00:00");
-      const countryCode = selected.country?.slice(0, 2).toUpperCase();
       const result = await fetchWeatherForDateRange(
         selected.latitude, selected.longitude, dep, ret,
-        { countryCode },
+        { countryCode: geoIsoCountryCode(selected) },
       );
       if (!result || result.forecasts.length === 0) {
-        setError(`Forecast not available yet — save this trip and check back closer to departure (forecast unlocks ${forecastAvailableOn(departureDate)}).`);
+        setError(`Forecast not available yet — save this trip and check back closer to departure (forecast unlocks ${forecastAvailableOn(returnDate)}).`);
         return;
       }
       if (!result.isForecastComplete) setForecastIncomplete(true);
@@ -190,14 +205,14 @@ export default function Packing() {
     if (!selected || !userId) return;
     setSaving(true); setError("");
     try {
-      const rawList: PackingItem[] = currentItems.map(({ ownedItem: _o, ...rest }) => rest);
+      const rawList = currentItems.map(({ ownedItem: _o, ...rest }) => rest) as PackingItem[];
       const snapshot = currentForecasts.length ? serializeForecasts(currentForecasts) : null;
       const trip = await savePackingTrip({
         user_id: userId,
         destination: selected.name,
         latitude: selected.latitude,
         longitude: selected.longitude,
-        country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
+        country_code: geoIsoCountryCode(selected) ?? null,
         departure_date: departureDate,
         return_date: returnDate,
         packing_list: rawList.length ? rawList : null,
@@ -223,7 +238,7 @@ export default function Packing() {
         destination: selected.name,
         latitude: selected.latitude,
         longitude: selected.longitude,
-        country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
+        country_code: geoIsoCountryCode(selected) ?? null,
         departure_date: departureDate,
         return_date: returnDate,
         packing_list: null,
@@ -264,7 +279,7 @@ export default function Packing() {
         { countryCode: trip.country_code ?? undefined },
       );
       if (!result || result.forecasts.length === 0) {
-        setError(`Forecast not available yet — check back ${forecastAvailableOn(trip.departure_date)}.`);
+        setError(`Forecast not available yet — check back ${forecastAvailableOn(trip.return_date)}.`);
         return;
       }
       const rawList = generatePackingList(result.forecasts, cal);
@@ -275,13 +290,20 @@ export default function Packing() {
       const newNames = new Set(annotated.map((i) => i.name));
       const added = [...newNames].filter((n) => !oldNames.has(n));
       const removed = [...oldNames].filter((n) => !newNames.has(n));
+      const removedAnnotated =
+        removed.length > 0
+          ? annotatePackingListWithWardrobe(
+              (trip.packing_list ?? []).filter((i) => removed.includes(i.name)),
+              wardrobeItems,
+            )
+          : undefined;
       if (added.length || removed.length) {
-        setTripDiffs((prev) => ({ ...prev, [trip.id]: { added, removed } }));
+        setTripDiffs((prev) => ({ ...prev, [trip.id]: { added, removed, removedAnnotated } }));
       } else {
         setTripDiffs((prev) => { const p = { ...prev }; delete p[trip.id]; return p; });
       }
 
-      const newRawList: PackingItem[] = annotated.map(({ ownedItem: _o, ...rest }) => rest);
+      const newRawList = annotated.map(({ ownedItem: _o, ...rest }) => rest) as PackingItem[];
       const snapshot = serializeForecasts(result.forecasts);
       const lastGenAt = new Date().toISOString();
       await updatePackingTrip(trip.id, { packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt });
@@ -405,7 +427,7 @@ export default function Packing() {
               {" · "}
               {forecastStatus(returnDate) === "full" && <span style={{ color: "#22C55E" }}>Full forecast available</span>}
               {forecastStatus(returnDate) === "extended" && <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>}
-              {forecastStatus(returnDate) === "unavailable" && <span style={{ color: "#9CA3AF" }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
+              {forecastStatus(returnDate) === "unavailable" && <span style={{ color: "#9CA3AF" }}>Forecast unlocks {forecastAvailableOn(returnDate)}</span>}
             </p>
           )}
         </div>
@@ -585,7 +607,7 @@ export default function Packing() {
                             <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>Updated {formatLastUpdated(trip.last_generated_at)}</p>
                           )}
                           {fStatus === "unavailable" && !isPast && (
-                            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>Forecast available {forecastAvailableOn(trip.departure_date)}</p>
+                            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>Forecast available {forecastAvailableOn(trip.return_date)}</p>
                           )}
                           {fStatus !== "unavailable" && !trip.last_generated_at && (
                             <p style={{ fontSize: 12, color: accentSolid, margin: 0 }}>Forecast is ready — tap Refresh</p>
@@ -621,7 +643,11 @@ export default function Packing() {
                       {/* Packing list */}
                       {hasItems ? (
                         CATEGORIES.map((cat) => {
-                          const catItems = items.filter((i) => i.category === cat);
+                          const removedAnn = diff?.removedAnnotated ?? [];
+                          const catItems = [
+                            ...items.filter((i) => i.category === cat),
+                            ...removedAnn.filter((i) => i.category === cat),
+                          ];
                           if (!catItems.length) return null;
                           return (
                             <PackingCategoryCard
