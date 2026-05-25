@@ -9,9 +9,19 @@ interface Props {
   size?: number;
   className?: string;
   alt?: string;
+  /** Use eager for above-the-fold outfit previews; lazy for picker grids. */
+  loading?: "lazy" | "eager";
+  fetchPriority?: "high" | "low" | "auto";
 }
 
-function StorageSvg({ id, size = 100, className, alt }: Props) {
+function StorageSvg({
+  id,
+  size = 100,
+  className,
+  alt,
+  loading = "lazy",
+  fetchPriority = "auto",
+}: Props) {
   const svgCatalogById = useAppStore((s) => s.svgCatalogById);
   const resolved = resolveSvgId(id, svgCatalogById);
   const [urlIndex, setUrlIndex] = useState(0);
@@ -19,8 +29,7 @@ function StorageSvg({ id, size = 100, className, alt }: Props) {
   const entry = resolved ? svgCatalogById[resolved] : undefined;
   const urls = useMemo(() => {
     if (!entry) return [];
-    const path = entry.storage_path;
-    return [getSvgPublicUrl(path)];
+    return [getSvgPublicUrl(entry.storage_path)];
   }, [entry]);
 
   if (!entry || urls.length === 0) return null;
@@ -35,8 +44,9 @@ function StorageSvg({ id, size = 100, className, alt }: Props) {
       height={size}
       className={className}
       alt={label}
-      loading="lazy"
+      loading={loading}
       decoding="async"
+      fetchPriority={fetchPriority}
       draggable={false}
       style={{ objectFit: "contain" }}
       onError={() => {

@@ -7,15 +7,12 @@ import { SCENARIOS, getScenarioMeta, normalizeSvgId } from "@/lib/wardrobeCatalo
 import { catalogForPreference } from "@/lib/svgCatalog";
 import type { SvgCategory } from "@/lib/svgCatalog";
 import type { WeatherScenario, WeatherWardrobePreset, StylePreference } from "@/types";
-import StorageSvg from "@/components/outfit/StorageSvg";
+import SvgPickerGrid, { PickerSvgThumb } from "@/components/wardrobe/SvgPickerGrid";
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
+import { prefetchSvgImages } from "@/lib/svgImageCache";
 
 const DRESS_SVG_ID = "tops-feminine-dress";
-
-function SvgThumb({ id, size = 52 }: { id: string; size?: number }) {
-  return <StorageSvg id={id} size={size} />;
-}
 
 // ── Scenario grid card ────────────────────────────────────────────────────────
 
@@ -157,6 +154,7 @@ function EditorSheet({
   const meta = getScenarioMeta(scenario);
   const dragControls = useDragControls();
   const svgCatalog = useAppStore((s) => s.svgCatalog);
+  const svgCatalogById = useAppStore((s) => s.svgCatalogById);
   const svgCatalogLoading = useAppStore((s) => s.svgCatalogLoading);
 
   const [activeTab, setActiveTab] = useState<SvgCategory>("tops");
@@ -261,6 +259,14 @@ function EditorSheet({
   const tabBg = isDark ? "#2C2C2E" : "#F3F4F6";
 
   const currentOptions = catalogForPreference(svgCatalog, stylePreference, activeTab);
+
+  useEffect(() => {
+    if (!open || svgCatalog.length === 0) return;
+    prefetchSvgImages(
+      currentOptions.slice(0, 18),
+      svgCatalogById
+    );
+  }, [open, activeTab, stylePreference, currentOptions.length, svgCatalog.length, svgCatalogById]);
 
   // Live preview override
   const previewOverride = {
@@ -406,58 +412,52 @@ function EditorSheet({
                   <p style={{ fontSize: 14 }}>No options for your style preference in this category.</p>
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: 10,
-                    paddingBottom: 8,
-                  }}
-                >
-                  {/* "None" tile — outerwear only */}
-                  {activeTab === "outerwear" && (
-                    <button
-                      type="button"
-                      onClick={() => { hapticLight(); setOuterwearSvg(null); }}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        padding: "12px 8px",
-                        borderRadius: 16,
-                        border: outerwearSvg === null
-                          ? "2.5px solid var(--accent-primary)"
-                          : isDark ? "2px solid #3A3A3C" : "2px solid #E5E7EB",
-                        background: outerwearSvg === null
-                          ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
-                          : isDark ? "#2C2C2E" : "#F9FAFB",
-                        cursor: "pointer",
-                        transition: "border-color 0.15s, background 0.15s",
-                      }}
-                    >
-                      <span style={{ fontSize: 32, lineHeight: 1, opacity: outerwearSvg === null ? 1 : 0.4 }}>✕</span>
-                      <span
+                <SvgPickerGrid
+                  key={`${activeTab}-${stylePreference}`}
+                  entries={currentOptions}
+                  header={
+                    activeTab === "outerwear" ? (
+                      <button
+                        type="button"
+                        onClick={() => { hapticLight(); setOuterwearSvg(null); }}
                         style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: outerwearSvg === null
-                            ? isDark ? "var(--accent-light)" : "var(--accent-text)"
-                            : textSecondary,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          padding: "12px 8px",
+                          borderRadius: 16,
+                          border: outerwearSvg === null
+                            ? "2.5px solid var(--accent-primary)"
+                            : isDark ? "2px solid #3A3A3C" : "2px solid #E5E7EB",
+                          background: outerwearSvg === null
+                            ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                            : isDark ? "#2C2C2E" : "#F9FAFB",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s, background 0.15s",
                         }}
                       >
-                        None
-                      </span>
-                    </button>
-                  )}
-
-                  {currentOptions.map((entry) => {
+                        <span style={{ fontSize: 32, lineHeight: 1, opacity: outerwearSvg === null ? 1 : 0.4 }}>✕</span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: outerwearSvg === null
+                              ? isDark ? "var(--accent-light)" : "var(--accent-text)"
+                              : textSecondary,
+                          }}
+                        >
+                          None
+                        </span>
+                      </button>
+                    ) : null
+                  }
+                  renderTile={(entry) => {
                     const selected = isSelected(activeTab, entry.id);
                     const isMulti = activeTab === "accessories";
                     return (
                       <button
-                        key={entry.id}
                         type="button"
                         onClick={() =>
                           isMulti
@@ -482,7 +482,7 @@ function EditorSheet({
                           transition: "border-color 0.15s, background 0.15s",
                         }}
                       >
-                        <SvgThumb id={entry.id} size={56} />
+                        <PickerSvgThumb id={entry.id} size={56} />
                         <span
                           style={{
                             fontSize: 11,
@@ -496,8 +496,8 @@ function EditorSheet({
                         </span>
                       </button>
                     );
-                  })}
-                </div>
+                  }}
+                />
               )}
             </div>
 
