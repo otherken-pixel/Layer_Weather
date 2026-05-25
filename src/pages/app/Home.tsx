@@ -376,24 +376,20 @@ export default function Home() {
               variant="sky"
               mode={locationPickerMode}
             />
+            <LocationTabs
+              locations={savedLocations}
+              activeCity={location?.city ?? null}
+              activeIsDevice={activeLocationIsDevice}
+              onSelect={handleTabSelect}
+              onSelectDevice={handleDeviceTabSelect}
+              onAdd={handleOpenAddCity}
+              onDelete={handleDeleteCity}
+            />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
             <WeatherAnimationLayer
               condition={weather.current.condition}
               isDay={weather.current.isDay}
             />
-            {/* Location tabs float above the landscape inside the sky section so the
-                cards area (which has a negative top margin) never covers them. */}
-            <div style={{ position: "relative", zIndex: 5 }}>
-              <LocationTabs
-                locations={savedLocations}
-                activeCity={location?.city ?? null}
-                activeIsDevice={activeLocationIsDevice}
-                onSelect={handleTabSelect}
-                onSelectDevice={handleDeviceTabSelect}
-                onAdd={handleOpenAddCity}
-                onDelete={handleDeleteCity}
-              />
-            </div>
           </div>
 
           {/* Cards area */}
