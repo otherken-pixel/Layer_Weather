@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { MapPin, Pencil, Plus, X } from "lucide-react";
 import type { LocationData } from "@/types";
 
 interface Props {
@@ -22,171 +23,170 @@ export function LocationTabs({
 }: Props) {
   const [editMode, setEditMode] = useState(false);
 
+  // Auto-exit edit mode when the last saved city is deleted.
   useEffect(() => {
     if (locations.length === 0) setEditMode(false);
   }, [locations.length]);
 
+  const pillBase: React.CSSProperties = {
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 999,
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    minHeight: 34,
+    transition: "all 0.15s",
+    whiteSpace: "nowrap",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+  };
+
+  const activePill: React.CSSProperties = {
+    ...pillBase,
+    padding: "6px 14px",
+    background: "rgba(255,255,255,0.95)",
+    border: "1.5px solid rgba(255,255,255,0.9)",
+    color: "#111827",
+    fontWeight: 700,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.18)",
+  };
+
+  const inactivePill: React.CSSProperties = {
+    ...pillBase,
+    padding: "6px 14px",
+    background: "rgba(255,255,255,0.14)",
+    border: "1.5px solid rgba(255,255,255,0.25)",
+    color: "rgba(255,255,255,0.75)",
+  };
+
   return (
-    <div
-      className="no-scrollbar"
-      style={{
-        display: "flex",
-        overflowX: "auto",
-        gap: 8,
-        paddingLeft: 16,
-        paddingRight: 16,
-        paddingBottom: 14,
-        paddingTop: 10,
-      }}
-    >
-      {/* Device GPS tab — always first, never deletable */}
-      <button
-        type="button"
-        onClick={onSelectDevice}
-        aria-pressed={activeIsDevice}
-        aria-label="Use my current location"
+    <div style={{ position: "relative" }}>
+      <div
+        className="no-scrollbar"
         style={{
-          flexShrink: 0,
-          padding: "7px 16px",
-          borderRadius: 999,
-          border: activeIsDevice
-            ? "1.5px solid rgba(255,255,255,0.8)"
-            : "1.5px solid rgba(255,255,255,0.3)",
-          background: activeIsDevice
-            ? "rgba(255,255,255,0.9)"
-            : "rgba(255,255,255,0.18)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          color: activeIsDevice ? "#111827" : "rgba(255,255,255,0.9)",
-          fontSize: 13,
-          fontWeight: activeIsDevice ? 700 : 500,
-          cursor: "pointer",
-          minHeight: 36,
-          transition: "all 0.15s",
+          display: "flex",
+          overflowX: "auto",
+          gap: 8,
+          paddingLeft: 16,
+          paddingRight: 48,
+          paddingBottom: 14,
+          paddingTop: 10,
         }}
       >
-        📍 My Location
-      </button>
+        {/* Device GPS tab — always first, never deletable */}
+        <button
+          type="button"
+          onClick={onSelectDevice}
+          aria-pressed={activeIsDevice}
+          aria-label="Use my current location"
+          style={activeIsDevice ? activePill : inactivePill}
+        >
+          <MapPin size={13} strokeWidth={2.5} />
+          My Location
+        </button>
 
-      {locations.map((loc) => {
-        const isActive = !activeIsDevice && loc.city === activeCity;
-        return (
-          <div key={loc.city} style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => { if (!editMode) onSelect(loc); }}
-              style={{
-                padding: editMode ? "7px 36px 7px 16px" : "7px 16px",
-                borderRadius: 999,
-                border: isActive
-                  ? "1.5px solid rgba(255,255,255,0.8)"
-                  : "1.5px solid rgba(255,255,255,0.3)",
-                background: isActive
-                  ? "rgba(255,255,255,0.9)"
-                  : "rgba(255,255,255,0.18)",
-                backdropFilter: "blur(8px)",
-                WebkitBackdropFilter: "blur(8px)",
-                color: isActive ? "#111827" : "rgba(255,255,255,0.9)",
-                fontSize: 13,
-                fontWeight: isActive ? 700 : 500,
-                cursor: editMode ? "default" : "pointer",
-                minHeight: 36,
-                transition: "all 0.15s",
-                whiteSpace: "nowrap",
-              }}
-              aria-pressed={isActive}
-              aria-label={`Switch to ${loc.city}`}
-            >
-              {loc.city}
-            </button>
-
-            {editMode && (
+        {locations.map((loc) => {
+          const isActive = !activeIsDevice && loc.city === activeCity;
+          return (
+            <div key={loc.city} style={{ position: "relative", flexShrink: 0 }}>
               <button
                 type="button"
-                onClick={() => onDelete(loc.city)}
-                aria-label={`Remove ${loc.city}`}
+                onClick={() => { if (!editMode) onSelect(loc); }}
+                aria-pressed={isActive}
+                aria-label={`Switch to ${loc.city}`}
                 style={{
-                  position: "absolute",
-                  top: "50%",
-                  right: 8,
-                  transform: "translateY(-50%)",
-                  width: 20,
-                  height: 20,
-                  borderRadius: 999,
-                  border: "none",
-                  background: "rgba(0,0,0,0.45)",
-                  color: "white",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  lineHeight: 1,
-                  padding: 0,
+                  ...(isActive ? activePill : inactivePill),
+                  paddingRight: editMode ? 34 : 14,
+                  cursor: editMode ? "default" : "pointer",
                 }}
               >
-                ×
+                {loc.city}
               </button>
-            )}
-          </div>
-        );
-      })}
 
-      {/* Edit / Done toggle */}
-      {locations.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setEditMode((v) => !v)}
-          aria-label={editMode ? "Done editing" : "Edit saved locations"}
-          style={{
-            flexShrink: 0,
-            padding: "7px 14px",
-            borderRadius: 999,
-            border: "1.5px solid rgba(255,255,255,0.35)",
-            background: editMode ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            color: editMode ? "#111827" : "rgba(255,255,255,0.9)",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            minHeight: 36,
-            transition: "all 0.15s",
-          }}
-        >
-          {editMode ? "Done" : "✏️"}
-        </button>
-      )}
+              {editMode && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(loc.city)}
+                  aria-label={`Remove ${loc.city}`}
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    right: 8,
+                    transform: "translateY(-50%)",
+                    width: 20,
+                    height: 20,
+                    borderRadius: 999,
+                    border: "none",
+                    background: "rgba(0,0,0,0.5)",
+                    color: "white",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={10} strokeWidth={3} />
+                </button>
+              )}
+            </div>
+          );
+        })}
 
-      {/* Add city — hidden during edit mode */}
-      {!editMode && locations.length < 5 && (
-        <button
-          type="button"
-          onClick={onAdd}
-          aria-label="Add a location"
-          style={{
-            flexShrink: 0,
-            width: 36,
-            height: 36,
-            borderRadius: 999,
-            border: "1.5px solid rgba(255,255,255,0.35)",
-            background: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            color: "rgba(255,255,255,0.9)",
-            fontSize: 20,
-            fontWeight: 400,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            lineHeight: 1,
-          }}
-        >
-          +
-        </button>
-      )}
+        {/* Edit / Done toggle — only shown when there are saved cities */}
+        {locations.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setEditMode((v) => !v)}
+            aria-label={editMode ? "Done editing" : "Edit saved locations"}
+            style={{
+              ...inactivePill,
+              padding: "6px 12px",
+              background: editMode ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.14)",
+              color: editMode ? "#111827" : "rgba(255,255,255,0.75)",
+              fontWeight: editMode ? 700 : 500,
+            }}
+          >
+            {editMode ? "Done" : <Pencil size={14} strokeWidth={2} />}
+          </button>
+        )}
+
+        {/* Add city — hidden in edit mode */}
+        {!editMode && locations.length < 5 && (
+          <button
+            type="button"
+            onClick={onAdd}
+            aria-label="Add a location"
+            style={{
+              ...inactivePill,
+              width: 34,
+              minHeight: 34,
+              padding: 0,
+              justifyContent: "center",
+            }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
+
+      {/* Right-edge fade — signals more pills scroll right */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: 40,
+          pointerEvents: "none",
+          background: "linear-gradient(to right, transparent, rgba(0,0,0,0.18))",
+        }}
+      />
     </div>
   );
 }
