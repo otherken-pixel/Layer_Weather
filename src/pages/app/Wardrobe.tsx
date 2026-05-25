@@ -1,144 +1,261 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { useAppStore } from "@/store";
-import {
-  getWardrobeItems,
-  addWardrobeItem,
-  updateWardrobeItem,
-  deleteWardrobeItem,
-} from "@/lib/supabase";
-import type { WardrobeItem, WardrobeCategory, StyleTag } from "@/types";
+import { getWeatherWardrobes, upsertWeatherWardrobe, deleteWeatherWardrobe } from "@/lib/supabase";
+import { SCENARIOS, SVG_CATALOG, catalogForPreference, getScenarioMeta } from "@/lib/wardrobeCatalog";
+import type { SvgCategory } from "@/lib/wardrobeCatalog";
+import type { WeatherScenario, WeatherWardrobePreset } from "@/types";
+import { svgRegistry } from "@/components/outfit/svg/index";
+import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 
-const CATEGORIES: { key: WardrobeCategory | "all"; label: string; emoji: string }[] = [
-  { key: "all", label: "All", emoji: "👗" },
-  { key: "tops", label: "Tops", emoji: "👕" },
-  { key: "bottoms", label: "Bottoms", emoji: "👖" },
-  { key: "outerwear", label: "Outerwear", emoji: "🧥" },
-  { key: "footwear", label: "Footwear", emoji: "👟" },
-  { key: "accessories", label: "Accessories", emoji: "🧣" },
-];
+// ── Tiny SVG preview used in the picker grid ──────────────────────────────────
 
-const STYLE_TAGS: { key: StyleTag; label: string }[] = [
-  { key: "casual", label: "Casual" },
-  { key: "formal", label: "Formal" },
-  { key: "activewear", label: "Activewear" },
-  { key: "outdoor", label: "Outdoor" },
-  { key: "work", label: "Work" },
-  { key: "smart-casual", label: "Smart-Casual" },
-];
+function SvgThumb({ name, size = 52 }: { name: string; size?: number }) {
+  const Component = svgRegistry[name];
+  if (!Component) return null;
+  return <Component size={size} />;
+}
 
-const WARMTH_LABELS = ["", "Very Light", "Light", "Medium", "Warm", "Very Warm"];
+// ── Scenario grid card ────────────────────────────────────────────────────────
 
-function WarmthDots({ rating }: { rating: number }) {
+interface ScenarioCardProps {
+  scenario: (typeof SCENARIOS)[number];
+  preset: WeatherWardrobePreset | undefined;
+  onEdit: () => void;
+  isDark: boolean;
+}
+
+function ScenarioCard({ scenario, preset, onEdit, isDark }: ScenarioCardProps) {
+  const surface = isDark ? "#2C2C2E" : "#FFFFFF";
+  const textPrimary = isDark ? "#FFFFFF" : "#111827";
+  const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
+  const hasPreset = !!preset;
+
   return (
-    <div style={{ display: "flex", gap: 3 }}>
-      {[1, 2, 3, 4, 5].map((n) => (
+    <motion.button
+      type="button"
+      onClick={() => { hapticLight(); onEdit(); }}
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileTap={{ scale: 0.97 }}
+      style={{
+        background: surface,
+        borderRadius: 20,
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 10,
+        boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.3)" : "0 2px 12px rgba(0,0,0,0.07)",
+        border: hasPreset
+          ? "2px solid var(--accent-primary)"
+          : isDark ? "2px solid #3A3A3C" : "2px solid #E5E7EB",
+        cursor: "pointer",
+        width: "100%",
+        position: "relative",
+      }}
+    >
+      {hasPreset && (
         <div
-          key={n}
           style={{
-            width: 7,
-            height: 7,
+            position: "absolute",
+            top: 10,
+            right: 10,
+            width: 8,
+            height: 8,
             borderRadius: "50%",
-            background: n <= rating ? "var(--accent-primary)" : "#E5E7EB",
+            background: "var(--accent-primary)",
           }}
         />
-      ))}
-    </div>
+      )}
+
+      {/* Mini outfit preview or placeholder */}
+      <div style={{ width: "100%", minHeight: 90 }}>
+        {hasPreset ? (
+          <OutfitFlatLay
+            outfit="pants_tshirt"
+            rainGear={false}
+            umbrella={false}
+            sunglasses={false}
+            scarf={false}
+            beanie={false}
+            compact
+            override={{
+              top: preset.top_svg,
+              bottom: preset.bottom_svg,
+              outerwear: preset.outerwear_svg,
+              footwear: preset.footwear_svg,
+              accessories: preset.accessory_svgs,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              height: 90,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 40,
+              opacity: 0.35,
+            }}
+          >
+            {scenario.emoji}
+          </div>
+        )}
+      </div>
+
+      {/* Label */}
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: textPrimary, marginBottom: 2 }}>
+          {scenario.emoji} {scenario.label}
+        </p>
+        <p style={{ fontSize: 11, color: textSecondary }}>
+          {hasPreset ? "Tap to edit" : scenario.description}
+        </p>
+      </div>
+    </motion.button>
   );
 }
 
-interface AddSheetProps {
+// ── Category picker tab bar ───────────────────────────────────────────────────
+
+const EDITOR_TABS: { key: SvgCategory; label: string; emoji: string; multi: boolean }[] = [
+  { key: "tops",        label: "Top",        emoji: "👕", multi: false },
+  { key: "bottoms",     label: "Bottom",     emoji: "👖", multi: false },
+  { key: "outerwear",   label: "Outer",      emoji: "🧥", multi: false },
+  { key: "footwear",    label: "Shoes",      emoji: "👟", multi: false },
+  { key: "accessories", label: "Extras",     emoji: "🧣", multi: true  },
+];
+
+// ── Scenario editor sheet ─────────────────────────────────────────────────────
+
+interface EditorSheetProps {
   open: boolean;
-  onClose: () => void;
-  onSaved: (item: WardrobeItem) => void;
+  scenario: WeatherScenario;
+  preset: WeatherWardrobePreset | undefined;
   userId: string;
-  editItem?: WardrobeItem | null;
+  stylePreference: "feminine" | "masculine" | "all";
+  isDark: boolean;
+  onClose: () => void;
+  onSaved: (preset: WeatherWardrobePreset) => void;
+  onDeleted: (scenario: WeatherScenario) => void;
 }
 
-function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProps) {
-  const [category, setCategory] = useState<WardrobeCategory>("tops");
-  const [name, setName] = useState("");
-  const [warmth, setWarmth] = useState<1 | 2 | 3 | 4 | 5>(3);
-  const [waterproof, setWaterproof] = useState(false);
-  const [color, setColor] = useState("");
-  const [tags, setTags] = useState<StyleTag[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+function EditorSheet({
+  open,
+  scenario,
+  preset,
+  userId,
+  stylePreference,
+  isDark,
+  onClose,
+  onSaved,
+  onDeleted,
+}: EditorSheetProps) {
+  const meta = getScenarioMeta(scenario);
   const dragControls = useDragControls();
 
-  useEffect(() => {
-    if (open) {
-      if (editItem) {
-        setCategory(editItem.category);
-        setName(editItem.name);
-        setWarmth(editItem.warmth_rating);
-        setWaterproof(editItem.is_waterproof);
-        setColor(editItem.color ?? "");
-        setTags(editItem.style_tags);
-      } else {
-        setCategory("tops");
-        setName("");
-        setWarmth(3);
-        setWaterproof(false);
-        setColor("");
-        setTags([]);
-      }
-      setError("");
-    }
-  }, [open, editItem]);
+  const [activeTab, setActiveTab] = useState<SvgCategory>("tops");
+  const [topSvg,       setTopSvg]       = useState<string | null>(null);
+  const [bottomSvg,    setBottomSvg]    = useState<string | null>(null);
+  const [outerwearSvg, setOuterwearSvg] = useState<string | null>(null);
+  const [footwearSvg,  setFootwearSvg]  = useState<string | null>(null);
+  const [accessories,  setAccessories]  = useState<string[]>([]);
+  const [saving,  setSaving]  = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  function toggleTag(tag: StyleTag) {
+  // Seed from existing preset or scenario defaults when sheet opens
+  useEffect(() => {
+    if (!open) return;
+    setActiveTab("tops");
+    if (preset) {
+      setTopSvg(preset.top_svg);
+      setBottomSvg(preset.bottom_svg);
+      setOuterwearSvg(preset.outerwear_svg);
+      setFootwearSvg(preset.footwear_svg);
+      setAccessories(preset.accessory_svgs);
+    } else {
+      setTopSvg(meta.defaults.top);
+      setBottomSvg(meta.defaults.bottom);
+      setOuterwearSvg(meta.defaults.outerwear);
+      setFootwearSvg(meta.defaults.footwear);
+      setAccessories(meta.defaults.accessories);
+    }
+  }, [open, preset, meta]);
+
+  function toggleAccessory(name: string) {
     hapticLight();
-    setTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    setAccessories((prev) =>
+      prev.includes(name) ? prev.filter((a) => a !== name) : [...prev, name]
     );
   }
 
+  function handleSingleSelect(category: SvgCategory, name: string) {
+    hapticLight();
+    if (category === "tops")      setTopSvg((v)      => v === name ? null : name);
+    if (category === "bottoms")   setBottomSvg((v)   => v === name ? null : name);
+    if (category === "outerwear") setOuterwearSvg((v) => v === name ? null : name);
+    if (category === "footwear")  setFootwearSvg((v) => v === name ? null : name);
+  }
+
+  function isSelected(category: SvgCategory, name: string): boolean {
+    if (category === "tops")        return topSvg       === name;
+    if (category === "bottoms")     return bottomSvg    === name;
+    if (category === "outerwear")   return outerwearSvg === name;
+    if (category === "footwear")    return footwearSvg  === name;
+    if (category === "accessories") return accessories.includes(name);
+    return false;
+  }
+
   async function handleSave() {
-    if (!name.trim()) {
-      setError("Please enter a name.");
-      return;
-    }
     setSaving(true);
-    setError("");
     try {
-      if (editItem) {
-        const updates = {
-          category,
-          name: name.trim(),
-          warmth_rating: warmth,
-          is_waterproof: waterproof,
-          style_tags: tags,
-          color: color.trim() || null,
-        };
-        await updateWardrobeItem(editItem.id, updates);
-        hapticSuccess();
-        onSaved({ ...editItem, ...updates, updated_at: new Date().toISOString() });
-        onClose();
-      } else {
-        const item = await addWardrobeItem({
-          user_id: userId,
-          category,
-          name: name.trim(),
-          warmth_rating: warmth,
-          is_waterproof: waterproof,
-          style_tags: tags,
-          color: color.trim() || null,
-          active: true,
-        });
-        if (item) {
-          hapticSuccess();
-          onSaved(item);
-          onClose();
-        }
-      }
-    } catch {
-      setError("Failed to save. Please try again.");
+      const saved = await upsertWeatherWardrobe({
+        user_id: userId,
+        scenario,
+        top_svg: topSvg,
+        bottom_svg: topSvg === "Dress" ? null : bottomSvg,
+        outerwear_svg: outerwearSvg,
+        footwear_svg: footwearSvg,
+        accessory_svgs: accessories,
+      });
+      hapticSuccess();
+      onSaved(saved);
+      onClose();
     } finally {
       setSaving(false);
     }
   }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteWeatherWardrobe(userId, scenario);
+      hapticLight();
+      onDeleted(scenario);
+      onClose();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const surface = isDark ? "#1C1C1E" : "#FFFFFF";
+  const textPrimary = isDark ? "#FFFFFF" : "#111827";
+  const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
+  const tabBg = isDark ? "#2C2C2E" : "#F3F4F6";
+
+  const currentOptions = catalogForPreference(stylePreference, activeTab);
+
+  // Live preview override
+  const previewOverride = {
+    top: topSvg,
+    bottom: topSvg === "Dress" ? null : bottomSvg,
+    outerwear: outerwearSvg,
+    footwear: footwearSvg,
+    accessories,
+  };
 
   return (
     <AnimatePresence>
@@ -150,14 +267,14 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[80] border-0 cursor-pointer"
-            style={{ background: "rgba(0,0,0,0.45)" }}
+            style={{ background: "rgba(0,0,0,0.5)" }}
             aria-label="Close"
             onClick={onClose}
           />
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="add-item-title"
+            aria-label={`Edit ${meta.label} wardrobe`}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -168,193 +285,190 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.4 }}
             onDragEnd={(_, info) => {
-              if (info.offset.y > 100 || info.velocity.y > 500) {
-                onClose();
-              }
+              if (info.offset.y > 120 || info.velocity.y > 500) onClose();
             }}
             className="fixed left-0 right-0 bottom-0 z-[90] rounded-t-[28px] flex flex-col"
-            style={{
-              maxHeight: "90vh",
-              background: "#FFFFFF",
-              boxShadow: "0 -8px 40px rgba(0,0,0,0.18)",
-            }}
+            style={{ maxHeight: "92vh", background: surface, boxShadow: "0 -8px 40px rgba(0,0,0,0.22)" }}
           >
-            {/* Drag handle — pointer down here starts the swipe-to-dismiss gesture */}
+            {/* Drag handle + header */}
             <div
-              className="pt-5 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing"
+              className="pt-4 px-5 flex-shrink-0 cursor-grab active:cursor-grabbing"
               onPointerDown={(e) => dragControls.start(e)}
             >
               <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#D1D5DB" }} />
-              <h2
-                id="add-item-title"
-                className="text-lg font-bold text-center mb-4"
-                style={{ color: "#111827" }}
-              >
-                {editItem ? "Edit Item" : "Add Wardrobe Item"}
+              <h2 className="text-lg font-bold text-center mb-1" style={{ color: textPrimary }}>
+                {meta.emoji} {meta.label}
               </h2>
+              <p className="text-sm text-center mb-4" style={{ color: textSecondary }}>
+                {meta.description} — tap a drawing to select it
+              </p>
             </div>
 
-            {/* Scrollable form body */}
-            <div className="flex-1 overflow-y-auto px-5">
-              {/* Category */}
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-                Category
-              </p>
-              <div className="flex gap-2 flex-wrap mb-4">
-                {CATEGORIES.filter((c) => c.key !== "all").map((cat) => (
-                  <button
-                    key={cat.key}
-                    type="button"
-                    onClick={() => setCategory(cat.key as WardrobeCategory)}
-                    className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
-                    style={{
-                      background: category === cat.key ? "var(--accent-primary)" : "#F3F4F6",
-                      color: category === cat.key ? "#FFFFFF" : "#374151",
-                    }}
-                  >
-                    {cat.emoji} {cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Name */}
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-                Name
-              </p>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Grey Merino Sweater"
-                className="w-full rounded-2xl px-4 py-3 text-base font-semibold mb-4"
-                style={{
-                  background: "#F3F4F6",
-                  border: "1.5px solid #E5E7EB",
-                  color: "#111827",
-                  outline: "none",
-                }}
+            {/* Live preview strip */}
+            <div className="flex-shrink-0 px-5 mb-2">
+              <OutfitFlatLay
+                outfit="pants_tshirt"
+                rainGear={false}
+                umbrella={false}
+                sunglasses={false}
+                scarf={false}
+                beanie={false}
+                compact
+                override={previewOverride}
               />
-
-              {/* Color */}
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-                Color (optional)
-              </p>
-              <input
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder="e.g. Navy, Olive, Charcoal"
-                className="w-full rounded-2xl px-4 py-3 text-base mb-4"
-                style={{
-                  background: "#F3F4F6",
-                  border: "1.5px solid #E5E7EB",
-                  color: "#111827",
-                  outline: "none",
-                }}
-              />
-
-              {/* Warmth */}
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-                Warmth — {WARMTH_LABELS[warmth]}
-              </p>
-              <div className="flex gap-2 mb-4">
-                {([1, 2, 3, 4, 5] as const).map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setWarmth(n)}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
-                    style={{
-                      background: warmth === n ? "var(--accent-primary)" : "#F3F4F6",
-                      color: warmth === n ? "#FFFFFF" : "#6B7280",
-                    }}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-
-              {/* Waterproof */}
-              <div className="flex items-center justify-between mb-4 px-1">
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "#111827" }}>
-                    Waterproof / Water-resistant
-                  </p>
-                  <p className="text-xs" style={{ color: "#6B7280" }}>
-                    Used to suggest rain gear alternatives
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { hapticLight(); setWaterproof((v) => !v); }}
-                  className="relative rounded-full border-0 cursor-pointer flex-shrink-0"
-                  style={{
-                    width: 50,
-                    height: 30,
-                    background: waterproof ? "var(--accent-primary)" : "#D1D5DB",
-                    transition: "background 0.2s",
-                  }}
-                  aria-checked={waterproof}
-                  role="switch"
-                >
-                  <motion.div
-                    animate={{ x: waterproof ? 22 : 2 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    style={{
-                      position: "absolute",
-                      top: 3,
-                      width: 24,
-                      height: 24,
-                      borderRadius: "50%",
-                      background: "#FFFFFF",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                </button>
-              </div>
-
-              {/* Style Tags */}
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#6B7280" }}>
-                Style Tags (optional)
-              </p>
-              <div className="flex gap-2 flex-wrap pb-4">
-                {STYLE_TAGS.map((t) => (
-                  <button
-                    key={t.key}
-                    type="button"
-                    onClick={() => toggleTag(t.key)}
-                    className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
-                    style={{
-                      background: tags.includes(t.key) ? "var(--accent-tab-bg)" : "#F3F4F6",
-                      color: tags.includes(t.key) ? "var(--accent-text)" : "#6B7280",
-                      border: tags.includes(t.key) ? "1.5px solid var(--accent-light)" : "1.5px solid transparent",
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Sticky footer — always visible above the safe area */}
+            {/* Category tab bar */}
             <div
-              className="px-5 flex-shrink-0 pt-3"
-              style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
+              className="flex-shrink-0 px-5 mb-3"
+              style={{ overflowX: "auto" }}
             >
-              {error && (
-                <p className="text-sm mb-3" style={{ color: "#EF4444" }}>
-                  {error}
+              <div className="flex gap-2" style={{ width: "max-content" }}>
+                {EDITOR_TABS.map((tab) => {
+                  const active = activeTab === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => { hapticLight(); setActiveTab(tab.key); }}
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: 20,
+                        border: "none",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        background: active ? "var(--accent-primary)" : tabBg,
+                        color: active ? "#FFFFFF" : textSecondary,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {tab.emoji} {tab.label}
+                      {tab.key === "accessories" && accessories.length > 0 && (
+                        <span
+                          style={{
+                            marginLeft: 5,
+                            background: active ? "rgba(255,255,255,0.3)" : "var(--accent-primary)",
+                            color: "#fff",
+                            borderRadius: 10,
+                            padding: "0 5px",
+                            fontSize: 11,
+                          }}
+                        >
+                          {accessories.length}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SVG picker grid */}
+            <div className="flex-1 overflow-y-auto px-5 pb-2">
+              {activeTab === "outerwear" && (
+                <p style={{ fontSize: 12, color: textSecondary, marginBottom: 10 }}>
+                  Optional — leave unselected if no layer needed.
                 </p>
               )}
+              {activeTab === "accessories" && (
+                <p style={{ fontSize: 12, color: textSecondary, marginBottom: 10 }}>
+                  Select as many as you like.
+                </p>
+              )}
+
+              {currentOptions.length === 0 ? (
+                <div style={{ textAlign: "center", paddingTop: 32, color: textSecondary }}>
+                  <p style={{ fontSize: 32, marginBottom: 8 }}>🚫</p>
+                  <p style={{ fontSize: 14 }}>No options for your style preference in this category.</p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 10,
+                    paddingBottom: 8,
+                  }}
+                >
+                  {currentOptions.map((entry) => {
+                    const selected = isSelected(activeTab, entry.name);
+                    const isMulti = activeTab === "accessories";
+                    return (
+                      <button
+                        key={entry.name}
+                        type="button"
+                        onClick={() =>
+                          isMulti
+                            ? toggleAccessory(entry.name)
+                            : handleSingleSelect(activeTab, entry.name)
+                        }
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          padding: "12px 8px",
+                          borderRadius: 16,
+                          border: selected
+                            ? "2.5px solid var(--accent-primary)"
+                            : isDark ? "2px solid #3A3A3C" : "2px solid #E5E7EB",
+                          background: selected
+                            ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                            : isDark ? "#2C2C2E" : "#F9FAFB",
+                          cursor: "pointer",
+                          transition: "border-color 0.15s, background 0.15s",
+                        }}
+                      >
+                        <SvgThumb name={entry.name} size={56} />
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: selected
+                              ? isDark ? "var(--accent-light)" : "var(--accent-text)"
+                              : textSecondary,
+                          }}
+                        >
+                          {entry.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              className="px-5 flex-shrink-0 pt-3 flex flex-col gap-2"
+              style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}
+            >
               <button
                 type="button"
-                disabled={saving || !name.trim()}
+                disabled={saving}
                 onClick={handleSave}
                 className="w-full min-h-[52px] rounded-2xl border-0 font-bold text-white cursor-pointer disabled:opacity-50"
                 style={{ background: "var(--accent-primary)", fontSize: 16 }}
               >
-                {saving ? "Saving…" : editItem ? "Save Changes" : "Add to Wardrobe"}
+                {saving ? "Saving…" : "Save Wardrobe"}
               </button>
+              {preset && (
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                  className="w-full min-h-[44px] rounded-2xl border-0 font-semibold cursor-pointer disabled:opacity-50"
+                  style={{
+                    background: isDark ? "rgba(239,68,68,0.12)" : "#FEF2F2",
+                    color: isDark ? "#F87171" : "#DC2626",
+                    fontSize: 14,
+                  }}
+                >
+                  {deleting ? "Clearing…" : "Clear this wardrobe"}
+                </button>
+              )}
             </div>
           </motion.div>
         </>
@@ -363,191 +477,57 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
   );
 }
 
-interface ItemCardProps {
-  item: WardrobeItem;
-  onDelete: (id: string) => void;
-  onEdit: (item: WardrobeItem) => void;
-}
-
-function ItemCard({ item, onDelete, onEdit }: ItemCardProps) {
-  const cat = CATEGORIES.find((c) => c.key === item.category);
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 26 }}
-      style={{
-        background: "#FFFFFF",
-        borderRadius: 18,
-        padding: "14px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        boxShadow: "0 1px 6px rgba(0,0,0,0.06)",
-        marginBottom: 10,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          borderRadius: 14,
-          background: "#F3F0FF",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 22,
-          flexShrink: 0,
-        }}
-      >
-        {cat?.emoji ?? "👗"}
-      </div>
-      <button
-        type="button"
-        onClick={() => onEdit(item)}
-        style={{ flex: 1, minWidth: 0, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#111827",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {item.name}
-          </p>
-          {item.is_waterproof && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: "#1D4ED8",
-                background: "#DBEAFE",
-                borderRadius: 6,
-                padding: "1px 6px",
-                flexShrink: 0,
-              }}
-            >
-              ☂ DRY
-            </span>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <WarmthDots rating={item.warmth_rating} />
-          {item.color && (
-            <span style={{ fontSize: 12, color: "#6B7280" }}>{item.color}</span>
-          )}
-          {item.style_tags.slice(0, 2).map((tag) => (
-            <span
-              key={tag}
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--accent-text)",
-                background: "var(--accent-tab-bg)",
-                borderRadius: 6,
-                padding: "1px 6px",
-              }}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={() => { hapticLight(); onDelete(item.id); }}
-        aria-label={`Remove ${item.name}`}
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: "50%",
-          border: "none",
-          background: "#FEE2E2",
-          color: "#DC2626",
-          fontSize: 16,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        ×
-      </button>
-    </motion.div>
-  );
-}
+// ── Main Wardrobe page ────────────────────────────────────────────────────────
 
 export default function Wardrobe() {
-  const userId = useAppStore((s) => s.userId);
-  const profile = useAppStore((s) => s.profile);
-  const wardrobeItems = useAppStore((s) => s.wardrobeItems);
-  const setWardrobeItems = useAppStore((s) => s.setWardrobeItems);
+  const userId   = useAppStore((s) => s.userId);
+  const profile  = useAppStore((s) => s.profile);
+  const weatherWardrobes  = useAppStore((s) => s.weatherWardrobes);
+  const setWeatherWardrobes = useAppStore((s) => s.setWeatherWardrobes);
   const isDark = profile?.theme_preference === "dark";
 
-  const [activeCategory, setActiveCategory] = useState<WardrobeCategory | "all">("all");
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editItem, setEditItem] = useState<WardrobeItem | null>(null);
-  const [dbError, setDbError] = useState(false);
+  const [editingScenario, setEditingScenario] = useState<WeatherScenario | null>(null);
 
-  const bgPage = isDark ? "#1C1C1E" : "#F2F2F7";
-  const surface = isDark ? "#2C2C2E" : "#FFFFFF";
-  const textPrimary = isDark ? "#FFFFFF" : "#111827";
-  const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
+  const bgPage    = isDark ? "#1C1C1E" : "#F2F2F7";
+  const surface   = isDark ? "#2C2C2E" : "#FFFFFF";
+  const textPrimary   = isDark ? "#FFFFFF"  : "#111827";
+  const textSecondary = isDark ? "#9CA3AF"  : "#6B7280";
 
-  const loadItems = useCallback(async () => {
+  const stylePreference = profile?.style_preference ?? "all";
+
+  const loadPresets = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    setDbError(false);
     try {
-      const data = await getWardrobeItems(userId);
-      setWardrobeItems(data);
+      const data = await getWeatherWardrobes(userId);
+      setWeatherWardrobes(data);
     } catch {
-      setDbError(true);
+      // table may not exist in dev; silently ignore
     } finally {
       setLoading(false);
     }
-  }, [userId, setWardrobeItems]);
+  }, [userId, setWeatherWardrobes]);
 
-  useEffect(() => { loadItems(); }, [loadItems]);
+  useEffect(() => { void loadPresets(); }, [loadPresets]);
 
-  async function handleDelete(id: string) {
-    setWardrobeItems((prev) => prev.filter((i) => i.id !== id));
-    try {
-      await deleteWardrobeItem(id);
-    } catch {
-      await loadItems();
-    }
+  function presetForScenario(key: WeatherScenario): WeatherWardrobePreset | undefined {
+    return weatherWardrobes.find((p) => p.scenario === key);
   }
 
-  function handleSaved(item: WardrobeItem) {
-    setWardrobeItems((prev) =>
-      prev.some((i) => i.id === item.id)
-        ? prev.map((i) => (i.id === item.id ? item : i))
-        : [item, ...prev]
+  function handleSaved(saved: WeatherWardrobePreset) {
+    setWeatherWardrobes(
+      weatherWardrobes.some((p) => p.scenario === saved.scenario)
+        ? weatherWardrobes.map((p) => (p.scenario === saved.scenario ? saved : p))
+        : [...weatherWardrobes, saved]
     );
   }
 
-  const filtered =
-    activeCategory === "all"
-      ? wardrobeItems
-      : wardrobeItems.filter((i) => i.category === activeCategory);
+  function handleDeleted(scenario: WeatherScenario) {
+    setWeatherWardrobes(weatherWardrobes.filter((p) => p.scenario !== scenario));
+  }
 
-  const categoryCounts = Object.fromEntries(
-    CATEGORIES.filter((c) => c.key !== "all").map((c) => [
-      c.key,
-      wardrobeItems.filter((i) => i.category === c.key).length,
-    ])
-  );
+  const savedCount = weatherWardrobes.length;
 
   return (
     <div
@@ -563,97 +543,22 @@ export default function Wardrobe() {
         style={{
           background: surface,
           borderBottom: `1px solid ${isDark ? "#3A3A3C" : "#E5E7EB"}`,
-          padding: "20px 20px 0",
+          padding: "20px 20px 20px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
-          <div>
-            <h1 style={{ fontSize: 28, fontWeight: 800, color: textPrimary, lineHeight: 1.2 }}>
-              My Wardrobe
-            </h1>
-            <p style={{ fontSize: 13, color: textSecondary, marginTop: 2 }}>
-              {wardrobeItems.length} {wardrobeItems.length === 1 ? "item" : "items"} saved
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => { hapticLight(); setShowAdd(true); }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "50%",
-              border: "none",
-              background: "var(--accent-primary)",
-              color: "#FFFFFF",
-              fontSize: 22,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-            aria-label="Add wardrobe item"
-          >
-            +
-          </button>
-        </div>
-
-        {/* Category tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            paddingBottom: 14,
-            scrollbarWidth: "none",
-          }}
-        >
-          {CATEGORIES.map((cat) => {
-            const count = cat.key === "all" ? wardrobeItems.length : categoryCounts[cat.key] ?? 0;
-            const active = activeCategory === cat.key;
-            return (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => { hapticLight(); setActiveCategory(cat.key); }}
-                style={{
-                  flexShrink: 0,
-                  padding: "6px 14px",
-                  borderRadius: 20,
-                  border: "none",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  background: active ? "var(--accent-primary)" : isDark ? "#3A3A3C" : "#F3F4F6",
-                  color: active ? "#FFFFFF" : textSecondary,
-                  transition: "all 0.15s",
-                }}
-              >
-                {cat.emoji} {cat.label}
-                {count > 0 && (
-                  <span
-                    style={{
-                      marginLeft: 5,
-                      background: active ? "rgba(255,255,255,0.25)" : isDark ? "#555" : "#E5E7EB",
-                      color: active ? "#FFFFFF" : textSecondary,
-                      borderRadius: 10,
-                      padding: "0 6px",
-                      fontSize: 11,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: textPrimary, lineHeight: 1.2, marginBottom: 4 }}>
+          My Wardrobe
+        </h1>
+        <p style={{ fontSize: 13, color: textSecondary }}>
+          {savedCount === 0
+            ? "Pick your outfits for each weather type"
+            : `${savedCount} of ${SCENARIOS.length} weather wardrobes set up`}
+        </p>
       </div>
 
       {/* Content */}
       <div style={{ padding: "16px 16px 0" }}>
-        {loading && (
+        {loading ? (
           <div style={{ textAlign: "center", paddingTop: 60 }}>
             <div
               style={{
@@ -666,100 +571,73 @@ export default function Wardrobe() {
                 animation: "spin 0.8s linear infinite",
               }}
             />
-            <p style={{ fontSize: 14, color: textSecondary }}>Loading wardrobe…</p>
+            <p style={{ fontSize: 14, color: textSecondary }}>Loading wardrobes…</p>
           </div>
-        )}
+        ) : (
+          <>
+            {/* How it works banner — shown until all 6 are filled */}
+            {savedCount < SCENARIOS.length && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  background: isDark ? "rgba(59,130,246,0.15)" : "#EFF6FF",
+                  border: "1px solid #BFDBFE",
+                  borderRadius: 16,
+                  padding: "12px 16px",
+                  marginBottom: 16,
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0 }}>👗</span>
+                <p style={{ fontSize: 13, color: isDark ? "#93C5FD" : "#1D4ED8", lineHeight: 1.5 }}>
+                  Tap a card to choose your outfit drawings for that weather. When it matches, your wardrobe appears on the home screen.
+                </p>
+              </motion.div>
+            )}
 
-        {!loading && dbError && (
-          <div
-            style={{
-              textAlign: "center",
-              paddingTop: 60,
-              background: surface,
-              borderRadius: 20,
-              padding: 32,
-            }}
-          >
-            <p style={{ fontSize: 32, marginBottom: 12 }}>⚠️</p>
-            <p style={{ fontSize: 16, fontWeight: 700, color: textPrimary, marginBottom: 6 }}>
-              Wardrobe unavailable
-            </p>
-            <p style={{ fontSize: 13, color: textSecondary, marginBottom: 20 }}>
-              The wardrobe database table hasn&apos;t been set up yet. Run the migration to enable this feature.
-            </p>
-            <button
-              type="button"
-              onClick={loadItems}
+            {/* 2-column scenario grid */}
+            <div
               style={{
-                padding: "10px 24px",
-                borderRadius: 14,
-                border: "none",
-                background: "var(--accent-primary)",
-                color: "#FFFFFF",
-                fontWeight: 700,
-                cursor: "pointer",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 12,
               }}
             >
-              Retry
-            </button>
-          </div>
-        )}
-
-        {!loading && !dbError && filtered.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              textAlign: "center",
-              paddingTop: 60,
-              paddingBottom: 40,
-            }}
-          >
-            <p style={{ fontSize: 48, marginBottom: 16 }}>
-              {activeCategory === "all" ? "👗" : CATEGORIES.find((c) => c.key === activeCategory)?.emoji}
-            </p>
-            <p style={{ fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 6 }}>
-              {activeCategory === "all" ? "No items yet" : `No ${activeCategory} yet`}
-            </p>
-            <p style={{ fontSize: 14, color: textSecondary, marginBottom: 24 }}>
-              Add your clothes to get personalized outfit suggestions based on what you actually own.
-            </p>
-            <button
-              type="button"
-              onClick={() => { hapticLight(); setShowAdd(true); }}
-              style={{
-                padding: "12px 28px",
-                borderRadius: 16,
-                border: "none",
-                background: "var(--accent-primary)",
-                color: "#FFFFFF",
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              + Add first item
-            </button>
-          </motion.div>
-        )}
-
-        {!loading && !dbError && filtered.length > 0 && (
-          <AnimatePresence mode="popLayout">
-            {filtered.map((item) => (
-              <ItemCard key={item.id} item={item} onDelete={handleDelete} onEdit={(it) => { setEditItem(it); setShowAdd(true); }} />
-            ))}
-          </AnimatePresence>
+              {SCENARIOS.map((scenario, i) => (
+                <motion.div
+                  key={scenario.key}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <ScenarioCard
+                    scenario={scenario}
+                    preset={presetForScenario(scenario.key)}
+                    onEdit={() => setEditingScenario(scenario.key)}
+                    isDark={isDark}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Add Item Sheet */}
-      {userId && (
-        <AddItemSheet
-          open={showAdd}
-          onClose={() => { setShowAdd(false); setEditItem(null); }}
-          onSaved={handleSaved}
+      {/* Editor sheet */}
+      {userId && editingScenario && (
+        <EditorSheet
+          open={editingScenario !== null}
+          scenario={editingScenario}
+          preset={presetForScenario(editingScenario)}
           userId={userId}
-          editItem={editItem}
+          stylePreference={stylePreference}
+          isDark={isDark}
+          onClose={() => setEditingScenario(null)}
+          onSaved={handleSaved}
+          onDeleted={handleDeleted}
         />
       )}
 

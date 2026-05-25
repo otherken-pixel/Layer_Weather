@@ -1,5 +1,8 @@
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
+export type StylePreference = "feminine" | "masculine" | "all";
+export type WeatherScenario = "hot" | "warm" | "cool" | "cold" | "rainy" | "snowy";
+
 export interface Profile {
   id: string;
   email: string;
@@ -8,6 +11,7 @@ export interface Profile {
   accent_color: string | null;
   temp_unit: "F" | "C";
   outfit_display_mode: "visual" | "text";
+  style_preference: StylePreference;
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"
   fcm_token: string | null;
@@ -241,6 +245,19 @@ export interface WardrobeItem {
   style_tags: StyleTag[];
   color: string | null;
   active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeatherWardrobePreset {
+  id: string;
+  user_id: string;
+  scenario: WeatherScenario;
+  top_svg: string | null;
+  bottom_svg: string | null;
+  outerwear_svg: string | null;
+  footwear_svg: string | null;
+  accessory_svgs: string[];
   created_at: string;
   updated_at: string;
 }
