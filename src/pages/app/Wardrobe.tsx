@@ -40,7 +40,7 @@ function WarmthDots({ rating }: { rating: number }) {
             width: 7,
             height: 7,
             borderRadius: "50%",
-            background: n <= rating ? "#7C3AED" : "#E5E7EB",
+            background: n <= rating ? "var(--accent-primary)" : "#E5E7EB",
           }}
         />
       ))}
@@ -190,7 +190,7 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
                   onClick={() => setCategory(cat.key as WardrobeCategory)}
                   className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
                   style={{
-                    background: category === cat.key ? "#7C3AED" : "#F3F4F6",
+                    background: category === cat.key ? "var(--accent-primary)" : "#F3F4F6",
                     color: category === cat.key ? "#FFFFFF" : "#374151",
                   }}
                 >
@@ -247,7 +247,7 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
                   onClick={() => setWarmth(n)}
                   className="flex-1 py-2.5 rounded-xl text-sm font-bold border-0 cursor-pointer"
                   style={{
-                    background: warmth === n ? "#7C3AED" : "#F3F4F6",
+                    background: warmth === n ? "var(--accent-primary)" : "#F3F4F6",
                     color: warmth === n ? "#FFFFFF" : "#6B7280",
                   }}
                 >
@@ -273,7 +273,7 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
                 style={{
                   width: 50,
                   height: 30,
-                  background: waterproof ? "#7C3AED" : "#D1D5DB",
+                  background: waterproof ? "var(--accent-primary)" : "#D1D5DB",
                   transition: "background 0.2s",
                 }}
                 aria-checked={waterproof}
@@ -307,9 +307,9 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
                   onClick={() => toggleTag(t.key)}
                   className="px-3 py-1.5 rounded-xl text-sm font-semibold border-0 cursor-pointer"
                   style={{
-                    background: tags.includes(t.key) ? "#EDE9FE" : "#F3F4F6",
-                    color: tags.includes(t.key) ? "#6D28D9" : "#6B7280",
-                    border: tags.includes(t.key) ? "1.5px solid #C4B5FD" : "1.5px solid transparent",
+                    background: tags.includes(t.key) ? "var(--accent-tab-bg)" : "#F3F4F6",
+                    color: tags.includes(t.key) ? "var(--accent-text)" : "#6B7280",
+                    border: tags.includes(t.key) ? "1.5px solid var(--accent-light)" : "1.5px solid transparent",
                   }}
                 >
                   {t.label}
@@ -328,7 +328,7 @@ function AddItemSheet({ open, onClose, onSaved, userId, editItem }: AddSheetProp
               disabled={saving || !name.trim()}
               onClick={handleSave}
               className="w-full min-h-[52px] rounded-2xl border-0 font-bold text-white cursor-pointer disabled:opacity-50"
-              style={{ background: "#7C3AED", fontSize: 16 }}
+              style={{ background: "var(--accent-primary)", fontSize: 16 }}
             >
               {saving ? "Saving…" : editItem ? "Save Changes" : "Add to Wardrobe"}
             </button>
@@ -426,8 +426,8 @@ function ItemCard({ item, onDelete, onEdit }: ItemCardProps) {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: "#6D28D9",
-                background: "#EDE9FE",
+                color: "var(--accent-text)",
+                background: "var(--accent-tab-bg)",
                 borderRadius: 6,
                 padding: "1px 6px",
               }}
@@ -559,7 +559,7 @@ export default function Wardrobe() {
               height: 40,
               borderRadius: "50%",
               border: "none",
-              background: "#7C3AED",
+              background: "var(--accent-primary)",
               color: "#FFFFFF",
               fontSize: 22,
               cursor: "pointer",
@@ -600,7 +600,7 @@ export default function Wardrobe() {
                   fontWeight: 700,
                   fontSize: 13,
                   cursor: "pointer",
-                  background: active ? "#7C3AED" : isDark ? "#3A3A3C" : "#F3F4F6",
+                  background: active ? "var(--accent-primary)" : isDark ? "#3A3A3C" : "#F3F4F6",
                   color: active ? "#FFFFFF" : textSecondary,
                   transition: "all 0.15s",
                 }}
@@ -637,7 +637,7 @@ export default function Wardrobe() {
                 height: 40,
                 borderRadius: "50%",
                 border: "3px solid #E5E7EB",
-                borderTopColor: "#7C3AED",
+                borderTopColor: "var(--accent-primary)",
                 margin: "0 auto 12px",
                 animation: "spin 0.8s linear infinite",
               }}
@@ -670,7 +670,7 @@ export default function Wardrobe() {
                 padding: "10px 24px",
                 borderRadius: 14,
                 border: "none",
-                background: "#7C3AED",
+                background: "var(--accent-primary)",
                 color: "#FFFFFF",
                 fontWeight: 700,
                 cursor: "pointer",
@@ -707,7 +707,7 @@ export default function Wardrobe() {
                 padding: "12px 28px",
                 borderRadius: 16,
                 border: "none",
-                background: "#7C3AED",
+                background: "var(--accent-primary)",
                 color: "#FFFFFF",
                 fontSize: 15,
                 fontWeight: 700,

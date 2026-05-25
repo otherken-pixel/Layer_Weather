@@ -50,8 +50,8 @@ export function ThermalSlider({ value, onChange }: ThermalSliderProps) {
           onChange={(e) => onChange(Number(e.target.value) as ThermalSensitivity)}
           className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
           style={{
-            background: `linear-gradient(to right, #9D97FF 0%, #9D97FF ${((value + 2) / 4) * 100}%, rgba(255,255,255,0.2) ${((value + 2) / 4) * 100}%, rgba(255,255,255,0.2) 100%)`,
-            accentColor: "#6C63FF",
+            background: `linear-gradient(to right, var(--accent-light) 0%, var(--accent-light) ${((value + 2) / 4) * 100}%, rgba(255,255,255,0.2) ${((value + 2) / 4) * 100}%, rgba(255,255,255,0.2) 100%)`,
+            accentColor: "var(--accent-primary)",
           }}
         />
         <span className="text-2xl">🔥</span>

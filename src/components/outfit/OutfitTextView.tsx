@@ -54,8 +54,8 @@ export default function OutfitTextView({
   const labelColor   = isDark ? "#9BA4B4" : "#6B7280";
   const valueColor   = isDark ? "#E5E7EB" : "#1F2937";
   const dividerColor = isDark ? "rgba(255,255,255,0.07)" : "#F3F4F6";
-  const accentBg     = isDark ? "rgba(124,58,237,0.12)" : "#F5F3FF";
-  const accentText   = isDark ? "#C4B5FD" : "#6D28D9";
+  const accentBg   = isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)";
+  const accentText = isDark ? "var(--accent-light)" : "var(--accent-text)";
 
   const rows: { label: string; value: string }[] = [
     { label: outfit === "dress" ? "Outfit" : "Top", value: top },

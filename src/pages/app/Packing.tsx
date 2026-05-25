@@ -10,7 +10,7 @@ const CATEGORIES = ["outerwear", "tops", "bottoms", "footwear", "accessories"] a
 const CATEGORY_EMOJI: Record<string, string> = {
   outerwear: "🧥", tops: "👕", bottoms: "👖", footwear: "👟", accessories: "🧣",
 };
-const ACCENT = "#7C3AED";
+const ACCENT = "var(--accent-primary)";
 
 export default function Packing() {
   const { calibration, wardrobeItems } = useAppStore();

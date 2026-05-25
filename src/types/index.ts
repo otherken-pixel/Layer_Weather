@@ -5,6 +5,7 @@ export interface Profile {
   email: string;
   display_name: string | null;
   theme_preference: string | null;
+  accent_color: string | null;
   temp_unit: "F" | "C";
   outfit_display_mode: "visual" | "text";
   commute_start: string | null; // "07:30"

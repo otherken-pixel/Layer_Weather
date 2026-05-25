@@ -71,7 +71,7 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false 
               aria-pressed={tempUnit === u}
               className="min-w-[44px] min-h-[44px] px-4 rounded-full text-sm font-semibold border-0 cursor-pointer transition-colors"
               style={{
-                background: tempUnit === u ? "#4A3FDB" : "transparent",
+                background: tempUnit === u ? "var(--accent-dark)" : "transparent",
                 color: tempUnit === u ? "#FFFFFF" : pillInactiveText,
               }}
             >

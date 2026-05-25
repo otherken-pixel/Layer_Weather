@@ -391,11 +391,11 @@ export default function Home() {
               <div style={{
                 display: "flex", alignItems: "center", gap: 12,
                 padding: "12px 16px", borderRadius: 20,
-                background: isDark ? "rgba(109,40,217,0.25)" : "#EDE9FE",
-                border: "1px solid #C4B5FD",
+                background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
+                border: "1px solid var(--accent-light)",
               }}>
                 <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
-                <p style={{ fontSize: 13, color: isDark ? "#C4B5FD" : "#5B21B6", flex: 1 }}>{styleHint}</p>
+                <p style={{ fontSize: 13, color: isDark ? "var(--accent-light)" : "var(--accent-text)", flex: 1 }}>{styleHint}</p>
               </div>
             )}
 
@@ -486,7 +486,7 @@ function HourlyStrip({
               style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
                 minWidth: 52, padding: "12px 8px", borderRadius: 16, flexShrink: 0,
-                background: isNow ? "#7C3AED" : isDark ? Colors.dark.cellBg : "#F3F4F6",
+                background: isNow ? "var(--accent-primary)" : isDark ? Colors.dark.cellBg : "#F3F4F6",
               }}
             >
               <span style={{
