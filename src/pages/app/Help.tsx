@@ -446,7 +446,7 @@ function AccordionItem({
           style={{
             fontSize: 18,
             color: accentColor,
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
             transition: "transform 0.2s ease",
             flexShrink: 0,
           }}
