@@ -39,8 +39,8 @@ export function WeatherAvatar({
   const skin = DEFAULT_SKIN;
   const isJacket =
     outfit === "light_jacket" || outfit === "heavy_jacket" ||
-    outfit === "heavy_coat" || outfit === "rain_light" || outfit === "rain_heavy";
-  const shortsMode = outfit === "shorts_tshirt" || outfit === "dress";
+    outfit === "heavy_coat" || outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy";
+  const shortsMode = outfit === "shorts_tshirt" || outfit === "dress" || outfit === "rain_light_shorts";
 
   const pantsColor = "bottom" in colors ? (colors as { bottom: string }).bottom : "#2D3748";
   const pantsShadow = "bottomShadow" in colors ? (colors as { bottomShadow: string }).bottomShadow : "#1A202C";

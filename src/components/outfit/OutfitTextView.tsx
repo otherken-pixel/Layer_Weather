@@ -8,8 +8,9 @@ const OUTFIT_LABELS: Record<OutfitType, { top: string; bottom: string; layer?: s
   light_jacket:   { top: "Light jacket",       bottom: "Pants",  layer: "T-shirt underneath" },
   heavy_jacket:   { top: "Heavy jacket",       bottom: "Pants",  layer: "Warm layer underneath" },
   heavy_coat:     { top: "Heavy coat",         bottom: "Pants",  layer: "Warm layers underneath" },
-  rain_light:     { top: "Rain jacket",        bottom: "Pants",  layer: "Light layer underneath" },
-  rain_heavy:     { top: "Heavy rain jacket",  bottom: "Pants",  layer: "Warm layer underneath" },
+  rain_light:        { top: "Rain jacket",        bottom: "Pants",   layer: "Light layer underneath" },
+  rain_light_shorts: { top: "Rain jacket",        bottom: "Shorts",  layer: "T-shirt underneath" },
+  rain_heavy:        { top: "Heavy rain jacket",  bottom: "Pants",   layer: "Warm layer underneath" },
   dress:          { top: "Dress",              bottom: "" },
 };
 
