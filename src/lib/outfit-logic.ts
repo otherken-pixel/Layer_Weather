@@ -10,6 +10,7 @@ import type {
   DayPeriodLabel,
   DayPeriod,
   DayOutfitTimeline,
+  PackingItem,
 } from "@/types";
 
 /** Flip-flops at or above this feels-like (°F); sneakers below when dry */
@@ -681,8 +682,8 @@ export function computeCalibrationFromSwipes(
 export function generatePackingList(
   dailyForecasts: { feelsLikeMin: number; feelsLikeMax: number; precipProb: number; condition: string }[],
   calibration: UserCalibration
-): Array<{ category: string; name: string; quantity: number; reason?: string }> {
-  const items: Array<{ category: string; name: string; quantity: number; reason?: string }> = [];
+): PackingItem[] {
+  const items: PackingItem[] = [];
   const days = dailyForecasts.length;
 
   const coldDays = dailyForecasts.filter((d) => d.feelsLikeMin < calibration.light_jacket_max_temp).length;

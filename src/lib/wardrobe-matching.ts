@@ -1,4 +1,4 @@
-import type { WardrobeItem, OutfitRecommendation, OutfitType, FootwearKind, WardrobeCategory } from "@/types";
+import type { WardrobeItem, OutfitRecommendation, OutfitType, FootwearKind, WardrobeCategory, PackingItem } from "@/types";
 
 export interface WardrobeMatch {
   top: WardrobeItem | null;
@@ -9,11 +9,7 @@ export interface WardrobeMatch {
   gaps: WardrobeCategory[];
 }
 
-export interface AnnotatedPackingItem {
-  category: string;
-  name: string;
-  quantity: number;
-  reason?: string;
+export interface AnnotatedPackingItem extends PackingItem {
   ownedItem?: WardrobeItem;
 }
 
@@ -221,7 +217,7 @@ function findWardrobeItemForPacking(
 }
 
 export function annotatePackingListWithWardrobe(
-  packingList: Array<{ category: string; name: string; quantity: number; reason?: string }>,
+  packingList: PackingItem[],
   wardrobeItems: WardrobeItem[]
 ): AnnotatedPackingItem[] {
   return packingList.map((item) => {
