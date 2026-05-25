@@ -31,8 +31,8 @@ export function LocationTabs({
         gap: 8,
         paddingLeft: 16,
         paddingRight: 16,
-        paddingBottom: 10,
-        paddingTop: 2,
+        paddingBottom: 14,
+        paddingTop: 10,
       }}
     >
       {/* Device GPS tab — always first, never deletable */}
