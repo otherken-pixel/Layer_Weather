@@ -63,7 +63,7 @@ export function LocationTabs({
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", zIndex: 5 }}>
       <div
         className="no-scrollbar"
         style={{
