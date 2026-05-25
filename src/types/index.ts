@@ -2,7 +2,7 @@
 
 export type StylePreference = "feminine" | "masculine" | "neutral" | "all";
 export type FormalityPreference = "activewear" | "casual" | "business";
-export type WeatherScenario = "hot" | "warm" | "cool" | "cold" | "rainy" | "snowy";
+export type WeatherScenario = "hot" | "warm" | "mild" | "cool" | "cold" | "rainy" | "snowy";
 
 export interface Profile {
   id: string;

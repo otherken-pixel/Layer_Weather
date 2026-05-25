@@ -1,5 +1,4 @@
-import type { WeatherScenario } from "@/types";
-import type { WeatherData } from "@/types";
+import type { WeatherScenario, WeatherData } from "@/types";
 
 export function getWeatherScenario(weather: WeatherData): WeatherScenario {
   const { feelsLike, weatherCode, precipProb } = weather.current;
@@ -16,7 +15,8 @@ export function getWeatherScenario(weather: WeatherData): WeatherScenario {
   if (isSnowy) return "snowy";
   if (isRainy) return "rainy";
   if (feelsLike >= 72) return "hot";
-  if (feelsLike >= 60) return "warm";
-  if (feelsLike >= 45) return "cool";
+  if (feelsLike >= 65) return "warm";  // t-shirt / dress territory — no jacket needed
+  if (feelsLike >= 60) return "mild";  // light jacket territory
+  if (feelsLike >= 45) return "cool";  // heavy jacket territory
   return "cold";
 }
