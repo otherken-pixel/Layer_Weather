@@ -15,7 +15,7 @@ Set these under **Project Settings → Edge Functions** (or let the deploy workf
 
 | Secret | Function | Purpose |
 |--------|----------|---------|
-| `GEMINI_API_KEY` | `packing-insights` | Gemini `gemini-2.0-flash-lite` for on-demand trip packing advice |
+| `GEMINI_API_KEY` | `packing-insights` | Gemini `gemini-2.5-flash-lite` for on-demand trip packing advice |
 | `WEATHERKIT_*` | `weather` | Apple WeatherKit JWT (existing) |
 | `SUPABASE_SERVICE_ROLE_KEY` | `weather-alerts` | Cron alerts (existing) |
 | `FCM_SERVER_KEY` | `weather-alerts` | Push notifications (existing) |

@@ -63,6 +63,9 @@ function friendlyPackingInsightsError(raw: string): string {
   if (raw.includes("API key not valid") || raw.includes("API_KEY_INVALID")) {
     return "Gemini API key is invalid. Check GEMINI_API_KEY in Supabase Edge Function secrets.";
   }
+  if (raw.includes("no longer available") || raw.includes("404") && raw.includes("model")) {
+    return "The AI model was updated on the server. Refresh the app and try again in a minute.";
+  }
   if (raw.includes("Unauthorized") || raw.includes("JWT")) {
     return "Please sign in again, then retry smart packing advice.";
   }

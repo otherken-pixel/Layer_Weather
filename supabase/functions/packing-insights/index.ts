@@ -5,7 +5,8 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "gemini-2.0-flash-lite";
+/** Cost-efficient model; 2.0-flash-lite is unavailable for new API keys. */
+const MODEL = "gemini-2.5-flash-lite";
 const MAX_TRIP_DAYS = 21;
 const VALID_CATEGORIES = new Set(["tops", "bottoms", "outerwear", "footwear", "accessories"]);
 
@@ -135,6 +136,7 @@ async function callGemini(apiKey: string, prompt: string): Promise<Record<string
         temperature: 0.3,
         maxOutputTokens: 4096,
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   });
