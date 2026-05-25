@@ -96,7 +96,7 @@ export async function fetchPackingInsights(
     },
   });
 
-  if (error) throw new Error(await packingInsightsErrorMessage(error));
+  if (error) throw error;
   if (!data || typeof data !== "object") throw new Error("Empty response from packing insights");
   const record = data as Record<string, unknown>;
   if (record.error) throw new Error(friendlyPackingInsightsError(String(record.error)));
