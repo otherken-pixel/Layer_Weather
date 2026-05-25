@@ -200,8 +200,12 @@ export async function loadCityWeatherCache(
 
 export async function clearWeatherCache(): Promise<void> {
   await storageRemove(WEATHER_CACHE_KEY);
+  const cityKeys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) localStorage.removeItem(k);
+    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) cityKeys.push(k);
+  }
+  for (const k of cityKeys) {
+    localStorage.removeItem(k);
   }
 }
