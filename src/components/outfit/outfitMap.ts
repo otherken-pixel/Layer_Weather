@@ -8,6 +8,7 @@ export const topMap: Record<OutfitType, string> = {
   heavy_jacket: "HeavyJacket",
   heavy_coat: "HeavyCoat",
   rain_light: "RainJacket",
+  rain_light_shorts: "RainJacket",
   rain_heavy: "RainJacket",
   dress: "Dress",
 };
@@ -20,6 +21,7 @@ export const bottomMap: Record<OutfitType, string | null> = {
   heavy_jacket: "Pants",
   heavy_coat: "Pants",
   rain_light: "Pants",
+  rain_light_shorts: "Shorts",
   rain_heavy: "Pants",
   dress: null,
 };

@@ -20,9 +20,10 @@ const TOP_WARMTH: Record<OutfitType, [number, number]> = {
   pants_shortsleeve: [1, 2],
   pants_tshirt:     [2, 3],
   light_jacket:  [2, 3],
-  rain_light:    [2, 3],
-  heavy_jacket:  [3, 4],
-  rain_heavy:    [3, 4],
+  rain_light:        [2, 3],
+  rain_light_shorts: [2, 3],
+  heavy_jacket:      [3, 4],
+  rain_heavy:        [3, 4],
   heavy_coat:    [4, 5],
 };
 
@@ -32,9 +33,10 @@ const BOTTOM_WARMTH: Record<OutfitType, [number, number]> = {
   pants_shortsleeve: [2, 4],
   pants_tshirt:     [2, 4],
   light_jacket:  [2, 4],
-  rain_light:    [2, 4],
-  heavy_jacket:  [2, 4],
-  rain_heavy:    [2, 4],
+  rain_light:        [2, 4],
+  rain_light_shorts: [1, 2],
+  heavy_jacket:      [2, 4],
+  rain_heavy:        [2, 4],
   heavy_coat:    [2, 5],
 };
 
@@ -45,8 +47,9 @@ const OUTERWEAR_WARMTH: Record<OutfitType, [number, number] | null> = {
   pants_shortsleeve: null,
   pants_tshirt:     null,
   light_jacket:  [2, 3],
-  rain_light:    [2, 4],
-  heavy_jacket:  [3, 4],
+  rain_light:        [2, 4],
+  rain_light_shorts: [2, 4],
+  heavy_jacket:      [3, 4],
   rain_heavy:    [3, 5],
   heavy_coat:    [4, 5],
 };
@@ -132,7 +135,7 @@ export function matchWardrobeToOutfit(
   recommendation: OutfitRecommendation
 ): WardrobeMatch {
   const { outfit, footwear: footwearKind, scarf, beanie, gloves } = recommendation;
-  const isRain = outfit === "rain_light" || outfit === "rain_heavy";
+  const isRain = outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy";
 
   const tops = items.filter((i) => i.category === "tops");
   const bottoms = items.filter((i) => i.category === "bottoms");

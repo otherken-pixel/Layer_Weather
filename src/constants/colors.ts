@@ -218,6 +218,15 @@ export const OutfitColors = {
     bottomShadow: "#1A202C",
     label: "Rain Ready",
   },
+  rain_light_shorts: {
+    top: "#EBF8FF",
+    topShadow: "#BEE3F8",
+    jacket: "#2B6CB0",
+    jacketShadow: "#2C5282",
+    bottom: "#CBD5E0",
+    bottomShadow: "#A0AEC0",
+    label: "Warm Rain",
+  },
   rain_heavy: {
     top: "#F7FAFC",
     topShadow: "#E2E8F0",

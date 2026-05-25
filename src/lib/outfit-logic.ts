@@ -33,6 +33,7 @@ const OUTFIT_WARMTH: Record<OutfitType, number> = {
   pants_tshirt: 2,
   light_jacket: 3,
   rain_light: 3,
+  rain_light_shorts: 2,
   heavy_jacket: 4,
   rain_heavy: 4,
   heavy_coat: 6,
@@ -63,6 +64,7 @@ export function resolveFootwear(opts: {
   const insistRainBoots =
     outfit === "rain_heavy" ||
     outfit === "rain_light" ||
+    outfit === "rain_light_shorts" ||
     (isRainy && tol !== "high");
 
   if (insistRainBoots) {
@@ -110,6 +112,9 @@ export function getOutfitReason(opts: {
   }
   if (outfit === "rain_light") {
     return `${feelsLike}°F · rain ${Math.round(precipProb)}% → rain jacket`;
+  }
+  if (outfit === "rain_light_shorts") {
+    return `${feelsLike}°F · rain ${Math.round(precipProb)}% · warm → rain jacket + shorts`;
   }
   if (isSnowy) {
     return `${feelsLike}°F · snow → winter coat`;
@@ -195,8 +200,9 @@ export function getLayeringTip(timeline: DayOutfitTimeline | null): string | nul
 
   // Rain in morning but not afternoon
   if (
-    (morningOutfit === "rain_light" || morningOutfit === "rain_heavy") &&
+    (morningOutfit === "rain_light" || morningOutfit === "rain_light_shorts" || morningOutfit === "rain_heavy") &&
     afternoonOutfit !== "rain_light" &&
+    afternoonOutfit !== "rain_light_shorts" &&
     afternoonOutfit !== "rain_heavy"
   ) {
     const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
@@ -205,8 +211,9 @@ export function getLayeringTip(timeline: DayOutfitTimeline | null): string | nul
 
   // Rain coming in afternoon
   if (
-    (afternoonOutfit === "rain_light" || afternoonOutfit === "rain_heavy") &&
+    (afternoonOutfit === "rain_light" || afternoonOutfit === "rain_light_shorts" || afternoonOutfit === "rain_heavy") &&
     morningOutfit !== "rain_light" &&
+    morningOutfit !== "rain_light_shorts" &&
     morningOutfit !== "rain_heavy"
   ) {
     return `Nice morning, but rain moves in this afternoon — pack a rain jacket before heading out.`;
@@ -236,7 +243,7 @@ export function getLayeringTip(timeline: DayOutfitTimeline | null): string | nul
 
 /** Onboarding / swipe cards — infer rain & snow from outfit + temp */
 export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
-  const isRainOutfit = outfit === "rain_light" || outfit === "rain_heavy";
+  const isRainOutfit = outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy";
   const isSnowy =
     outfit === "heavy_coat" ||
     (outfit === "heavy_jacket" && temp < SNOW_BOOTS_BELOW_TEMP_F);
@@ -315,7 +322,7 @@ export function getOutfitRecommendation(opts: {
   const now = new Date();
   const nearTermHours = hourly.filter(h => {
     const diff = (h.time.getTime() - now.getTime()) / (1000 * 60 * 60);
-    return diff >= 0 && diff <= 2;
+    return diff > -1 && diff <= 2;
   });
   const effectivePrecipProb = nearTermHours.length > 0
     ? Math.max(...nearTermHours.map(h => h.precipProb))
@@ -352,12 +359,14 @@ export function getOutfitRecommendation(opts: {
     outfit = "heavy_coat";
   }
 
-  // Rain override — escalate base layers; heavy rain + cold → full rain gear
+  // Rain override — escalate base layers to rain-appropriate gear
   if (isRainy && calibration.rain_tolerance !== "high") {
     if (isHeavyRain && effectiveFeelsLike < 75) {
       outfit = "rain_heavy";
+    } else if (outfit === "shorts_tshirt") {
+      // Warm enough for shorts — keep them, just add a rain jacket
+      outfit = "rain_light_shorts";
     } else if (
-      outfit === "shorts_tshirt" ||
       outfit === "pants_shortsleeve" ||
       outfit === "pants_tshirt" ||
       outfit === "light_jacket"
@@ -368,6 +377,7 @@ export function getOutfitRecommendation(opts: {
 
   const umbrella =
     outfit === "rain_light" ||
+    outfit === "rain_light_shorts" ||
     outfit === "rain_heavy" ||
     (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high");
   const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
@@ -431,6 +441,7 @@ function getOutfitLabel(outfit: OutfitType): string {
     heavy_jacket: "Heavy Jacket",
     heavy_coat: "Winter Coat",
     rain_light: "Rain Jacket",
+    rain_light_shorts: "Rain Jacket & Shorts",
     rain_heavy: "Full Rain Gear",
   };
   return labels[outfit];
@@ -464,6 +475,8 @@ function buildDescription(
       return `${feelsLike}°F is full winter coat territory. Layer your long sleeves underneath for extra warmth.${windNote}${snowNote}`;
     case "rain_light":
       return `${feelsLike}°F with rain on the way — a rain jacket is your best move.${rainNote}`;
+    case "rain_light_shorts":
+      return `${feelsLike}°F and rainy, but warm enough for shorts — throw on a rain jacket and you're good.${rainNote}`;
     case "rain_heavy":
       return `Heavy rain at ${feelsLike}°F — full rain gear is a must today. Stay dry out there.${rainNote}`;
   }

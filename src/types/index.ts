@@ -116,6 +116,7 @@ export type OutfitType =
   | "heavy_jacket"
   | "heavy_coat"
   | "rain_light"
+  | "rain_light_shorts"
   | "rain_heavy"
   | "dress";
 
