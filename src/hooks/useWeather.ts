@@ -8,6 +8,7 @@ import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } fr
 import { upsertProfile } from "@/lib/supabase";
 import { saveWidgetSnapshot } from "@/lib/widget";
 import { saveWeatherCache } from "@/lib/cache";
+import { resolveDeviceCoordinates } from "@/hooks/useSaveLocation";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const GEOCODE_TIMEOUT_MS = 8_000;
@@ -38,19 +39,11 @@ async function resolveCoordinates(
   force: boolean,
   useDeviceLocation: boolean,
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && useDeviceLocation && Capacitor.isNativePlatform()) {
-    const { location: perm } = await Geolocation.requestPermissions();
-    if (perm === "granted") {
-      try {
-        const pos = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: false,
-          timeout: 10_000,
-        });
-        return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      } catch {
-        // Fall through to saved coordinates
-      }
-    }
+  if (useDeviceLocation) {
+    // Use the shared helper which handles both native (20 s timeout) and web.
+    const coords = await resolveDeviceCoordinates();
+    if (coords) return coords;
+    // GPS unavailable — fall through to saved coordinates below.
   }
 
   const { location, profile } = useAppStore.getState();
@@ -61,6 +54,7 @@ async function resolveCoordinates(
     return { latitude: profile.last_latitude, longitude: profile.last_longitude };
   }
 
+  // No saved coordinates — last-resort GPS request.
   if (Capacitor.isNativePlatform()) {
     const { location: perm } = await Geolocation.requestPermissions();
     if (perm !== "granted") {
@@ -154,7 +148,10 @@ export function useWeather() {
             region: "",
             country: countryCode ?? "",
           });
-          setActiveLocationIsDevice(useDeviceLocation);
+          // Only update the device-location flag when the caller explicitly
+          // requested device location. A background or city refresh must not
+          // clobber the flag if the user already switched to "My Location".
+          if (useDeviceLocation) setActiveLocationIsDevice(true);
 
           if (userId && !useDeviceLocation) {
             upsertProfile(userId, {

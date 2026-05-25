@@ -142,7 +142,7 @@ export default function Home() {
       if (cancelled) return;
       await startGeofence({
         currentLocation: location,
-        onSignificantMove: () => { refresh(true, { useDeviceLocation: true }); },
+        onSignificantMove: () => { refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY }); },
       });
     })().catch(() => {});
     return () => {
