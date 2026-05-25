@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { getSvgCatalog } from "@/lib/supabase";
 import { buildCatalogById } from "@/lib/svgCatalog";
 import { loadPersistedSvgCatalog, persistSvgCatalog } from "@/lib/svgCatalogPersistence";
@@ -7,15 +7,11 @@ import { useAppStore } from "@/store";
 
 /** Loads svg_clothes catalog (persisted cache first), refreshes from API, warms image cache. */
 export function useSvgCatalog() {
-  const started = useRef(false);
   const setSvgCatalog = useAppStore((s) => s.setSvgCatalog);
   const setSvgCatalogLoading = useAppStore((s) => s.setSvgCatalogLoading);
   const setSvgCatalogError = useAppStore((s) => s.setSvgCatalogError);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-
     let cancelled = false;
 
     async function hydrate() {
