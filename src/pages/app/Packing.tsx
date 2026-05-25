@@ -84,6 +84,14 @@ function forecastAvailableOn(departureDateStr: string): string {
   return avail.toLocaleDateString("en", { month: "short", day: "numeric" });
 }
 
+function forecastUnavailableMsg(departureDateStr: string): string {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const dep = new Date(departureDateStr + "T00:00:00");
+  const availDate = new Date(dep.getTime() - 16 * 86400000);
+  if (availDate <= today) return "Forecast unavailable — try again later.";
+  return `Forecast not available yet — check back ${forecastAvailableOn(departureDateStr)}.`;
+}
+
 function serializeForecasts(forecasts: DailyForecast[]): SerializedDailyForecast[] {
   return forecasts.map((d) => ({
     date: d.date.toISOString(),
@@ -179,7 +187,7 @@ export default function Packing() {
         { countryCode },
       );
       if (!result || result.forecasts.length === 0) {
-        setError(`Forecast not available yet — save this trip and check back closer to departure (forecast unlocks ${forecastAvailableOn(departureDate)}).`);
+        setError(forecastUnavailableMsg(departureDate));
         return;
       }
       if (!result.isForecastComplete) setForecastIncomplete(true);
@@ -268,7 +276,7 @@ export default function Packing() {
         { countryCode: trip.country_code ?? undefined },
       );
       if (!result || result.forecasts.length === 0) {
-        setError(`Forecast not available yet — check back ${forecastAvailableOn(trip.departure_date)}.`);
+        setError(forecastUnavailableMsg(trip.departure_date));
         return;
       }
       const rawList = generatePackingList(result.forecasts, cal);
