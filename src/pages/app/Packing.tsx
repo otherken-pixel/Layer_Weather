@@ -373,9 +373,9 @@ export default function Packing() {
           )}
 
           {/* Date pickers */}
-          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                 Departure
               </p>
               <input
@@ -386,11 +386,11 @@ export default function Packing() {
                   setDepartureDate(e.target.value);
                   if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value);
                 }}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "10px 12px", fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "6px 12px", fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
               />
             </div>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                 Return
               </p>
               <input
@@ -398,7 +398,7 @@ export default function Packing() {
                 min={departureDate || today}
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "10px 12px", fontSize: 14, color: returnDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
+                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "6px 12px", fontSize: 14, color: returnDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box" }}
               />
             </div>
           </div>
