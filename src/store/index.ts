@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference } from "@/types";
 
 interface AppState {
   // Auth
@@ -25,12 +25,16 @@ interface AppState {
   ) => void;
   setWeatherWardrobes: (presets: WeatherWardrobePreset[]) => void;
 
+  // Outfit personalization
+  formality: FormalityPreference;
+
   // UI
   isLoadingWeather: boolean;
   weatherError: string | null;
 
   // Actions
   setUserId: (id: string | null) => void;
+  setFormality: (f: FormalityPreference) => void;
   setProfile: (profile: Profile | null) => void;
   setCalibration: (cal: UserCalibration | null) => void;
   setIsOnboarded: (v: boolean) => void;
@@ -50,6 +54,7 @@ const initialState = {
   profile: null,
   calibration: null,
   isOnboarded: false,
+  formality: "casual" as FormalityPreference,
   location: null,
   savedLocations: [] as LocationData[],
   wardrobeItems: [] as WardrobeItem[],
@@ -66,6 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
   ...initialState,
 
   setUserId: (id) => set({ userId: id }),
+  setFormality: (formality) => set({ formality }),
   setProfile: (profile) => set({ profile }),
   setCalibration: (calibration) => set({ calibration }),
   setIsOnboarded: (isOnboarded) => set({ isOnboarded }),

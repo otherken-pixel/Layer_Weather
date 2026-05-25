@@ -15,7 +15,7 @@ interface ScenarioWithAccessories extends CalibrationScenario {
 
 const SCENARIOS: ScenarioWithAccessories[] = [
   { id: "hot",  temp: 85, outfit: "shorts_tshirt", description: "85°F — sunny afternoon",  sunglasses: true },
-  { id: "warm", temp: 74, outfit: "pants_tshirt",  description: "74°F — comfortable day" },
+  { id: "warm", temp: 74, outfit: "pants_longsleeve", description: "74°F — comfortable day" },
   { id: "mild", temp: 64, outfit: "light_jacket",  description: "64°F — breezy morning" },
   { id: "cool", temp: 52, outfit: "heavy_jacket",  description: "52°F — grey afternoon" },
   { id: "cold", temp: 38, outfit: "heavy_coat",    description: "38°F — cold winter day",  beanie: true, scarf: true, gloves: true },

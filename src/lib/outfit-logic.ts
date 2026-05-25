@@ -2,6 +2,8 @@ import type {
   UserCalibration,
   OutfitRecommendation,
   OutfitType,
+  OutfitMapping,
+  WarmthTier,
   FootwearKind,
   AvatarCondition,
   HourlyForecast,
@@ -10,8 +12,12 @@ import type {
   DayPeriodLabel,
   DayPeriod,
   DayOutfitTimeline,
+  StylePreference,
+  FormalityPreference,
   PackingItem,
 } from "@/types";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 /** Flip-flops at or above this feels-like (°F); sneakers below when dry */
 export const FLIP_FLOPS_MIN_TEMP_F = 85;
@@ -25,12 +31,12 @@ export const SNOW_BOOTS_BELOW_TEMP_F = 50;
  */
 export const PANTS_SHORTSLEEVE_MIN_TEMP_F = 68;
 
-/** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
+/** Relative warmth / layering (higher = more layers). Rain variants match their base layer. */
 const OUTFIT_WARMTH: Record<OutfitType, number> = {
   shorts_tshirt: 1,
   dress: 1,
   pants_shortsleeve: 2,
-  pants_tshirt: 2,
+  pants_longsleeve: 2,
   light_jacket: 3,
   rain_light: 3,
   rain_light_shorts: 2,
@@ -39,55 +45,330 @@ const OUTFIT_WARMTH: Record<OutfitType, number> = {
   heavy_coat: 6,
 };
 
-/** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
-export function getLayerChangeDirection(
-  from: OutfitType,
-  to: OutfitType
-): "layer up" | "layer down" | null {
-  if (from === to) return null;
-  const delta = OUTFIT_WARMTH[to] - OUTFIT_WARMTH[from];
-  if (delta > 0) return "layer up";
-  if (delta < 0) return "layer down";
-  return null;
+// ── Multi-dimensional outfit mapping ──────────────────────────────────────────
+//
+// Lookup path: OUTFIT_MAPPING[warmthTier][stylePreference][formality]
+// "all" is normalized to "neutral" before lookup.
+
+type NormalizedStyle = "feminine" | "masculine" | "neutral";
+type MappingTable = Record<WarmthTier, Record<NormalizedStyle, Record<FormalityPreference, OutfitMapping>>>;
+
+const OUTFIT_MAPPING: MappingTable = {
+  // ── Very warm / hot (≥ shorts threshold, dry) ──────────────────────────────
+  warmth_1: {
+    feminine: {
+      activewear: { outfitType: "shorts_tshirt", label: "Sport & Sun", garmentTop: "Tank top", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} are perfect at {temp}°F." },
+      casual:     { outfitType: "dress",          label: "Dress Weather", garmentTop: "Sundress", garmentBottom: null, descriptionTemplate: "{garmentTop} — beautiful {temp}°F weather was made for it." },
+      business:   { outfitType: "pants_shortsleeve", label: "Business Smart", garmentTop: "Blouse", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} look sharp at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "shorts_tshirt", label: "Sport & Sun", garmentTop: "Tank top", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} are perfect at {temp}°F." },
+      casual:     { outfitType: "shorts_tshirt", label: "Short Sleeves & Shorts", garmentTop: "T-shirt", garmentBottom: "Shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} are the move at {temp}°F." },
+      business:   { outfitType: "pants_shortsleeve", label: "Business Casual", garmentTop: "Polo shirt", garmentBottom: "Chinos", descriptionTemplate: "{garmentTop} and {garmentBottom} keep it sharp at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "shorts_tshirt", label: "Sport & Sun", garmentTop: "Tank top", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} are perfect at {temp}°F." },
+      casual:     { outfitType: "shorts_tshirt", label: "Short Sleeves & Shorts", garmentTop: "T-shirt", garmentBottom: "Shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} are the move at {temp}°F." },
+      business:   { outfitType: "pants_shortsleeve", label: "Business Casual", garmentTop: "Short-sleeve dress shirt", garmentBottom: "Dress pants", descriptionTemplate: "{garmentTop} and {garmentBottom} keep it professional at {temp}°F." },
+    },
+  },
+
+  // ── Warm (short-sleeve + pants range, dry) ────────────────────────────────
+  warmth_2: {
+    feminine: {
+      activewear: { outfitType: "pants_shortsleeve", label: "Active Layers", garmentTop: "Fitted tee", garmentBottom: "Joggers", descriptionTemplate: "{garmentTop} and {garmentBottom} are the sweet spot at {temp}°F." },
+      casual:     { outfitType: "dress",             label: "Light Dress Day", garmentTop: "Light sundress", garmentBottom: null, descriptionTemplate: "{garmentTop} is a great call at {temp}°F." },
+      business:   { outfitType: "pants_longsleeve",  label: "Office Ready", garmentTop: "Blouse", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — polished and comfortable at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "pants_shortsleeve", label: "Active Layers", garmentTop: "Moisture-wicking tee", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} keep you moving at {temp}°F." },
+      casual:     { outfitType: "pants_shortsleeve", label: "Short Sleeves & Pants", garmentTop: "T-shirt", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} hit the sweet spot at {temp}°F." },
+      business:   { outfitType: "pants_longsleeve",  label: "Business Casual", garmentTop: "Dress shirt", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — clean and professional at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "pants_shortsleeve", label: "Active Layers", garmentTop: "Fitted tee", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} keep you moving at {temp}°F." },
+      casual:     { outfitType: "pants_shortsleeve", label: "Short Sleeves & Pants", garmentTop: "T-shirt", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} hit the sweet spot at {temp}°F." },
+      business:   { outfitType: "pants_longsleeve",  label: "Business Casual", garmentTop: "Dress shirt", garmentBottom: "Dress pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — professional at {temp}°F." },
+    },
+  },
+
+  // ── Mild (long-sleeve + pants range, dry) ─────────────────────────────────
+  warmth_3: {
+    feminine: {
+      activewear: { outfitType: "pants_longsleeve", label: "Active Mid-Layer", garmentTop: "Long-sleeve athletic top", garmentBottom: "Joggers", descriptionTemplate: "{garmentTop} and {garmentBottom} nail it at {temp}°F." },
+      casual:     { outfitType: "pants_longsleeve", label: "Long Sleeves & Pants", garmentTop: "Long-sleeve top", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the right call at {temp}°F." },
+      business:   { outfitType: "light_jacket",     label: "Smart Office Look", garmentTop: "Blazer", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} are spot-on at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "pants_longsleeve", label: "Active Mid-Layer", garmentTop: "Long-sleeve athletic top", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} nail it at {temp}°F." },
+      casual:     { outfitType: "pants_longsleeve", label: "Long Sleeves & Pants", garmentTop: "Long-sleeve shirt", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the right call at {temp}°F." },
+      business:   { outfitType: "light_jacket",     label: "Business Layers", garmentTop: "Blazer over dress shirt", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} look sharp at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "pants_longsleeve", label: "Active Mid-Layer", garmentTop: "Long-sleeve athletic top", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} nail it at {temp}°F." },
+      casual:     { outfitType: "pants_longsleeve", label: "Long Sleeves & Pants", garmentTop: "Long-sleeve shirt", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the right call at {temp}°F." },
+      business:   { outfitType: "light_jacket",     label: "Business Layers", garmentTop: "Blazer over dress shirt", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} are spot-on at {temp}°F." },
+    },
+  },
+
+  // ── Light jacket range (dry) ──────────────────────────────────────────────
+  warmth_4: {
+    feminine: {
+      activewear: { outfitType: "light_jacket", label: "Running Jacket Weather", garmentTop: "Zip-up running jacket", garmentBottom: "Joggers", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — perfect running kit." },
+      casual:     { outfitType: "light_jacket", label: "Light Jacket Day", garmentTop: "Light jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — you'll appreciate the layer at {temp}°F." },
+      business:   { outfitType: "light_jacket", label: "Polished Layer", garmentTop: "Structured blazer", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} look polished at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "light_jacket", label: "Running Jacket Weather", garmentTop: "Running jacket", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — solid kit." },
+      casual:     { outfitType: "light_jacket", label: "Light Jacket Day", garmentTop: "Light jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — smart call at {temp}°F." },
+      business:   { outfitType: "light_jacket", label: "Business Layer", garmentTop: "Blazer over dress shirt", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — sharp at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "light_jacket", label: "Running Jacket Weather", garmentTop: "Running jacket", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — solid kit." },
+      casual:     { outfitType: "light_jacket", label: "Light Jacket Day", garmentTop: "Light jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — smart call at {temp}°F." },
+      business:   { outfitType: "light_jacket", label: "Business Layer", garmentTop: "Blazer over dress shirt", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — sharp at {temp}°F." },
+    },
+  },
+
+  // ── Heavy jacket range (dry) ──────────────────────────────────────────────
+  warmth_5: {
+    feminine: {
+      activewear: { outfitType: "heavy_jacket", label: "Warm Active Layer", garmentTop: "Insulated athletic jacket", garmentBottom: "Joggers", descriptionTemplate: "{garmentTop} and {garmentBottom} keep you warm at {temp}°F." },
+      casual:     { outfitType: "heavy_jacket", label: "Heavy Jacket Day", garmentTop: "Heavy jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — bundle up at {temp}°F." },
+      business:   { outfitType: "heavy_jacket", label: "Bundled Professional", garmentTop: "Overcoat", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — brisk but put-together at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "heavy_jacket", label: "Warm Active Layer", garmentTop: "Insulated running jacket", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} keep you warm at {temp}°F." },
+      casual:     { outfitType: "heavy_jacket", label: "Heavy Jacket Day", garmentTop: "Heavy jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — bundle up at {temp}°F." },
+      business:   { outfitType: "heavy_jacket", label: "Bundled Professional", garmentTop: "Overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — brisk but sharp at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "heavy_jacket", label: "Warm Active Layer", garmentTop: "Insulated running jacket", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} keep you warm at {temp}°F." },
+      casual:     { outfitType: "heavy_jacket", label: "Heavy Jacket Day", garmentTop: "Heavy jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — bundle up at {temp}°F." },
+      business:   { outfitType: "heavy_jacket", label: "Bundled Professional", garmentTop: "Overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — brisk but sharp at {temp}°F." },
+    },
+  },
+
+  // ── Heavy coat range (dry, <heavyCoat threshold) ──────────────────────────
+  warmth_6: {
+    feminine: {
+      activewear: { outfitType: "heavy_coat", label: "Cold-Weather Training", garmentTop: "Insulated coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — dress for the cold." },
+      casual:     { outfitType: "heavy_coat", label: "Winter Coat Weather", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — it's full winter coat territory at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Winter Professional", garmentTop: "Full-length overcoat", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — commanding at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "heavy_coat", label: "Cold-Weather Training", garmentTop: "Insulated coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — dress for the cold." },
+      casual:     { outfitType: "heavy_coat", label: "Winter Coat Weather", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — it's full winter coat territory at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Winter Professional", garmentTop: "Full-length overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — commanding at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "heavy_coat", label: "Cold-Weather Training", garmentTop: "Insulated coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — dress for the cold." },
+      casual:     { outfitType: "heavy_coat", label: "Winter Coat Weather", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — it's full winter coat territory at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Winter Professional", garmentTop: "Full-length overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — commanding at {temp}°F." },
+    },
+  },
+
+  // ── Snow ──────────────────────────────────────────────────────────────────
+  warmth_6_snow: {
+    feminine: {
+      activewear: { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Insulated winter coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      casual:     { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Full-length overcoat", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Insulated winter coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      casual:     { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Full-length overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Insulated winter coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      casual:     { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Heavy coat", garmentBottom: "Warm pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+      business:   { outfitType: "heavy_coat", label: "Snow Day Layers", garmentTop: "Full-length overcoat", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — snowfall possible at {temp}°F." },
+    },
+  },
+
+  // ── Warm rain (≥ shorts threshold + rain) ─────────────────────────────────
+  warmth_1_rain: {
+    feminine: {
+      activewear: { outfitType: "rain_light_shorts", label: "Waterproof Active Warm", garmentTop: "Waterproof running shell", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm and rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light_shorts", label: "Rain Jacket & Shorts", garmentTop: "Rain jacket", garmentBottom: "Shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm rain at {temp}°F." },
+      business:   { outfitType: "rain_light",        label: "Rain-Ready Workwear", garmentTop: "Rain jacket", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — stay professional in the rain at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "rain_light_shorts", label: "Waterproof Active Warm", garmentTop: "Waterproof running shell", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm and rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light_shorts", label: "Rain Jacket & Shorts", garmentTop: "Rain jacket", garmentBottom: "Shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm rain at {temp}°F." },
+      business:   { outfitType: "rain_light",        label: "Professional Rain Gear", garmentTop: "Rain jacket", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — sharp even in the rain at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "rain_light_shorts", label: "Waterproof Active Warm", garmentTop: "Waterproof running shell", garmentBottom: "Athletic shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm and rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light_shorts", label: "Rain Jacket & Shorts", garmentTop: "Rain jacket", garmentBottom: "Shorts", descriptionTemplate: "{garmentTop} and {garmentBottom} — warm rain at {temp}°F." },
+      business:   { outfitType: "rain_light",        label: "Professional Rain Gear", garmentTop: "Rain jacket", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — sharp even in the rain at {temp}°F." },
+    },
+  },
+
+  // ── Cool / mild rain (< shorts threshold + light-to-moderate rain) ─────────
+  warmth_2_rain: {
+    feminine: {
+      activewear: { outfitType: "rain_light", label: "Waterproof Active Layer", garmentTop: "Waterproof running shell", garmentBottom: "Joggers", descriptionTemplate: "{garmentTop} and {garmentBottom} — rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light", label: "Rain Jacket", garmentTop: "Rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the move in the rain at {temp}°F." },
+      business:   { outfitType: "rain_light", label: "Rain-Ready Workwear", garmentTop: "Rain jacket", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — professional rain gear at {temp}°F." },
+    },
+    masculine: {
+      activewear: { outfitType: "rain_light", label: "Waterproof Active Layer", garmentTop: "Waterproof running shell", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light", label: "Rain Jacket", garmentTop: "Rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the move in the rain at {temp}°F." },
+      business:   { outfitType: "rain_light", label: "Professional Rain Gear", garmentTop: "Rain jacket", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — professional rain gear at {temp}°F." },
+    },
+    neutral: {
+      activewear: { outfitType: "rain_light", label: "Waterproof Active Layer", garmentTop: "Waterproof running shell", garmentBottom: "Track pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — rainy at {temp}°F." },
+      casual:     { outfitType: "rain_light", label: "Rain Jacket", garmentTop: "Rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} are the move in the rain at {temp}°F." },
+      business:   { outfitType: "rain_light", label: "Professional Rain Gear", garmentTop: "Rain jacket", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} — professional rain gear at {temp}°F." },
+    },
+  },
+
+  // ── Heavy rain (any temperature) ──────────────────────────────────────────
+  warmth_3_rain: {
+    feminine: {
+      activewear: { outfitType: "rain_heavy", label: "Full Waterproof Kit", garmentTop: "Heavy rain jacket", garmentBottom: "Waterproof pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Stay dry." },
+      casual:     { outfitType: "rain_heavy", label: "Full Rain Gear", garmentTop: "Heavy rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Umbrella recommended too." },
+      business:   { outfitType: "rain_heavy", label: "Stay Dry, Stay Sharp", garmentTop: "Heavy rain jacket", garmentBottom: "Dress trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — protect what's underneath." },
+    },
+    masculine: {
+      activewear: { outfitType: "rain_heavy", label: "Full Waterproof Kit", garmentTop: "Heavy rain jacket", garmentBottom: "Waterproof pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Stay dry." },
+      casual:     { outfitType: "rain_heavy", label: "Full Rain Gear", garmentTop: "Heavy rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Umbrella recommended too." },
+      business:   { outfitType: "rain_heavy", label: "Stay Dry, Stay Sharp", garmentTop: "Heavy rain jacket", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — protect what's underneath." },
+    },
+    neutral: {
+      activewear: { outfitType: "rain_heavy", label: "Full Waterproof Kit", garmentTop: "Heavy rain jacket", garmentBottom: "Waterproof pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Stay dry." },
+      casual:     { outfitType: "rain_heavy", label: "Full Rain Gear", garmentTop: "Heavy rain jacket", garmentBottom: "Pants", descriptionTemplate: "{garmentTop} and {garmentBottom} — heavy rain at {temp}°F. Umbrella recommended too." },
+      business:   { outfitType: "rain_heavy", label: "Stay Dry, Stay Sharp", garmentTop: "Heavy rain jacket", garmentBottom: "Trousers", descriptionTemplate: "{garmentTop} and {garmentBottom} at {temp}°F — protect what's underneath." },
+    },
+  },
+};
+
+// ── Helper: normalize style preference ────────────────────────────────────────
+
+function normalizeStyle(style: StylePreference | undefined): NormalizedStyle {
+  if (style === "feminine") return "feminine";
+  if (style === "masculine") return "masculine";
+  return "neutral"; // "neutral" and legacy "all" both map to neutral
 }
+
+// ── Helper: string template interpolation ─────────────────────────────────────
+
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? key);
+}
+
+// ── Heat Index (NWS Rothfusz regression) ──────────────────────────────────────
+// Applies when feelsLike > 75°F and humidity > 40%.
+
+function computeHeatIndex(t: number, rh: number): number {
+  // Steadman simple approximation — use when result < 80
+  const simple = 0.5 * (t + 61.0 + (t - 68.0) * 1.2 + rh * 0.094);
+  if (simple < 80) return simple;
+  // Full Rothfusz regression
+  return (
+    -42.379
+    + 2.04901523 * t
+    + 10.14333127 * rh
+    - 0.22475541 * t * rh
+    - 6.83783e-3 * t * t
+    - 5.481717e-2 * rh * rh
+    + 1.22874e-3 * t * t * rh
+    + 8.5282e-4 * t * rh * rh
+    - 1.99e-6 * t * t * rh * rh
+  );
+}
+
+// ── Wind Chill (NWS formula) ──────────────────────────────────────────────────
+// Applies when feelsLike < 50°F and windSpeed > 3 mph.
+
+function computeWindChill(t: number, v: number): number {
+  return 35.74 + 0.6215 * t - 35.75 * Math.pow(v, 0.16) + 0.4275 * t * Math.pow(v, 0.16);
+}
+
+// ── Warmth tier resolver ──────────────────────────────────────────────────────
+
+function resolveWarmthTier(
+  effectiveFeelsLike: number,
+  thresholds: { shorts: number; lightJacket: number; heavyCoat: number },
+  pantsShortsleeveMin: number,
+  isRainy: boolean,
+  isHeavyRain: boolean,
+  isSnowy: boolean,
+  rainTolerance: UserCalibration["rain_tolerance"],
+): WarmthTier {
+  if (isSnowy) return "warmth_6_snow";
+
+  if (isRainy && rainTolerance !== "high") {
+    if (isHeavyRain) return "warmth_3_rain";
+    if (effectiveFeelsLike >= thresholds.shorts) return "warmth_1_rain";
+    return "warmth_2_rain";
+  }
+
+  const lightJacketFloor = thresholds.heavyCoat + 15;
+  if (effectiveFeelsLike >= thresholds.shorts)        return "warmth_1";
+  if (effectiveFeelsLike >= pantsShortsleeveMin)      return "warmth_2";
+  if (effectiveFeelsLike >= thresholds.lightJacket)   return "warmth_3";
+  if (effectiveFeelsLike >= lightJacketFloor)         return "warmth_4";
+  if (effectiveFeelsLike >= thresholds.heavyCoat)     return "warmth_5";
+  return "warmth_6";
+}
+
+// ── Footwear resolver ─────────────────────────────────────────────────────────
 
 export function resolveFootwear(opts: {
   effectiveFeelsLike: number;
   isRainy: boolean;
+  isHeavyRain: boolean;
   isSnowy: boolean;
   outfit: OutfitType;
-  /** When `"high"`, do not force rain boots for ambient rain alone (aligns with outfit rain override). */
   rainTolerance?: UserCalibration["rain_tolerance"];
+  formality?: FormalityPreference;
+  style?: NormalizedStyle;
 }): FootwearKind {
-  const { effectiveFeelsLike, isRainy, isSnowy, outfit } = opts;
+  const { effectiveFeelsLike, isRainy, isHeavyRain, isSnowy, outfit, formality = "casual", style = "neutral" } = opts;
   const tol = opts.rainTolerance ?? "moderate";
-  const insistRainBoots =
-    outfit === "rain_heavy" ||
-    outfit === "rain_light" ||
-    outfit === "rain_light_shorts" ||
-    (isRainy && tol !== "high");
+  const isRainOutfit = outfit === "rain_heavy" || outfit === "rain_light" || outfit === "rain_light_shorts";
 
-  if (insistRainBoots) {
+  // Rain boots: restricted to heavy rain or cold rain (not warm light drizzle)
+  const insistRainBoots = isRainOutfit && (isHeavyRain || effectiveFeelsLike < 70);
+
+  if (insistRainBoots && tol !== "high") {
+    // Business formality skips rain boots in favour of dress shoes except in heavy/cold rain
+    if (formality === "business" && !isHeavyRain && effectiveFeelsLike >= 55) {
+      return style === "feminine" ? "dress_flats" : "loafers";
+    }
     return "rain_boots";
   }
 
-  if (
-    isSnowy ||
-    effectiveFeelsLike < SNOW_BOOTS_BELOW_TEMP_F ||
-    outfit === "heavy_coat" ||
-    outfit === "heavy_jacket"
-  ) {
+  if (isSnowy || effectiveFeelsLike < SNOW_BOOTS_BELOW_TEMP_F || outfit === "heavy_coat" || outfit === "heavy_jacket") {
     return "snow_boots";
   }
 
+  // Business formality: no flip-flops ever; promote to dress shoes
+  if (formality === "business") {
+    if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
+      return style === "feminine" ? "dress_flats" : "loafers";
+    }
+    if (effectiveFeelsLike >= 60) {
+      return style === "feminine" ? "dress_flats" : "loafers";
+    }
+    return "snow_boots"; // cold business → still snow boots
+  }
+
   if (effectiveFeelsLike >= FLIP_FLOPS_MIN_TEMP_F) {
+    // Business already handled above; activewear and casual get flip-flops
+    if (formality === "business") return style === "feminine" ? "dress_flats" : "loafers";
     return "flip_flops";
   }
 
+  // Activewear prioritises athletic sneakers over standard sneakers
+  if (formality === "activewear") return "athletic_sneakers";
   return "sneakers";
 }
 
-/** One-line reasoning shown beneath the outfit label. */
+/** One-line reasoning shown beneath the outfit label. Garment names are personalised from the mapping. */
 export function getOutfitReason(opts: {
   feelsLike: number;
   windSpeed: number;
@@ -95,8 +376,12 @@ export function getOutfitReason(opts: {
   humidity: number;
   weatherCode: number;
   outfit: OutfitType;
+  garmentTop?: string;
+  garmentBottom?: string | null;
 }): string {
   const { feelsLike, windSpeed, precipProb, humidity, weatherCode, outfit } = opts;
+  const top = opts.garmentTop;
+  const bottom = opts.garmentBottom;
   const isWindy = windSpeed > 15;
   const isSnowy = weatherCode >= 71 && weatherCode <= 77;
   const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
@@ -104,52 +389,22 @@ export function getOutfitReason(opts: {
 
   if (outfit === "dress") {
     return isHumid
-      ? `${feelsLike}°F · ${humidity}% humidity → light & breathable dress`
-      : `${feelsLike}°F clear skies → perfect dress weather`;
+      ? `${feelsLike}°F · ${humidity}% humidity → ${top ?? "light & breathable dress"}`
+      : `${feelsLike}°F → perfect ${top ?? "dress"} weather`;
   }
-  if (outfit === "rain_heavy") {
-    return `${feelsLike}°F · heavy rain ${Math.round(precipProb)}% → full rain gear`;
-  }
-  if (outfit === "rain_light") {
-    return `${feelsLike}°F · rain ${Math.round(precipProb)}% → rain jacket`;
-  }
-  if (outfit === "rain_light_shorts") {
-    return `${feelsLike}°F · rain ${Math.round(precipProb)}% · warm → rain jacket + shorts`;
-  }
-  if (isSnowy) {
-    return `${feelsLike}°F · snow → winter coat`;
-  }
-  if (isHeavyRain) {
-    return `${feelsLike}°F · heavy rain → gear up`;
-  }
-  if (outfit === "heavy_coat") {
-    return isWindy
-      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph wind → bundle up`
-      : `${feelsLike}°F → winter coat territory`;
-  }
-  if (outfit === "heavy_jacket") {
-    return isWindy
-      ? `${feelsLike}°F + ${Math.round(windSpeed)} mph gusts → warm jacket`
-      : `${feelsLike}°F → heavy jacket needed`;
-  }
-  if (outfit === "light_jacket") {
-    return isWindy
-      ? `${feelsLike}°F + breezy → light layer up`
-      : `${feelsLike}°F → light jacket recommended`;
-  }
-  if (outfit === "pants_shortsleeve") {
-    return isHumid
-      ? `${feelsLike}°F · ${humidity}% humidity → short sleeves`
-      : `${feelsLike}°F → short sleeves & pants`;
-  }
-  if (outfit === "pants_tshirt") {
-    return isHumid
-      ? `${feelsLike}°F · ${humidity}% humidity → light long sleeves`
-      : `${feelsLike}°F → long sleeves & pants`;
-  }
+  if (outfit === "rain_heavy") return `${feelsLike}°F · heavy rain ${Math.round(precipProb)}% → ${top ?? "full rain gear"}`;
+  if (outfit === "rain_light") return `${feelsLike}°F · rain ${Math.round(precipProb)}% → ${top ?? "rain jacket"}`;
+  if (outfit === "rain_light_shorts") return `${feelsLike}°F · rain ${Math.round(precipProb)}% · warm → ${top ?? "rain jacket"} + ${bottom ?? "shorts"}`;
+  if (isSnowy) return `${feelsLike}°F · snow → ${top ?? "winter coat"}`;
+  if (isHeavyRain) return `${feelsLike}°F · heavy rain → gear up`;
+  if (outfit === "heavy_coat") return isWindy ? `${feelsLike}°F + ${Math.round(windSpeed)} mph wind → ${top ?? "bundle up"}` : `${feelsLike}°F → ${top ?? "winter coat"} territory`;
+  if (outfit === "heavy_jacket") return isWindy ? `${feelsLike}°F + ${Math.round(windSpeed)} mph gusts → ${top ?? "warm jacket"}` : `${feelsLike}°F → ${top ?? "heavy jacket"} needed`;
+  if (outfit === "light_jacket") return isWindy ? `${feelsLike}°F + breezy → ${top ?? "light layer up"}` : `${feelsLike}°F → ${top ?? "light jacket"} recommended`;
+  if (outfit === "pants_shortsleeve") return isHumid ? `${feelsLike}°F · ${humidity}% humidity → ${top ?? "short sleeves"}` : `${feelsLike}°F → ${top ?? "short sleeves"} & ${bottom ?? "pants"}`;
+  if (outfit === "pants_longsleeve") return isHumid ? `${feelsLike}°F · ${humidity}% humidity → ${top ?? "light long sleeves"}` : `${feelsLike}°F → ${top ?? "long sleeves"} & ${bottom ?? "pants"}`;
   return isHumid
     ? `${feelsLike}°F · ${humidity}% humidity → light & breathable`
-    : `${feelsLike}°F → short sleeves & shorts`;
+    : `${feelsLike}°F → ${top ?? "short sleeves"} & ${bottom ?? "shorts"}`;
 }
 
 /** Short explanation of why feels-like differs from actual temp. */
@@ -169,12 +424,20 @@ export function getFeelsLikeExplanation(opts: {
   if (delta >= 2 && humidity > 65 && temp > 70) {
     return `High humidity (${Math.round(humidity)}%) makes it feel ${delta}° warmer`;
   }
-  if (delta <= -2) {
-    return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
-  }
-  if (delta >= 2) {
-    return `Conditions make it feel ${delta}° warmer than the thermometer`;
-  }
+  if (delta <= -2) return `Conditions make it feel ${Math.abs(delta)}° colder than the thermometer`;
+  if (delta >= 2)  return `Conditions make it feel ${delta}° warmer than the thermometer`;
+  return null;
+}
+
+/** Returns layer direction when moving between outfits, or null if warmth is unchanged. */
+export function getLayerChangeDirection(
+  from: OutfitType,
+  to: OutfitType
+): "layer up" | "layer down" | null {
+  if (from === to) return null;
+  const delta = OUTFIT_WARMTH[to] - OUTFIT_WARMTH[from];
+  if (delta > 0) return "layer up";
+  if (delta < 0) return "layer down";
   return null;
 }
 
@@ -185,54 +448,40 @@ export function getFeelsLikeExplanation(opts: {
 export function getLayeringTip(timeline: DayOutfitTimeline | null): string | null {
   if (!timeline || timeline.length < 2) return null;
 
-  const morning = timeline.find((e) => e.period.label === "Morning");
+  const morning   = timeline.find((e) => e.period.label === "Morning");
   const afternoon = timeline.find((e) => e.period.label === "Afternoon");
-  const evening = timeline.find((e) => e.period.label === "Evening");
+  const evening   = timeline.find((e) => e.period.label === "Evening");
 
   if (!morning || !afternoon) return null;
 
-  const morningOutfit = morning.recommendation.outfit;
+  const morningOutfit   = morning.recommendation.outfit;
   const afternoonOutfit = afternoon.recommendation.outfit;
-
-  const morningWarmth = OUTFIT_WARMTH[morningOutfit] ?? 3;
+  const morningWarmth   = OUTFIT_WARMTH[morningOutfit] ?? 3;
   const afternoonWarmth = OUTFIT_WARMTH[afternoonOutfit] ?? 3;
   const delta = morningWarmth - afternoonWarmth;
 
-  // Rain in morning but not afternoon
-  if (
-    (morningOutfit === "rain_light" || morningOutfit === "rain_light_shorts" || morningOutfit === "rain_heavy") &&
-    afternoonOutfit !== "rain_light" &&
-    afternoonOutfit !== "rain_light_shorts" &&
-    afternoonOutfit !== "rain_heavy"
-  ) {
+  const isRainOutfit = (o: OutfitType) => o === "rain_light" || o === "rain_light_shorts" || o === "rain_heavy";
+
+  if (isRainOutfit(morningOutfit) && !isRainOutfit(afternoonOutfit)) {
     const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
     return `Grab an umbrella for the morning — rain clears and warms to ${afternoonTemp}° by afternoon.`;
   }
 
-  // Rain coming in afternoon
-  if (
-    (afternoonOutfit === "rain_light" || afternoonOutfit === "rain_light_shorts" || afternoonOutfit === "rain_heavy") &&
-    morningOutfit !== "rain_light" &&
-    morningOutfit !== "rain_light_shorts" &&
-    morningOutfit !== "rain_heavy"
-  ) {
+  if (isRainOutfit(afternoonOutfit) && !isRainOutfit(morningOutfit)) {
     return `Nice morning, but rain moves in this afternoon — pack a rain jacket before heading out.`;
   }
 
-  // Big warmup: need to layer down significantly
   if (delta >= 2) {
-    const morningTemp = Math.round(morning.period.avgFeelsLike);
+    const morningTemp   = Math.round(morning.period.avgFeelsLike);
     const afternoonTemp = Math.round(afternoon.period.avgFeelsLike);
     const rise = afternoonTemp - morningTemp;
     return `Chilly ${morningTemp}° morning → warms ${rise > 0 ? `+${rise}°` : `${rise}°`} to ${afternoonTemp}° by afternoon. Start layered — you'll shed up top later.`;
   }
 
-  // Big cool-down toward evening
   if (evening) {
     const eveningOutfit = evening.recommendation.outfit;
     const eveningWarmth = OUTFIT_WARMTH[eveningOutfit] ?? 3;
-    const eveningDelta = eveningWarmth - afternoonWarmth;
-    if (eveningDelta >= 2) {
+    if (eveningWarmth - afternoonWarmth >= 2) {
       const eveningTemp = Math.round(evening.period.avgFeelsLike);
       return `Warm afternoon, but evening drops to ${eveningTemp}°. Bring a jacket if you're out late.`;
     }
@@ -244,12 +493,11 @@ export function getLayeringTip(timeline: DayOutfitTimeline | null): string | nul
 /** Onboarding / swipe cards — infer rain & snow from outfit + temp */
 export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy";
-  const isSnowy =
-    outfit === "heavy_coat" ||
-    (outfit === "heavy_jacket" && temp < SNOW_BOOTS_BELOW_TEMP_F);
+  const isSnowy = outfit === "heavy_coat" || (outfit === "heavy_jacket" && temp < SNOW_BOOTS_BELOW_TEMP_F);
   return resolveFootwear({
     effectiveFeelsLike: temp,
     isRainy: isRainOutfit,
+    isHeavyRain: false,
     isSnowy,
     outfit,
     rainTolerance: "moderate",
@@ -269,6 +517,7 @@ export const DEFAULT_CALIBRATION: UserCalibration = {
 };
 
 // ── Core recommendation engine ────────────────────────────────────────────────
+
 export function getOutfitRecommendation(opts: {
   feelsLike: number;
   weatherCode: number;
@@ -277,150 +526,136 @@ export function getOutfitRecommendation(opts: {
   humidity: number;
   calibration: UserCalibration;
   hourly: HourlyForecast[];
-  commuteStart?: string | null; // "07:30"
-  commuteEnd?: string | null;   // "18:00"
+  stylePreference?: StylePreference;
+  formality?: FormalityPreference;
+  isDay?: boolean;
+  commuteStart?: string | null;
+  commuteEnd?: string | null;
 }): OutfitRecommendation {
   const {
-    feelsLike,
-    weatherCode,
-    windSpeed,
-    precipProb,
-    humidity,
-    calibration,
-    hourly,
-    commuteStart,
-    commuteEnd,
+    feelsLike, weatherCode, windSpeed, precipProb, humidity,
+    calibration, hourly,
+    stylePreference, formality = "casual",
+    isDay = true,
+    commuteStart, commuteEnd,
   } = opts;
 
-  // Thermal sensitivity shifts perceived temp (-2..+2 maps to ±6°F)
+  const style = normalizeStyle(stylePreference);
+
+  // Thermal sensitivity shifts thresholds ±6°F (-2..+2 → ±6)
   const sensitivityShift = calibration.thermal_sensitivity * 3;
-  // Cold people feel colder, hot people feel warmer → we shift their thresholds
   const adjustedThresholds = {
-    shorts: calibration.shorts_min_temp + sensitivityShift,
+    shorts:      calibration.shorts_min_temp       + sensitivityShift,
     lightJacket: calibration.light_jacket_max_temp + sensitivityShift,
-    heavyCoat: calibration.heavy_coat_max_temp + sensitivityShift,
+    heavyCoat:   calibration.heavy_coat_max_temp   + sensitivityShift,
   };
 
-  /** Short-sleeve + pants vs long-sleeve + pants; must stay above `lightJacket` as calibration moves. */
   const pantsShortsleeveMin = Math.min(
     calibration.shorts_min_temp + sensitivityShift - 1,
-    Math.max(
-      PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift,
-      adjustedThresholds.lightJacket + 3,
-    ),
+    Math.max(PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift, adjustedThresholds.lightJacket + 3),
   );
 
-  // Humidity makes warm air feel worse (muggy), cold air feel worse (damp)
+  // Humidity / wind chill adjustment using standard meteorological formulas
   let effectiveFeelsLike = feelsLike;
   if (calibration.humidity_sensitivity) {
-    if (humidity > 70 && feelsLike > 75) effectiveFeelsLike += 3;
-    if (humidity > 60 && feelsLike < 50) effectiveFeelsLike -= 2;
+    if (feelsLike > 75 && humidity > 40) {
+      effectiveFeelsLike = computeHeatIndex(feelsLike, humidity);
+    } else if (feelsLike < 50 && windSpeed > 3) {
+      effectiveFeelsLike = computeWindChill(feelsLike, windSpeed);
+    }
   }
 
-  // Use next-2-hour max precipProb when hourly data is available.
-  // Prevents afternoon/evening rain from driving the morning outfit recommendation.
+  // Near-term precip: use next-2-hour max to prevent future rain from driving current outfit
   const now = new Date();
-  const nearTermHours = hourly.filter(h => {
+  const nearTermHours = hourly.filter((h) => {
     const diff = (h.time.getTime() - now.getTime()) / (1000 * 60 * 60);
     return diff > -1 && diff <= 2;
   });
   const effectivePrecipProb = nearTermHours.length > 0
-    ? Math.max(...nearTermHours.map(h => h.precipProb))
+    ? Math.max(...nearTermHours.map((h) => h.precipProb))
     : precipProb;
 
-  const isRainy =
-    effectivePrecipProb > 40 ||
-    (weatherCode >= 51 && weatherCode <= 82) ||
-    weatherCode >= 95;
-  const isHeavyRain =
-    effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
-  const isWindy = windSpeed > 15;
-  const isSnowy = weatherCode >= 71 && weatherCode <= 77;
+  const isRainy    = effectivePrecipProb > 40 || (weatherCode >= 51 && weatherCode <= 82) || weatherCode >= 95;
+  const isHeavyRain = effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+  const isWindy    = windSpeed > 15;
+  const isSnowy    = weatherCode >= 71 && weatherCode <= 77;
 
-  // Base outfit from temperature (hot → cold bands)
-  const lightJacketFloor = adjustedThresholds.heavyCoat + 15;
-  let outfit: OutfitType;
-  if (effectiveFeelsLike >= adjustedThresholds.shorts) {
-    outfit = weatherCode <= 1 ? "dress" : "shorts_tshirt";
-  } else if (effectiveFeelsLike >= pantsShortsleeveMin) {
-    outfit = "pants_shortsleeve";
-  } else if (effectiveFeelsLike >= adjustedThresholds.lightJacket) {
-    outfit = "pants_tshirt";
-  } else if (effectiveFeelsLike >= lightJacketFloor) {
-    outfit = "light_jacket";
-  } else if (effectiveFeelsLike >= adjustedThresholds.heavyCoat) {
-    outfit = "heavy_jacket";
-  } else {
-    outfit = "heavy_coat";
-  }
+  // Resolve intermediate warmth tier
+  const warmthTier = resolveWarmthTier(
+    effectiveFeelsLike,
+    adjustedThresholds,
+    pantsShortsleeveMin,
+    isRainy,
+    isHeavyRain,
+    isSnowy,
+    calibration.rain_tolerance,
+  );
 
-  // Snow → winter coat regardless of perceived warmth
-  if (isSnowy) {
-    outfit = "heavy_coat";
-  }
+  // Look up outfit mapping: [tier][style][formality]
+  const mapping = OUTFIT_MAPPING[warmthTier][style][formality];
+  const { outfitType: outfit, label, garmentTop, garmentBottom, descriptionTemplate } = mapping;
 
-  // Rain override — escalate base layers to rain-appropriate gear
-  if (isRainy && calibration.rain_tolerance !== "high") {
-    if (isHeavyRain && effectiveFeelsLike < 75) {
-      outfit = "rain_heavy";
-    } else if (outfit === "shorts_tshirt") {
-      // Warm enough for shorts — keep them, just add a rain jacket
-      outfit = "rain_light_shorts";
-    } else if (
-      outfit === "pants_shortsleeve" ||
-      outfit === "pants_tshirt" ||
-      outfit === "light_jacket"
-    ) {
-      outfit = "rain_light";
+  // Resolve description from template
+  const description = buildDescription(
+    descriptionTemplate, garmentTop, garmentBottom, effectiveFeelsLike,
+    isWindy, effectivePrecipProb, isSnowy,
+  );
+
+  // Accessories
+  // Sunglasses: clear to overcast (WMO 0–3) during daylight hours
+  const sunglasses = weatherCode <= 3 && isDay && effectiveFeelsLike > 68;
+  const scarf      = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
+  const beanie     = effectiveFeelsLike < 30 || isSnowy;
+  const gloves     = effectiveFeelsLike < 40 || isSnowy;
+
+  // Umbrella and rain shell vary by formality
+  let umbrella  = false;
+  let rainShell = false;
+  if (isRainy) {
+    if (formality === "business") {
+      // Business always reaches for a classic umbrella
+      umbrella = true;
+    } else if (formality === "activewear") {
+      // Activewear opts for a waterproof shell instead of an umbrella
+      rainShell = true;
+      umbrella  = false;
+    } else {
+      // Casual: umbrella when gear is on or precip is high
+      umbrella =
+        outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy" ||
+        (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high");
     }
   }
 
-  const umbrella =
-    outfit === "rain_light" ||
-    outfit === "rain_light_shorts" ||
-    outfit === "rain_heavy" ||
-    (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high");
-  const sunglasses = weatherCode === 0 && effectiveFeelsLike > 68;
-  const scarf = effectiveFeelsLike < 35 || (isWindy && effectiveFeelsLike < 50);
-  const beanie = effectiveFeelsLike < 30 || isSnowy;
-  const gloves = effectiveFeelsLike < 40 || isSnowy;
   const footwear = resolveFootwear({
     effectiveFeelsLike,
     isRainy,
+    isHeavyRain,
     isSnowy,
     outfit,
     rainTolerance: calibration.rain_tolerance,
+    formality,
+    style,
   });
 
-  const avatarCondition = getAvatarCondition(
-    weatherCode,
-    isWindy,
-    isRainy,
-    isSnowy
-  );
+  const avatarCondition = getAvatarCondition(weatherCode, isWindy, isRainy, isSnowy);
 
   const commuteAlert = buildCommuteAlert(
-    hourly,
-    effectiveFeelsLike,
-    outfit,
-    commuteStart,
-    commuteEnd,
-    {
-      weatherCode,
-      windSpeed,
-      precipProb,
-      humidity,
-      calibration,
-    },
+    hourly, effectiveFeelsLike, outfit, commuteStart, commuteEnd,
+    { weatherCode, windSpeed, precipProb, humidity, calibration, stylePreference, formality },
   );
 
   return {
     outfit,
+    warmthTier,
+    garmentTop,
+    garmentBottom,
     effectivePrecipProb,
-    label: getOutfitLabel(outfit),
-    description: buildDescription(effectiveFeelsLike, outfit, isWindy, precipProb, isSnowy),
+    label,
+    description,
     rainGear: isRainy,
     umbrella,
+    rainShell,
     sunglasses,
     scarf,
     beanie,
@@ -431,71 +666,47 @@ export function getOutfitRecommendation(opts: {
   };
 }
 
-function getOutfitLabel(outfit: OutfitType): string {
-  const labels: Record<OutfitType, string> = {
-    shorts_tshirt: "Short Sleeves & Shorts",
-    dress: "Dress Weather",
-    pants_shortsleeve: "Short Sleeves & Pants",
-    pants_tshirt: "Long Sleeves & Pants",
-    light_jacket: "Light Jacket",
-    heavy_jacket: "Heavy Jacket",
-    heavy_coat: "Winter Coat",
-    rain_light: "Rain Jacket",
-    rain_light_shorts: "Rain Jacket & Shorts",
-    rain_heavy: "Full Rain Gear",
-  };
-  return labels[outfit];
-}
+// ── Description builder ───────────────────────────────────────────────────────
 
 function buildDescription(
-  feelsLike: number,
-  outfit: OutfitType,
+  template: string,
+  garmentTop: string,
+  garmentBottom: string | null,
+  temp: number,
   windy: boolean,
   precipProb: number,
-  snowy: boolean
+  snowy: boolean,
 ): string {
-  const windNote = windy ? " Expect a gusty breeze." : "";
-  const rainNote = precipProb > 60 ? " High chance of rain — bring that umbrella." : "";
-  const snowNote = snowy ? " Snowfall possible — layer up." : "";
+  const base = interpolate(template, {
+    garmentTop,
+    garmentBottom: garmentBottom ?? "",
+    temp: String(Math.round(temp)),
+  });
 
-  switch (outfit) {
-    case "dress":
-      return `Beautiful ${feelsLike}°F clear day — perfect weather for a dress. Light, breezy, and comfortable.${windNote}`;
-    case "shorts_tshirt":
-      return `Short sleeves and shorts are the move at ${feelsLike}°F. Light, breathable fabrics will keep you comfortable.${windNote}`;
-    case "pants_shortsleeve":
-      return `At ${feelsLike}°F, a short-sleeve shirt with pants is the sweet spot — comfortable without overheating.${windNote}`;
-    case "pants_tshirt":
-      return `At ${feelsLike}°F, a long-sleeve shirt and pants is the right call. Light layers you can adjust as needed.${windNote}`;
-    case "light_jacket":
-      return `${feelsLike}°F calls for a long-sleeve shirt under a light jacket. You'll appreciate that layer once the sun dips.${windNote}`;
-    case "heavy_jacket":
-      return `Bundle up at ${feelsLike}°F — long sleeves under a warm jacket will keep the chill off.${windNote}`;
-    case "heavy_coat":
-      return `${feelsLike}°F is full winter coat territory. Layer your long sleeves underneath for extra warmth.${windNote}${snowNote}`;
-    case "rain_light":
-      return `${feelsLike}°F with rain on the way — a rain jacket is your best move.${rainNote}`;
-    case "rain_light_shorts":
-      return `${feelsLike}°F and rainy, but warm enough for shorts — throw on a rain jacket and you're good.${rainNote}`;
-    case "rain_heavy":
-      return `Heavy rain at ${feelsLike}°F — full rain gear is a must today. Stay dry out there.${rainNote}`;
-  }
+  const windNote  = windy         ? " Expect a gusty breeze."                           : "";
+  const rainNote  = precipProb > 60 ? " High chance of rain — bring that umbrella."    : "";
+  const snowNote  = snowy           ? " Snowfall possible — layer up underneath."       : "";
+
+  return `${base}${windNote}${rainNote}${snowNote}`.trim();
 }
+
+// ── Avatar condition ──────────────────────────────────────────────────────────
 
 function getAvatarCondition(
   weatherCode: number,
   isWindy: boolean,
   isRainy: boolean,
-  isSnowy: boolean
+  isSnowy: boolean,
 ): AvatarCondition {
   if (weatherCode >= 95) return "stormy";
-  if (isSnowy) return "snowy";
-  if (isRainy) return "rainy";
-  if (isWindy) return "windy";
-  if (weatherCode === 0) return "sunny";
+  if (isSnowy)  return "snowy";
+  if (isRainy)  return "rainy";
+  if (isWindy)  return "windy";
   if (weatherCode <= 2) return "sunny";
   return "cloudy";
 }
+
+// ── Commute alert ─────────────────────────────────────────────────────────────
 
 interface CommuteRecalcOpts {
   weatherCode: number;
@@ -503,6 +714,8 @@ interface CommuteRecalcOpts {
   precipProb: number;
   humidity: number;
   calibration: UserCalibration;
+  stylePreference?: StylePreference;
+  formality?: FormalityPreference;
 }
 
 function buildCommuteAlert(
@@ -523,7 +736,9 @@ function buildCommuteAlert(
     target.setHours(h, m, 0, 0);
     if (target < now) return null;
 
-    const closest = hourly.find((hr) => Math.abs(hr.time.getTime() - target.getTime()) < 30 * 60 * 1000);
+    const closest = hourly.find(
+      (hr) => Math.abs(hr.time.getTime() - target.getTime()) < 30 * 60 * 1000
+    );
     if (!closest) return null;
 
     const outfitAtCommute = recalc
@@ -534,6 +749,8 @@ function buildCommuteAlert(
           precipProb: closest.precipProb,
           humidity: recalc.humidity,
           calibration: recalc.calibration,
+          stylePreference: recalc.stylePreference,
+          formality: recalc.formality,
           hourly,
         }).outfit
       : currentOutfit;
@@ -582,14 +799,16 @@ function formatTime(timeStr: string): string {
 // ── Day outfit timeline ───────────────────────────────────────────────────────
 
 const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number }[] = [
-  { label: "Morning", startHour: 6, endHour: 12 },
+  { label: "Morning",   startHour: 6,  endHour: 12 },
   { label: "Afternoon", startHour: 12, endHour: 18 },
-  { label: "Evening", startHour: 18, endHour: 24 },
+  { label: "Evening",   startHour: 18, endHour: 24 },
 ];
 
 export function getDayOutfitTimeline(
   todayHourly: HourlyForecast[],
   calibration: UserCalibration,
+  stylePreference?: StylePreference,
+  formality?: FormalityPreference,
 ): DayOutfitTimeline {
   const result: DayOutfitTimeline = [];
 
@@ -601,25 +820,22 @@ export function getDayOutfitTimeline(
 
     if (block.length === 0) continue;
 
-    const feelsLikes = block.map((h) => h.feelsLike);
+    const feelsLikes   = block.map((h) => h.feelsLike);
     const minFeelsLike = Math.min(...feelsLikes);
     const maxFeelsLike = Math.max(...feelsLikes);
     const avgFeelsLike = Math.round(feelsLikes.reduce((s, v) => s + v, 0) / feelsLikes.length);
 
-    // Pick the most frequent condition in the block
     const conditionCounts = block.reduce<Record<string, number>>((acc, h) => {
       acc[h.condition] = (acc[h.condition] ?? 0) + 1;
       return acc;
     }, {});
-    const condition = (Object.entries(conditionCounts)
-      .sort(([, a], [, b]) => b - a)[0][0]) as WeatherCondition;
+    const condition = Object.entries(conditionCounts).sort(([, a], [, b]) => b - a)[0][0] as WeatherCondition;
 
-    // Use the weather code matching the dominant condition
     const dominantHour = block.find((h) => h.condition === condition) ?? block[0];
-    const weatherCode = dominantHour.weatherCode;
-
+    const weatherCode  = dominantHour.weatherCode;
     const maxPrecipProb = Math.max(...block.map((h) => h.precipProb));
-    const avgWindSpeed = Math.round(block.reduce((s, h) => s + h.windSpeed, 0) / block.length);
+    const avgWindSpeed  = Math.round(block.reduce((s, h) => s + h.windSpeed, 0) / block.length);
+    const blockIsDay    = block.some((h) => h.isDay);
 
     const period: DayPeriod = {
       label: range.label,
@@ -641,6 +857,9 @@ export function getDayOutfitTimeline(
       precipProb: maxPrecipProb,
       humidity: 50, // hourly data has no per-hour humidity; neutral value avoids false adjustments
       calibration,
+      stylePreference,
+      formality,
+      isDay: blockIsDay,
       hourly: [],
     });
 
@@ -651,119 +870,75 @@ export function getDayOutfitTimeline(
 }
 
 // ── Calibration wizard logic ──────────────────────────────────────────────────
+
 export interface CalibrationSwipe {
   temp: number;
-  direction: "left" | "right" | "center"; // left = too cold, right = too warm, center = just right
+  direction: "left" | "right" | "center";
 }
 
-export function computeCalibrationFromSwipes(
-  swipes: CalibrationSwipe[]
-): Partial<UserCalibration> {
-  // Left=too cold, Right=too warm, Center=just right (neutral — confirms current threshold).
-  // Only left/right responses shift thresholds; center leaves them unchanged.
+export function computeCalibrationFromSwipes(swipes: CalibrationSwipe[]): Partial<UserCalibration> {
   const sorted = [...swipes].sort((a, b) => a.temp - b.temp);
 
-  let shortsMin = 72;
+  let shortsMin      = 72;
   let lightJacketMax = 65;
-  let heavyCoatMax = 45;
+  let heavyCoatMax   = 45;
 
   for (const s of sorted) {
     if (s.direction === "center") continue;
-    if (s.direction === "right" && s.temp < shortsMin) {
-      shortsMin = s.temp;
-    }
-    if (s.direction === "left" && s.temp > lightJacketMax) {
-      lightJacketMax = s.temp;
-    }
-    if (s.direction === "left" && s.temp < 50) {
-      heavyCoatMax = s.temp - 5;
-    }
+    if (s.direction === "right" && s.temp < shortsMin)         shortsMin      = s.temp;
+    if (s.direction === "left"  && s.temp > lightJacketMax)    lightJacketMax = s.temp;
+    if (s.direction === "left"  && s.temp < 50)                heavyCoatMax   = s.temp - 5;
   }
 
   lightJacketMax = Math.min(lightJacketMax, shortsMin - 3);
-  heavyCoatMax = Math.min(heavyCoatMax, lightJacketMax - 10);
+  heavyCoatMax   = Math.min(heavyCoatMax, lightJacketMax - 10);
 
   return {
-    shorts_min_temp: shortsMin,
-    pants_max_temp: shortsMin - 1,
+    shorts_min_temp:       shortsMin,
+    pants_max_temp:        shortsMin - 1,
     light_jacket_max_temp: Math.max(lightJacketMax, 40),
-    heavy_coat_max_temp: Math.max(heavyCoatMax, 20),
+    heavy_coat_max_temp:   Math.max(heavyCoatMax, 20),
   };
 }
 
 // ── Travel packing logic ──────────────────────────────────────────────────────
+
 export function generatePackingList(
   dailyForecasts: { feelsLikeMin: number; feelsLikeMax: number; precipProb: number; condition: string }[],
-  calibration: UserCalibration
+  calibration: UserCalibration,
 ): PackingItem[] {
   const items: PackingItem[] = [];
   const days = dailyForecasts.length;
 
-  const coldDays = dailyForecasts.filter((d) => d.feelsLikeMin < calibration.light_jacket_max_temp).length;
-  const hotDays = dailyForecasts.filter((d) => d.feelsLikeMax >= calibration.shorts_min_temp).length;
-  const rainDays = dailyForecasts.filter((d) => d.precipProb > 50).length;
-
-  const flipFlopDays = dailyForecasts.filter(
-    (d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F && d.precipProb <= 50 && d.condition !== "snow",
-  ).length;
-  const sneakerDays = dailyForecasts.filter(
-    (d) =>
-      d.feelsLikeMax < FLIP_FLOPS_MIN_TEMP_F &&
-      d.feelsLikeMin >= SNOW_BOOTS_BELOW_TEMP_F &&
-      d.precipProb <= 50 &&
-      d.condition !== "snow",
-  ).length;
-  const snowBootDays = dailyForecasts.filter(
-    (d) => d.condition === "snow" || d.feelsLikeMin < SNOW_BOOTS_BELOW_TEMP_F,
-  ).length;
+  const coldDays     = dailyForecasts.filter((d) => d.feelsLikeMin < calibration.light_jacket_max_temp).length;
+  const hotDays      = dailyForecasts.filter((d) => d.feelsLikeMax >= calibration.shorts_min_temp).length;
+  const rainDays     = dailyForecasts.filter((d) => d.precipProb > 50).length;
+  const flipFlopDays = dailyForecasts.filter((d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
+  const sneakerDays  = dailyForecasts.filter((d) => d.feelsLikeMax < FLIP_FLOPS_MIN_TEMP_F && d.feelsLikeMin >= SNOW_BOOTS_BELOW_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
+  const snowBootDays = dailyForecasts.filter((d) => d.condition === "snow" || d.feelsLikeMin < SNOW_BOOTS_BELOW_TEMP_F).length;
 
   if (hotDays > 0) {
-    items.push({ category: "tops", name: "T-shirts", quantity: hotDays + 1, reason: `${hotDays} warm days expected` });
-    items.push({ category: "bottoms", name: "Shorts", quantity: Math.ceil(hotDays / 2) });
+    items.push({ category: "tops",    name: "T-shirts", quantity: hotDays + 1, reason: `${hotDays} warm days expected` });
+    items.push({ category: "bottoms", name: "Shorts",   quantity: Math.ceil(hotDays / 2) });
   }
-
   if (flipFlopDays > 0) {
-    items.push({
-      category: "footwear",
-      name: "Flip flops",
-      quantity: 1,
-      reason: `${flipFlopDays} day${flipFlopDays > 1 ? "s" : ""} at ${FLIP_FLOPS_MIN_TEMP_F}°F or warmer`,
-    });
+    items.push({ category: "footwear", name: "Flip flops", quantity: 1, reason: `${flipFlopDays} day${flipFlopDays > 1 ? "s" : ""} at ${FLIP_FLOPS_MIN_TEMP_F}°F or warmer` });
   }
-
   if (sneakerDays > 0) {
-    items.push({
-      category: "footwear",
-      name: "Sneakers",
-      quantity: 1,
-      reason: `${sneakerDays} mild day${sneakerDays > 1 ? "s" : ""} (${SNOW_BOOTS_BELOW_TEMP_F}–${FLIP_FLOPS_MIN_TEMP_F - 1}°F, dry)`,
-    });
+    items.push({ category: "footwear", name: "Sneakers", quantity: 1, reason: `${sneakerDays} mild day${sneakerDays > 1 ? "s" : ""} (${SNOW_BOOTS_BELOW_TEMP_F}–${FLIP_FLOPS_MIN_TEMP_F - 1}°F, dry)` });
   }
-
   if (snowBootDays > 0) {
-    items.push({
-      category: "footwear",
-      name: "Snow boots",
-      quantity: 1,
-      reason: `${snowBootDays} cold or snowy day${snowBootDays > 1 ? "s" : ""}`,
-    });
+    items.push({ category: "footwear", name: "Snow boots", quantity: 1, reason: `${snowBootDays} cold or snowy day${snowBootDays > 1 ? "s" : ""}` });
   }
-
   if (coldDays > 0) {
-    items.push({ category: "outerwear", name: "Warm jacket", quantity: 1, reason: `Lows around ${Math.min(...dailyForecasts.map((d) => d.feelsLikeMin))}°F` });
+    items.push({ category: "outerwear",   name: "Warm jacket",   quantity: 1, reason: `Lows around ${Math.min(...dailyForecasts.map((d) => d.feelsLikeMin))}°F` });
     if (dailyForecasts.some((d) => d.feelsLikeMin < 40)) {
       items.push({ category: "accessories", name: "Gloves", quantity: 1, reason: "Cold mornings expected" });
     }
   }
-
   if (rainDays > 0) {
-    items.push({ category: "outerwear", name: "Rain jacket", quantity: 1, reason: `${rainDays} rainy day${rainDays > 1 ? "s" : ""}` });
-    items.push({
-      category: "footwear",
-      name: "Rain boots",
-      quantity: 1,
-      reason: `${rainDays} wet day${rainDays > 1 ? "s" : ""}`,
-    });
+    items.push({ category: "outerwear",   name: "Rain jacket",    quantity: 1, reason: `${rainDays} rainy day${rainDays > 1 ? "s" : ""}` });
+    items.push({ category: "footwear",    name: "Rain boots",     quantity: 1, reason: `${rainDays} wet day${rainDays > 1 ? "s" : ""}` });
     if (calibration.rain_tolerance === "low") {
       items.push({ category: "accessories", name: "Compact umbrella", quantity: 1 });
     }

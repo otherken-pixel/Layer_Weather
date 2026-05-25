@@ -195,6 +195,8 @@ export default function Home() {
       humidity: weather.current.humidity,
       weatherCode: weather.current.weatherCode,
       outfit: outfit.outfit,
+      garmentTop: outfit.garmentTop,
+      garmentBottom: outfit.garmentBottom,
     });
   }, [weather, outfit]);
 

@@ -3,7 +3,7 @@ import type { FootwearKind, OutfitType } from "@/types";
 export const topMap: Record<OutfitType, string> = {
   shorts_tshirt: "TShirt",
   pants_shortsleeve: "TShirt",
-  pants_tshirt: "LongSleeve",
+  pants_longsleeve: "LongSleeve",
   light_jacket: "Jacket",
   heavy_jacket: "HeavyJacket",
   heavy_coat: "HeavyCoat",
@@ -16,7 +16,7 @@ export const topMap: Record<OutfitType, string> = {
 export const bottomMap: Record<OutfitType, string | null> = {
   shorts_tshirt: "Shorts",
   pants_shortsleeve: "Pants",
-  pants_tshirt: "Pants",
+  pants_longsleeve: "Pants",
   light_jacket: "Pants",
   heavy_jacket: "Pants",
   heavy_coat: "Pants",
@@ -27,10 +27,13 @@ export const bottomMap: Record<OutfitType, string | null> = {
 };
 
 export const footwearMap: Record<FootwearKind, string> = {
-  flip_flops: "FlipFlops",
-  sneakers: "Sneakers",
-  snow_boots: "SnowBoots",
-  rain_boots: "RainBoots",
+  flip_flops:        "FlipFlops",
+  sneakers:          "Sneakers",
+  athletic_sneakers: "Sneakers",   // reuse until dedicated SVG is added
+  loafers:           "Sneakers",   // reuse until dedicated SVG is added
+  dress_flats:       "Sneakers",   // reuse until dedicated SVG is added
+  snow_boots:        "SnowBoots",
+  rain_boots:        "RainBoots",
 };
 
 export const accessoryMap = {

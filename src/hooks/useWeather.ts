@@ -85,7 +85,7 @@ export function useWeather() {
   const refreshGeneration = useRef(0);
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
-    profile, calibration, userId,
+    profile, calibration, userId, formality,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError,
   } = useAppStore();
@@ -156,6 +156,8 @@ export function useWeather() {
           setWeatherLastFetched(new Date());
 
           const cal = calibration ?? DEFAULT_CALIBRATION;
+          const stylePreference = storeProfile?.style_preference;
+          const formalityPref = storeProfile?.formality_preference ?? formality;
           const rec = getOutfitRecommendation({
             feelsLike: data.current.feelsLike,
             weatherCode: data.current.weatherCode,
@@ -164,6 +166,9 @@ export function useWeather() {
             humidity: data.current.humidity,
             calibration: cal,
             hourly: data.hourly,
+            stylePreference,
+            formality: formalityPref,
+            isDay: data.current.isDay,
             commuteStart: storeProfile?.commute_start ?? null,
             commuteEnd: storeProfile?.commute_end ?? null,
           });
@@ -176,7 +181,7 @@ export function useWeather() {
               h.time.getMonth() === today.getMonth() &&
               h.time.getDate() === today.getDate(),
           );
-          setOutfitTimeline(getDayOutfitTimeline(todayHourly, cal));
+          setOutfitTimeline(getDayOutfitTimeline(todayHourly, cal, stylePreference, formalityPref));
           saveWidgetSnapshot(data, rec).catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
@@ -190,7 +195,7 @@ export function useWeather() {
       setIsLoadingWeather(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStale, weather, calibration, profile, userId, location]);
+  }, [isStale, weather, calibration, profile, userId, location, formality]);
 
   return { weather, outfit, location, isLoadingWeather, weatherError, isStale, refresh };
 }

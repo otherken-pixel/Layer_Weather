@@ -17,7 +17,7 @@ const BOUNDS = {
  * Strategy (assumes thumbs-down = recommendation was wrong; direction inferred
  * per outfit tier):
  *   shorts_tshirt  ↓ → user cold in shorts  → raise shorts_min (+)
- *   pants_tshirt   ↓ → user cold in pants    → raise light_jacket_max (+) so jacket starts sooner
+ *   pants_longsleeve ↓ → user cold in pants  → raise light_jacket_max (+) so jacket starts sooner
  *   light_jacket   ↓ → user warm in jacket   → lower light_jacket_max (-) so jacket stops sooner
  *   heavy_jacket   ↓ → user warm in jacket   → lower heavy_coat_max (-) expands light_jacket band
  *   heavy_coat     ↓ → user warm in coat     → lower heavy_coat_max (-) so coat starts later
@@ -48,7 +48,7 @@ export function computeCalibrationFromFeedback(
     shortsMin = clamp(shortsMin + STEP, BOUNDS.shorts_min_temp);
   }
 
-  if (countByOutfit("pants_shortsleeve") >= TRIGGER_COUNT || countByOutfit("pants_tshirt") >= TRIGGER_COUNT) {
+  if (countByOutfit("pants_shortsleeve") >= TRIGGER_COUNT || countByOutfit("pants_longsleeve") >= TRIGGER_COUNT) {
     lightJacketMax = clamp(lightJacketMax + STEP, BOUNDS.light_jacket_max_temp);
   }
 
