@@ -119,7 +119,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
                   fontSize: 16,
                   fontWeight: 600,
                   color: dayNameColor,
-                  width: 44,
+                  width: 60,
                   flexShrink: 0,
                 }}
               >
@@ -168,9 +168,9 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
                 <div
                   style={{
                     flex: 1,
-                    height: 5,
+                    height: 3,
                     background: barTrackColor,
-                    borderRadius: 3,
+                    borderRadius: 2,
                     overflow: "hidden",
                     position: "relative",
                   }}
