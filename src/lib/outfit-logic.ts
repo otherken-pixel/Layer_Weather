@@ -25,6 +25,28 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
+/** Wind chill is never applied at or above this feels-like (°F). */
+export const WIND_CHILL_IGNORE_ABOVE_FEELS_F = 50;
+
+/** Precip hysteresis: enter rainy above enter %, exit below exit % (when prior state known). */
+export const PRECIP_RAIN_ENTER_PCT = 42;
+export const PRECIP_RAIN_EXIT_PCT = 38;
+export const PRECIP_RAIN_DEFAULT_PCT = 40;
+
+/** Hardcoded outfit type per warmth tier — ultimate flat-lay failsafe. */
+export const TIER_DEFAULT_OUTFIT: Record<WarmthTier, OutfitType> = {
+  warmth_1: "shorts_tshirt",
+  warmth_2: "pants_shortsleeve",
+  warmth_3: "pants_longsleeve",
+  warmth_4: "light_jacket",
+  warmth_5: "heavy_jacket",
+  warmth_6: "heavy_coat",
+  warmth_6_snow: "heavy_coat",
+  warmth_1_rain: "rain_light_shorts",
+  warmth_2_rain: "rain_light",
+  warmth_3_rain: "rain_heavy",
+};
+
 /**
  * Default floor (°F) for short sleeves + pants. The live boundary also rises with
  * `light_jacket_max_temp` so calibrated bands stay ordered and feedback can move it.
@@ -251,6 +273,141 @@ function normalizeStyle(style: StylePreference | undefined): NormalizedStyle {
   if (style === "feminine") return "feminine";
   if (style === "masculine") return "masculine";
   return "neutral"; // "neutral" and legacy "all" both map to neutral
+}
+
+export interface AdjustedThresholds {
+  shorts: number;
+  lightJacket: number;
+  heavyCoat: number;
+  lightJacketFloor: number;
+  pantsShortsleeveMin: number;
+  sensitivityShift: number;
+}
+
+/** Calibrated temperature band edges (°F), ordered for tier resolution. */
+export function computeAdjustedThresholds(calibration: UserCalibration): AdjustedThresholds {
+  const sensitivityShift = calibration.thermal_sensitivity * 3;
+  const shorts = calibration.shorts_min_temp + sensitivityShift;
+  const lightJacket = calibration.light_jacket_max_temp + sensitivityShift;
+  const heavyCoat = calibration.heavy_coat_max_temp + sensitivityShift;
+  const lightJacketFloor = heavyCoat + 15;
+
+  const pantsShortsleeveMin = Math.min(
+    shorts - 1,
+    Math.max(
+      PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift,
+      lightJacket + 3,
+    ),
+  );
+
+  return {
+    shorts,
+    lightJacket,
+    heavyCoat,
+    lightJacketFloor,
+    pantsShortsleeveMin,
+    sensitivityShift,
+  };
+}
+
+function isWeatherCodeRainy(weatherCode: number): boolean {
+  return (weatherCode >= 51 && weatherCode <= 82) || weatherCode >= 95;
+}
+
+/** Schmitt-style rain flag from precip %; WMO rain/snow codes override hysteresis. */
+export function resolveRainFromPrecip(
+  effectivePrecipProb: number,
+  weatherCode: number,
+  previousRainy?: boolean | null,
+): { isRainy: boolean; isHeavyRain: boolean } {
+  if (isWeatherCodeRainy(weatherCode)) {
+    return {
+      isRainy: true,
+      isHeavyRain:
+        effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67),
+    };
+  }
+
+  let isRainy: boolean;
+  if (previousRainy === true) {
+    isRainy = effectivePrecipProb >= PRECIP_RAIN_EXIT_PCT;
+  } else if (previousRainy === false) {
+    isRainy = effectivePrecipProb > PRECIP_RAIN_ENTER_PCT;
+  } else {
+    isRainy = effectivePrecipProb > PRECIP_RAIN_DEFAULT_PCT;
+  }
+
+  const isHeavyRain =
+    effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+  return { isRainy, isHeavyRain };
+}
+
+function syntheticMappingForTier(tier: WarmthTier, outfitType: OutfitType): OutfitMapping {
+  const neutralCasual = OUTFIT_MAPPING[tier]?.neutral?.casual;
+  if (neutralCasual) return { ...neutralCasual, outfitType };
+  return {
+    outfitType,
+    label: "Weather-appropriate outfit",
+    garmentTop: "Top",
+    garmentBottom: outfitType === "dress" ? null : "Bottom",
+    descriptionTemplate: "Dress for {temp}°F conditions.",
+  };
+}
+
+/**
+ * Lookup OUTFIT_MAPPING[tier][style][formality] with formality → casual,
+ * style → neutral, then tier default outfit type.
+ */
+export function lookupOutfitMapping(
+  tier: WarmthTier,
+  style: NormalizedStyle,
+  formality: FormalityPreference,
+): OutfitMapping {
+  const tierTable = OUTFIT_MAPPING[tier];
+  if (!tierTable) {
+    const outfitType = TIER_DEFAULT_OUTFIT[tier] ?? "pants_longsleeve";
+    console.warn(`WARN: Missing outfit tier ${tier}. Using default ${outfitType}.`);
+    return syntheticMappingForTier(tier, outfitType);
+  }
+
+  const styleRow = tierTable[style];
+  if (!styleRow) {
+    if (style === "neutral") {
+      const defaultType = TIER_DEFAULT_OUTFIT[tier];
+      console.warn(
+        `WARN: Missing outfit for ${tier} | neutral | ${formality}. Using tier default ${defaultType}.`,
+      );
+      return syntheticMappingForTier(tier, defaultType);
+    }
+    console.warn(
+      `WARN: Missing outfit for ${tier} | ${style} | ${formality}. Falling back to neutral.`,
+    );
+    return lookupOutfitMapping(tier, "neutral", formality);
+  }
+
+  const mapping = styleRow[formality];
+  if (mapping) return mapping;
+
+  if (formality !== "casual") {
+    console.warn(
+      `WARN: Missing outfit for ${tier} | ${style} | ${formality}. Falling back to casual.`,
+    );
+    const casual = styleRow.casual;
+    if (casual) return casual;
+  }
+
+  const defaultType = TIER_DEFAULT_OUTFIT[tier];
+  console.warn(
+    `WARN: Missing outfit for ${tier} | ${style} | ${formality}. Using tier default ${defaultType}.`,
+  );
+  return syntheticMappingForTier(tier, defaultType);
+}
+
+/** Returns true when weather is present; packing/commute helpers should bail when false. */
+export function assertWeatherForOutfit(
+  weather: { current: { feelsLike: number } } | null | undefined,
+): weather is { current: { feelsLike: number } } {
+  return weather != null && Number.isFinite(weather.current?.feelsLike);
 }
 
 // ── Helper: string template interpolation ─────────────────────────────────────
@@ -534,6 +691,8 @@ export function getOutfitRecommendation(opts: {
   isDay?: boolean;
   commuteStart?: string | null;
   commuteEnd?: string | null;
+  /** Prior recommendation rain state — debounces precip threshold flicker. */
+  previousRainy?: boolean | null;
 }): OutfitRecommendation {
   const {
     feelsLike, weatherCode, windSpeed, precipProb, humidity,
@@ -546,25 +705,28 @@ export function getOutfitRecommendation(opts: {
 
   const style = normalizeStyle(stylePreference);
 
-  // Thermal sensitivity shifts thresholds ±6°F (-2..+2 → ±6)
-  const sensitivityShift = calibration.thermal_sensitivity * 3;
+  const {
+    shorts: shortsThreshold,
+    lightJacket: lightJacketThreshold,
+    heavyCoat: heavyCoatThreshold,
+    pantsShortsleeveMin,
+  } = computeAdjustedThresholds(calibration);
   const adjustedThresholds = {
-    shorts:      calibration.shorts_min_temp       + sensitivityShift,
-    lightJacket: calibration.light_jacket_max_temp + sensitivityShift,
-    heavyCoat:   calibration.heavy_coat_max_temp   + sensitivityShift,
+    shorts: shortsThreshold,
+    lightJacket: lightJacketThreshold,
+    heavyCoat: heavyCoatThreshold,
   };
 
-  const pantsShortsleeveMin = Math.min(
-    calibration.shorts_min_temp + sensitivityShift - 1,
-    Math.max(PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift, adjustedThresholds.lightJacket + 3),
-  );
-
-  // Humidity / wind chill adjustment using standard meteorological formulas
+  // Apparent temperature: heat index takes priority over wind chill (mutually exclusive branches).
+  // Wind chill is never applied when feels-like is at or above 50°F.
   let effectiveFeelsLike = feelsLike;
   if (calibration.humidity_sensitivity) {
     if (feelsLike > 75 && humidity > 40) {
       effectiveFeelsLike = computeHeatIndex(airTemp, humidity);
-    } else if (feelsLike < 50 && windSpeed > 3) {
+    } else if (
+      feelsLike < WIND_CHILL_IGNORE_ABOVE_FEELS_F &&
+      windSpeed > 3
+    ) {
       effectiveFeelsLike = computeWindChill(airTemp, windSpeed);
     }
   }
@@ -579,8 +741,11 @@ export function getOutfitRecommendation(opts: {
     ? Math.max(...nearTermHours.map((h) => h.precipProb))
     : precipProb;
 
-  const isRainy    = effectivePrecipProb > 40 || (weatherCode >= 51 && weatherCode <= 82) || weatherCode >= 95;
-  const isHeavyRain = effectivePrecipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
+  const { isRainy, isHeavyRain } = resolveRainFromPrecip(
+    effectivePrecipProb,
+    weatherCode,
+    opts.previousRainy,
+  );
   const isWindy    = windSpeed > 15;
   const isSnowy    = weatherCode >= 71 && weatherCode <= 77;
 
@@ -595,8 +760,7 @@ export function getOutfitRecommendation(opts: {
     calibration.rain_tolerance,
   );
 
-  // Look up outfit mapping: [tier][style][formality]
-  const mapping = OUTFIT_MAPPING[warmthTier][style][formality];
+  const mapping = lookupOutfitMapping(warmthTier, style, formality);
   const { outfitType: outfit, label, garmentTop, garmentBottom, descriptionTemplate } = mapping;
 
   // Resolve description from template
@@ -646,10 +810,26 @@ export function getOutfitRecommendation(opts: {
 
   const avatarCondition = getAvatarCondition(weatherCode, isWindy, isRainy, isSnowy);
 
-  const commuteAlert = buildCommuteAlert(
-    hourly, effectiveFeelsLike, outfit, commuteStart, commuteEnd,
-    { weatherCode, windSpeed, precipProb, humidity, calibration, stylePreference, formality },
-  );
+  const commuteAlert =
+    hourly.length > 0
+      ? buildCommuteAlert(
+          hourly,
+          effectiveFeelsLike,
+          outfit,
+          commuteStart,
+          commuteEnd,
+          {
+            weatherCode,
+            windSpeed,
+            precipProb,
+            humidity,
+            calibration,
+            stylePreference,
+            formality,
+            previousRainy: isRainy,
+          },
+        )
+      : null;
 
   return {
     outfit,
@@ -722,6 +902,7 @@ interface CommuteRecalcOpts {
   calibration: UserCalibration;
   stylePreference?: StylePreference;
   formality?: FormalityPreference;
+  previousRainy?: boolean | null;
 }
 
 function buildCommuteAlert(
@@ -732,7 +913,7 @@ function buildCommuteAlert(
   commuteEnd?: string | null,
   recalc?: CommuteRecalcOpts,
 ): CommuteAlert | null {
-  if (!commuteStart && !commuteEnd) return null;
+  if ((!commuteStart && !commuteEnd) || hourly.length === 0) return null;
 
   const now = new Date();
 
@@ -759,6 +940,7 @@ function buildCommuteAlert(
           stylePreference: recalc.stylePreference,
           formality: recalc.formality,
           hourly,
+          previousRainy: recalc.previousRainy,
         }).outfit
       : currentOutfit;
 
@@ -818,6 +1000,7 @@ export function getDayOutfitTimeline(
   formality?: FormalityPreference,
 ): DayOutfitTimeline {
   const result: DayOutfitTimeline = [];
+  let previousRainy: boolean | null = null;
 
   for (const range of PERIOD_RANGES) {
     const block = todayHourly.filter((h) => {
@@ -870,8 +1053,10 @@ export function getDayOutfitTimeline(
       formality,
       isDay: blockIsDay,
       hourly: [],
+      previousRainy,
     });
 
+    previousRainy = recommendation.rainGear;
     result.push({ period, recommendation });
   }
 
@@ -916,6 +1101,8 @@ export function generatePackingList(
   dailyForecasts: { feelsLikeMin: number; feelsLikeMax: number; precipProb: number; condition: string }[],
   calibration: UserCalibration,
 ): PackingItem[] {
+  if (dailyForecasts.length === 0) return [];
+
   const items: PackingItem[] = [];
   const days = dailyForecasts.length;
 

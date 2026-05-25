@@ -14,6 +14,19 @@ interface Props {
   fetchPriority?: "high" | "low" | "auto";
 }
 
+function PlaceholderIcon({ size, label }: { size: number; label: string }) {
+  return (
+    <div
+      role="img"
+      aria-label={label}
+      className="flex items-center justify-center rounded-lg bg-black/5 text-neutral-500"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
+    >
+      👕
+    </div>
+  );
+}
+
 function StorageSvg({
   id,
   size = 100,
@@ -25,6 +38,7 @@ function StorageSvg({
   const svgCatalogById = useAppStore((s) => s.svgCatalogById);
   const resolved = resolveSvgId(id, svgCatalogById);
   const [urlIndex, setUrlIndex] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const entry = resolved ? svgCatalogById[resolved] : undefined;
   const urls = useMemo(() => {
@@ -32,10 +46,13 @@ function StorageSvg({
     return [getSvgPublicUrl(entry.storage_path)];
   }, [entry]);
 
-  if (!entry || urls.length === 0) return null;
+  const label = alt ?? entry?.label ?? "Clothing item";
+
+  if (!entry || urls.length === 0 || loadFailed) {
+    return <PlaceholderIcon size={size} label={label} />;
+  }
 
   const src = urls[urlIndex] ?? urls[0];
-  const label = alt ?? entry.label;
 
   return (
     <img
@@ -50,7 +67,11 @@ function StorageSvg({
       draggable={false}
       style={{ objectFit: "contain" }}
       onError={() => {
-        setUrlIndex((i) => (i + 1 < urls.length ? i + 1 : i));
+        if (urlIndex + 1 < urls.length) {
+          setUrlIndex((i) => i + 1);
+        } else {
+          setLoadFailed(true);
+        }
       }}
     />
   );

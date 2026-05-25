@@ -1,12 +1,30 @@
-import type { WeatherData, OutfitRecommendation, WeatherCondition } from "@/types";
+import type {
+  WeatherData,
+  OutfitRecommendation,
+  WeatherCondition,
+  DayOutfitTimeline,
+} from "@/types";
+import type { CachedCityWeather } from "@/store";
 
 export const WEATHER_CACHE_KEY = "wt_weather_cache";
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+export const CITY_WEATHER_CACHE_PREFIX = "wt_city_weather_";
+
+/** Maximum age for offline / failure fallback weather data. */
+export const WEATHER_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 export interface WeatherCachePayload {
   weather: WeatherData;
   outfit: OutfitRecommendation;
   savedAt: string;
+}
+
+export function isWeatherCacheFresh(savedAt: string | Date): boolean {
+  const t = typeof savedAt === "string" ? new Date(savedAt).getTime() : savedAt.getTime();
+  return Date.now() - t <= WEATHER_CACHE_MAX_AGE_MS;
+}
+
+function cityCacheStorageKey(cacheKey: string): string {
+  return `${CITY_WEATHER_CACHE_PREFIX}${cacheKey}`;
 }
 
 function serializeForCache(data: WeatherData): Record<string, unknown> {
@@ -80,6 +98,35 @@ function reviveWeather(raw: Record<string, unknown>): WeatherData {
   };
 }
 
+async function storageSet(key: string, value: string): Promise<void> {
+  try {
+    const { Preferences } = await import("@capacitor/preferences");
+    await Preferences.set({ key, value });
+  } catch {
+    localStorage.setItem(key, value);
+  }
+}
+
+async function storageGet(key: string): Promise<string | null> {
+  try {
+    const { Preferences } = await import("@capacitor/preferences");
+    const { value } = await Preferences.get({ key });
+    return value;
+  } catch {
+    return localStorage.getItem(key);
+  }
+}
+
+async function storageRemove(key: string): Promise<void> {
+  try {
+    const { Preferences } = await import("@capacitor/preferences");
+    await Preferences.remove({ key });
+  } catch {
+    /* ignore */
+  }
+  localStorage.removeItem(key);
+}
+
 export async function saveWeatherCache(
   weather: WeatherData,
   outfit: OutfitRecommendation,
@@ -89,24 +136,11 @@ export async function saveWeatherCache(
     outfit,
     savedAt: new Date().toISOString(),
   };
-  const json = JSON.stringify(stored);
-  try {
-    const { Preferences } = await import("@capacitor/preferences");
-    await Preferences.set({ key: WEATHER_CACHE_KEY, value: json });
-  } catch {
-    localStorage.setItem(WEATHER_CACHE_KEY, json);
-  }
+  await storageSet(WEATHER_CACHE_KEY, JSON.stringify(stored));
 }
 
 export async function loadWeatherCache(): Promise<WeatherCachePayload | null> {
-  let raw: string | null = null;
-  try {
-    const { Preferences } = await import("@capacitor/preferences");
-    const { value } = await Preferences.get({ key: WEATHER_CACHE_KEY });
-    raw = value;
-  } catch {
-    raw = localStorage.getItem(WEATHER_CACHE_KEY);
-  }
+  const raw = await storageGet(WEATHER_CACHE_KEY);
   if (!raw) return null;
 
   try {
@@ -115,7 +149,7 @@ export async function loadWeatherCache(): Promise<WeatherCachePayload | null> {
       outfit: OutfitRecommendation;
       savedAt: string;
     };
-    if (Date.now() - new Date(parsed.savedAt).getTime() > CACHE_TTL_MS) return null;
+    if (!isWeatherCacheFresh(parsed.savedAt)) return null;
     return {
       weather: reviveWeather(parsed.weather),
       outfit: parsed.outfit,
@@ -126,12 +160,48 @@ export async function loadWeatherCache(): Promise<WeatherCachePayload | null> {
   }
 }
 
-export async function clearWeatherCache(): Promise<void> {
+export async function saveCityWeatherCache(
+  cacheKey: string,
+  entry: CachedCityWeather,
+): Promise<void> {
+  const stored = {
+    weather: serializeForCache(entry.weather),
+    outfit: entry.outfit,
+    outfitTimeline: entry.outfitTimeline,
+    fetchedAt: entry.fetchedAt.toISOString(),
+  };
+  await storageSet(cityCacheStorageKey(cacheKey), JSON.stringify(stored));
+}
+
+export async function loadCityWeatherCache(
+  cacheKey: string,
+): Promise<CachedCityWeather | null> {
+  const raw = await storageGet(cityCacheStorageKey(cacheKey));
+  if (!raw) return null;
+
   try {
-    const { Preferences } = await import("@capacitor/preferences");
-    await Preferences.remove({ key: WEATHER_CACHE_KEY });
+    const parsed = JSON.parse(raw) as {
+      weather: Record<string, unknown>;
+      outfit: OutfitRecommendation;
+      outfitTimeline: DayOutfitTimeline | null;
+      fetchedAt: string;
+    };
+    if (!isWeatherCacheFresh(parsed.fetchedAt)) return null;
+    return {
+      weather: reviveWeather(parsed.weather),
+      outfit: parsed.outfit,
+      outfitTimeline: parsed.outfitTimeline ?? null,
+      fetchedAt: new Date(parsed.fetchedAt),
+    };
   } catch {
-    /* ignore */
+    return null;
   }
-  localStorage.removeItem(WEATHER_CACHE_KEY);
+}
+
+export async function clearWeatherCache(): Promise<void> {
+  await storageRemove(WEATHER_CACHE_KEY);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) localStorage.removeItem(k);
+  }
 }
