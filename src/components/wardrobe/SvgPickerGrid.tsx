@@ -26,7 +26,7 @@ export default function SvgPickerGrid({
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE);
-  }, [entries]);
+  }, [entries.length]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -38,7 +38,7 @@ export default function SvgPickerGrid({
           setVisibleCount((n) => Math.min(n + LOAD_MORE_BATCH, entries.length));
         }
       },
-      { root: el.parentElement, rootMargin: "120px", threshold: 0 }
+      { root: null, rootMargin: "120px", threshold: 0 }
     );
 
     observer.observe(el);
