@@ -4,7 +4,7 @@ import type { FootwearKind, OutfitType } from "@/types";
 const OUTFIT_LABELS: Record<OutfitType, { top: string; bottom: string; layer?: string }> = {
   shorts_tshirt:    { top: "T-shirt",           bottom: "Shorts" },
   pants_shortsleeve: { top: "T-shirt",           bottom: "Pants" },
-  pants_tshirt:     { top: "Long-sleeve shirt",  bottom: "Pants" },
+  pants_longsleeve: { top: "Long-sleeve shirt",  bottom: "Pants" },
   light_jacket:   { top: "Light jacket",       bottom: "Pants",  layer: "T-shirt underneath" },
   heavy_jacket:   { top: "Heavy jacket",       bottom: "Pants",  layer: "Warm layer underneath" },
   heavy_coat:     { top: "Heavy coat",         bottom: "Pants",  layer: "Warm layers underneath" },
@@ -15,10 +15,13 @@ const OUTFIT_LABELS: Record<OutfitType, { top: string; bottom: string; layer?: s
 };
 
 const FOOTWEAR_LABELS: Record<FootwearKind, string> = {
-  flip_flops: "Flip flops",
-  sneakers: "Sneakers",
-  snow_boots: "Snow boots",
-  rain_boots: "Rain boots",
+  flip_flops:        "Flip flops",
+  sneakers:          "Sneakers",
+  athletic_sneakers: "Athletic sneakers",
+  loafers:           "Loafers",
+  dress_flats:       "Dress flats",
+  snow_boots:        "Snow boots",
+  rain_boots:        "Rain boots",
 };
 
 interface Props {

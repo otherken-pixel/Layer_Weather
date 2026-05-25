@@ -175,7 +175,7 @@ export const OutfitColors = {
     bottomShadow: "#1A202C",
     label: "Easy Going",
   },
-  pants_tshirt: {
+  pants_longsleeve: {
     top: "#F0F4F8",
     topShadow: "#D9E2EC",
     bottom: "#2D3748",

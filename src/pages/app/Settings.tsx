@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
+import type { FormalityPreference } from "@/types";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { useIsDark } from "@/hooks/useDarkMode";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
@@ -32,7 +33,7 @@ const ACCENT_SWATCHES = [
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, calibration, userId, setProfile, location, savedLocations, setSavedLocations } = useAppStore();
+  const { profile, calibration, userId, setProfile, setFormality: setStoreFormality, location, savedLocations, setSavedLocations } = useAppStore();
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
@@ -40,6 +41,7 @@ export default function Settings() {
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
   const [stylePreference, setStylePreference] = useState<"feminine" | "masculine" | "all">(profile?.style_preference ?? "all");
+  const [formality, setFormality] = useState<FormalityPreference>(profile?.formality_preference ?? "casual");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
@@ -82,9 +84,11 @@ export default function Settings() {
         temp_unit: tempUnit,
         outfit_display_mode: displayMode,
         style_preference: stylePreference,
+        formality_preference: formality,
         commute_start: commuteStart,
         commute_end: commuteEnd,
       });
+      setStoreFormality(formality);
       if (updated) {
         // Sync accent_color to DB if the column exists; ignore error if it doesn't
         try {
@@ -326,6 +330,59 @@ export default function Settings() {
               })}
             </div>
           </ThemedCard>
+        </Section>
+
+        {/* Outfit Formality */}
+        <Section title="Outfit Formality" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, marginBottom: 4 }}>Formality Level</p>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 12 }}>
+              Shapes recommendations — activewear to business dressing.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(
+                [
+                  { key: "activewear", label: "Activewear",  desc: "Athletic fits, running gear, performance fabrics" },
+                  { key: "casual",     label: "Casual",       desc: "Everyday relaxed outfits — the default" },
+                  { key: "business",   label: "Business",     desc: "Office-ready, dress shoes, polished layers" },
+                ] as const
+              ).map(({ key, label, desc }) => {
+                const active = formality === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFormality(key)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      textAlign: "left",
+                      background: active
+                        ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                        : isDark ? "#3A3A3C" : "#F9FAFB",
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? isDark ? "var(--accent-light)" : "var(--accent-primary)" : rowTextColor, margin: 0 }}>
+                        {label}
+                      </p>
+                      <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>{desc}</p>
+                    </div>
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </ThemedCard>
+          <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
+            Saved with your profile. Tap Save below to apply.
+          </p>
         </Section>
 
         {/* Theme */}

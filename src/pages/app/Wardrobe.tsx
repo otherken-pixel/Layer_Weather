@@ -75,7 +75,7 @@ function ScenarioCard({ scenario, preset, onEdit, isDark }: ScenarioCardProps) {
       <div style={{ width: "100%", minHeight: 90 }}>
         {hasPreset ? (
           <OutfitFlatLay
-            outfit="pants_tshirt"
+            outfit="pants_longsleeve"
             rainGear={false}
             umbrella={false}
             sunglasses={false}
@@ -307,7 +307,7 @@ function EditorSheet({
             {/* Live preview strip */}
             <div className="flex-shrink-0 px-5 mb-2">
               <OutfitFlatLay
-                outfit="pants_tshirt"
+                outfit="pants_longsleeve"
                 rainGear={false}
                 umbrella={false}
                 sunglasses={false}

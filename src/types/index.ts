@@ -1,6 +1,7 @@
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-export type StylePreference = "feminine" | "masculine" | "all";
+export type StylePreference = "feminine" | "masculine" | "neutral" | "all";
+export type FormalityPreference = "activewear" | "casual" | "business";
 export type WeatherScenario = "hot" | "warm" | "cool" | "cold" | "rainy" | "snowy";
 
 export interface Profile {
@@ -12,6 +13,7 @@ export interface Profile {
   temp_unit: "F" | "C";
   outfit_display_mode: "visual" | "text";
   style_preference: StylePreference;
+  formality_preference: FormalityPreference | null;
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"
   fcm_token: string | null;
@@ -108,10 +110,27 @@ export interface WeatherData {
 
 // ── Outfits ───────────────────────────────────────────────────────────────────
 
+/**
+ * Intermediate thermal tier output of the temperature-band logic.
+ * The multi-dimensional mapping resolves this into a concrete OutfitType
+ * based on stylePreference and formality.
+ */
+export type WarmthTier =
+  | "warmth_1"       // ≥ shorts threshold — very warm / hot
+  | "warmth_2"       // short-sleeve + pants range
+  | "warmth_3"       // long-sleeve + pants range
+  | "warmth_4"       // light jacket range
+  | "warmth_5"       // heavy jacket range
+  | "warmth_6"       // heavy coat range
+  | "warmth_1_rain"  // warm + rain (≥ shorts threshold)
+  | "warmth_2_rain"  // cool/mild + light-to-moderate rain
+  | "warmth_3_rain"  // heavy rain (any temperature)
+  | "warmth_6_snow"; // snow active — forces winter coat
+
 export type OutfitType =
   | "shorts_tshirt"
   | "pants_shortsleeve"
-  | "pants_tshirt"
+  | "pants_longsleeve"     // renamed from pants_tshirt for clarity
   | "light_jacket"
   | "heavy_jacket"
   | "heavy_coat"
@@ -120,8 +139,24 @@ export type OutfitType =
   | "rain_heavy"
   | "dress";
 
+/** Garment names and display strings resolved from the OutfitMapping table. */
+export interface OutfitMapping {
+  outfitType: OutfitType;
+  label: string;
+  descriptionTemplate: string; // placeholders: {garmentTop}, {garmentBottom}, {temp}
+  garmentTop: string;
+  garmentBottom: string | null; // null for full-length dresses
+}
+
 /** Footwear shown in the Flat Lay accessories zone */
-export type FootwearKind = "flip_flops" | "sneakers" | "snow_boots" | "rain_boots";
+export type FootwearKind =
+  | "flip_flops"
+  | "sneakers"
+  | "athletic_sneakers" // activewear formality priority
+  | "loafers"           // business formality (warm/mild)
+  | "dress_flats"       // business formality feminine
+  | "snow_boots"
+  | "rain_boots";
 
 export type AvatarCondition =
   | "sunny"
@@ -135,12 +170,16 @@ export type AvatarCondition =
 
 export interface OutfitRecommendation {
   outfit: OutfitType;
+  warmthTier: WarmthTier;
+  garmentTop: string;
+  garmentBottom: string | null;
   /** Max precip % in the next 2 hours when hourly data exists; else snapshot `precipProb` passed in. */
   effectivePrecipProb: number;
   label: string;            // "Light Jacket Weather"
   description: string;      // "Cool and breezy morning. Layer up."
   rainGear: boolean;
   umbrella: boolean;
+  rainShell: boolean;       // activewear formality rain indicator (waterproof running shell)
   sunglasses: boolean;
   scarf: boolean;
   beanie: boolean;
