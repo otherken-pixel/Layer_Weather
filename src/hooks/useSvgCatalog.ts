@@ -49,7 +49,6 @@ export function useSvgCatalog() {
 
     return () => {
       cancelled = true;
-      started.current = false;
     };
   }, [setSvgCatalog, setSvgCatalogLoading, setSvgCatalogError]);
 }
