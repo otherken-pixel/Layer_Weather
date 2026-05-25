@@ -184,7 +184,7 @@ export default function Home() {
     return getOutfitReason({
       feelsLike: weather.current.feelsLike,
       windSpeed: weather.current.windSpeed,
-      precipProb: weather.current.precipProb,
+      precipProb: outfit.effectivePrecipProb ?? weather.current.precipProb,
       humidity: weather.current.humidity,
       weatherCode: weather.current.weatherCode,
       outfit: outfit.outfit,
