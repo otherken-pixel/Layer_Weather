@@ -10,7 +10,12 @@ import {
   updatePackingTrip,
   deletePackingTrip,
 } from "@/lib/supabase";
-import type { SavedPackingTrip, PackingItem, SerializedDailyForecast, DailyForecast } from "@/types";
+import {
+  fetchPackingInsights,
+  forecastsForPackingRules,
+  wardrobeForInsights,
+} from "@/lib/packing-insights";
+import type { SavedPackingTrip, PackingItem, SerializedDailyForecast, DailyForecast, PackingAiInsights } from "@/types";
 
 interface GeoResult { name: string; latitude: number; longitude: number; country: string; admin1?: string; }
 
@@ -121,7 +126,7 @@ function formatLastUpdated(iso: string | null): string {
 }
 
 export default function Packing() {
-  const { calibration, wardrobeItems, userId } = useAppStore();
+  const { calibration, wardrobeItems, userId, profile } = useAppStore();
   const { accentSolid } = useAccentColor();
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
@@ -151,6 +156,8 @@ export default function Packing() {
   const [refreshingTripId, setRefreshingTripId] = useState<string | null>(null);
   const [tripDiffs, setTripDiffs] = useState<Record<string, { added: string[]; removed: string[] }>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
+  const [currentAiInsights, setCurrentAiInsights] = useState<PackingAiInsights | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -177,7 +184,7 @@ export default function Packing() {
 
   async function generate() {
     if (!selected || !departureDate || !returnDate) return;
-    setLoading(true); setError(""); setCurrentItems([]); setCurrentForecasts([]); setForecastIncomplete(false);
+    setLoading(true); setError(""); setCurrentItems([]); setCurrentForecasts([]); setForecastIncomplete(false); setCurrentAiInsights(null);
     try {
       const dep = new Date(departureDate + "T00:00:00");
       const ret = new Date(returnDate + "T00:00:00");
@@ -215,13 +222,15 @@ export default function Packing() {
         packing_list: rawList.length ? rawList : null,
         weather_snapshot: snapshot,
         last_generated_at: rawList.length ? new Date().toISOString() : null,
+        ai_insights: currentAiInsights,
+        ai_generated_at: currentAiInsights ? new Date().toISOString() : null,
       });
       setSavedTrips((prev) =>
         [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date))
       );
       setSavedConfirm(true);
       setTimeout(() => setSavedConfirm(false), 3000);
-      setCurrentItems([]); setCurrentForecasts([]); setSelected(null); setDestination(""); setDepartureDate(""); setReturnDate("");
+      setCurrentItems([]); setCurrentForecasts([]); setCurrentAiInsights(null); setSelected(null); setDestination(""); setDepartureDate(""); setReturnDate("");
     } catch { setError("Could not save trip."); }
     finally { setSaving(false); }
   }
@@ -241,6 +250,8 @@ export default function Packing() {
         packing_list: null,
         weather_snapshot: null,
         last_generated_at: null,
+        ai_insights: null,
+        ai_generated_at: null,
       });
       setSavedTrips((prev) =>
         [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date))
@@ -303,6 +314,90 @@ export default function Packing() {
       setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
     } catch { setError("Could not refresh weather."); }
     finally { setRefreshingTripId(null); }
+  }
+
+  async function requestAiInsightsForCurrent() {
+    if (!selected || !currentForecasts.length) return;
+    setAiLoadingId("current"); setError("");
+    try {
+      const snapshot = serializeForecasts(currentForecasts);
+      const baseline = generatePackingList(forecastsForPackingRules(snapshot), cal);
+      const insights = await fetchPackingInsights({
+        destination: selected.name,
+        departure_date: departureDate,
+        return_date: returnDate,
+        daily_forecasts: snapshot,
+        calibration: cal,
+        temp_unit: profile?.temp_unit ?? "F",
+        baseline_packing_list: baseline,
+        wardrobe_items: wardrobeForInsights(wardrobeItems),
+      });
+      setCurrentAiInsights(insights);
+      const annotated = annotatePackingListWithWardrobe(insights.packing_recommendations, wardrobeItems);
+      setCurrentItems(annotated);
+    } catch {
+      setError("Could not generate smart packing advice. Try again.");
+    } finally {
+      setAiLoadingId(null);
+    }
+  }
+
+  async function requestAiInsightsForTrip(trip: SavedPackingTrip) {
+    setAiLoadingId(trip.id); setError("");
+    try {
+      let snapshot = trip.weather_snapshot;
+      if (!snapshot?.length) {
+        const dep = new Date(trip.departure_date + "T00:00:00");
+        const ret = new Date(trip.return_date + "T00:00:00");
+        const result = await fetchWeatherForDateRange(
+          trip.latitude, trip.longitude, dep, ret,
+          { countryCode: trip.country_code ?? undefined },
+        );
+        if (!result?.forecasts.length) {
+          setError(forecastUnavailableMsg(trip.departure_date));
+          return;
+        }
+        snapshot = serializeForecasts(result.forecasts);
+        await updatePackingTrip(trip.id, {
+          weather_snapshot: snapshot,
+          last_generated_at: new Date().toISOString(),
+        });
+        setSavedTrips((prev) =>
+          prev.map((t) => t.id === trip.id ? { ...t, weather_snapshot: snapshot, last_generated_at: new Date().toISOString() } : t),
+        );
+      }
+      const baseline = generatePackingList(forecastsForPackingRules(snapshot), cal);
+      const insights = await fetchPackingInsights({
+        destination: trip.destination,
+        departure_date: trip.departure_date,
+        return_date: trip.return_date,
+        daily_forecasts: snapshot,
+        calibration: cal,
+        temp_unit: profile?.temp_unit ?? "F",
+        baseline_packing_list: baseline,
+        wardrobe_items: wardrobeForInsights(wardrobeItems),
+      });
+      const annotated = annotatePackingListWithWardrobe(insights.packing_recommendations, wardrobeItems);
+      const rawList: PackingItem[] = annotated.map(({ ownedItem: _o, ...rest }) => rest);
+      const aiGenAt = new Date().toISOString();
+      await updatePackingTrip(trip.id, {
+        packing_list: rawList,
+        ai_insights: insights,
+        ai_generated_at: aiGenAt,
+      });
+      setSavedTrips((prev) =>
+        prev.map((t) =>
+          t.id === trip.id
+            ? { ...t, packing_list: rawList, ai_insights: insights, ai_generated_at: aiGenAt, weather_snapshot: snapshot }
+            : t,
+        ),
+      );
+      setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
+    } catch {
+      setError("Could not generate smart packing advice. Try again.");
+    } finally {
+      setAiLoadingId(null);
+    }
   }
 
   async function confirmDelete(tripId: string) {
@@ -485,6 +580,34 @@ export default function Packing() {
               </div>
             )}
 
+            {currentAiInsights && (
+              <PackingAiInsightsCard insights={currentAiInsights} accentSolid={accentSolid} />
+            )}
+
+            <button
+              type="button"
+              onClick={requestAiInsightsForCurrent}
+              disabled={aiLoadingId === "current"}
+              style={{
+                background: "#fff",
+                color: accentSolid,
+                border: `2px solid ${accentSolid}`,
+                borderRadius: 14,
+                padding: "12px 0",
+                fontSize: 14,
+                fontWeight: 700,
+                width: "100%",
+                cursor: aiLoadingId === "current" ? "not-allowed" : "pointer",
+                opacity: aiLoadingId === "current" ? 0.7 : 1,
+              }}
+            >
+              {aiLoadingId === "current"
+                ? "✨ Generating smart advice…"
+                : currentAiInsights
+                  ? "✨ Regenerate smart packing advice"
+                  : "✨ Get smart packing advice"}
+            </button>
+
             {CATEGORIES.map((cat) => {
               const catItems = currentItems.filter((i) => i.category === cat);
               if (!catItems.length) return null;
@@ -519,9 +642,12 @@ export default function Packing() {
               const countdown = tripCountdown(trip.departure_date);
               const fStatus = forecastStatus(trip.departure_date, trip.return_date);
               const isRefreshing = refreshingTripId === trip.id;
+              const isAiLoading = aiLoadingId === trip.id;
               const diff = tripDiffs[trip.id];
               const items = tripItems[trip.id] ?? [];
               const hasItems = items.length > 0 || (trip.packing_list?.length ?? 0) > 0;
+              const canRequestAi = !isPast && fStatus !== "unavailable";
+              const hasForecastData = (trip.weather_snapshot?.length ?? 0) > 0 || hasItems;
 
               return (
                 <div
@@ -621,6 +747,43 @@ export default function Packing() {
                         )}
                       </div>
 
+                      {trip.ai_insights && (
+                        <PackingAiInsightsCard insights={trip.ai_insights} accentSolid={accentSolid} />
+                      )}
+
+                      {canRequestAi && hasForecastData && (
+                        <button
+                          type="button"
+                          onClick={() => requestAiInsightsForTrip(trip)}
+                          disabled={isAiLoading || isRefreshing}
+                          style={{
+                            width: "100%",
+                            marginBottom: 12,
+                            background: "#fff",
+                            color: accentSolid,
+                            border: `2px solid ${accentSolid}`,
+                            borderRadius: 12,
+                            padding: "10px 0",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: isAiLoading || isRefreshing ? "not-allowed" : "pointer",
+                            opacity: isAiLoading || isRefreshing ? 0.7 : 1,
+                          }}
+                        >
+                          {isAiLoading
+                            ? "✨ Generating smart advice…"
+                            : trip.ai_insights
+                              ? "✨ Regenerate smart packing advice"
+                              : "✨ Get smart packing advice"}
+                        </button>
+                      )}
+
+                      {canRequestAi && !hasForecastData && (
+                        <p style={{ fontSize: 12, color: "#9CA3AF", margin: "0 0 12px", textAlign: "center" }}>
+                          Refresh weather first, then you can request smart packing advice.
+                        </p>
+                      )}
+
                       {/* Diff banner */}
                       {diff && (diff.added.length > 0 || diff.removed.length > 0) && (
                         <div style={{ background: "#FFFBEB", borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
@@ -674,6 +837,49 @@ export default function Packing() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── AI insights summary ───────────────────────────────────────────────────────
+
+function PackingAiInsightsCard({
+  insights,
+  accentSolid,
+}: {
+  insights: PackingAiInsights;
+  accentSolid: string;
+}) {
+  const [highlightsOpen, setHighlightsOpen] = useState(false);
+  return (
+    <div style={{ background: "#F5F3FF", borderRadius: 16, padding: 14, marginBottom: 12, border: `1px solid ${accentSolid}22` }}>
+      <p style={{ fontSize: 11, fontWeight: 700, color: accentSolid, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 8px" }}>
+        Smart packing advice
+      </p>
+      <p style={{ fontSize: 14, color: "#374151", margin: "0 0 8px", lineHeight: 1.45 }}>{insights.weather_summary}</p>
+      {insights.packing_notes && (
+        <p style={{ fontSize: 13, color: "#6B7280", margin: 0, fontStyle: "italic" }}>{insights.packing_notes}</p>
+      )}
+      {insights.daily_highlights.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={() => setHighlightsOpen((o) => !o)}
+            style={{ fontSize: 12, fontWeight: 700, color: accentSolid, background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            {highlightsOpen ? "Hide" : "Show"} day-by-day ({insights.daily_highlights.length})
+          </button>
+          {highlightsOpen && (
+            <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>
+              {insights.daily_highlights.map((h) => (
+                <li key={h.date}>
+                  <strong>{h.date}</strong> — {h.summary}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

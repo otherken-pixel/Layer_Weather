@@ -33,3 +33,6 @@ verify_jwt = false
 
 [functions.weather-alerts]
 verify_jwt = true
+
+[functions.packing-insights]
+verify_jwt = true

@@ -93,3 +93,20 @@ jobs:
           supabase functions deploy weather-alerts \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --use-api
+
+      - name: Sync GEMINI_API_KEY to Supabase (if configured)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -n "$GEMINI_API_KEY" ]; then
+            supabase secrets set GEMINI_API_KEY="$GEMINI_API_KEY" --project-ref "$SUPABASE_PROJECT_REF"
+            echo "GEMINI_API_KEY synced to Supabase Edge secrets"
+          else
+            echo "GEMINI_API_KEY GitHub secret not set — skip sync (set in Supabase Dashboard manually)"
+          fi
+
+      - name: Deploy packing-insights function
+        run: |
+          supabase functions deploy packing-insights \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --use-api

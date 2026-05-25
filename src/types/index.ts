@@ -332,6 +332,13 @@ export interface SerializedDailyForecast {
   sunset: string;
 }
 
+export interface PackingAiInsights {
+  weather_summary: string;
+  daily_highlights: { date: string; summary: string }[];
+  packing_recommendations: PackingItem[];
+  packing_notes: string;
+}
+
 export interface SavedPackingTrip {
   id: string;
   user_id: string;
@@ -344,5 +351,7 @@ export interface SavedPackingTrip {
   packing_list: PackingItem[] | null;
   weather_snapshot: SerializedDailyForecast[] | null;
   last_generated_at: string | null;
+  ai_insights: PackingAiInsights | null;
+  ai_generated_at: string | null;
   created_at: string;
 }

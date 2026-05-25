@@ -1,12 +1,34 @@
 # Supabase Edge Function deploy (GitHub Actions)
 
-The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/deploy-functions.yml) deploys `weather` and `weather-alerts` when `supabase/functions/**` changes on `main`.
+The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/deploy-functions.yml) deploys `weather`, `weather-alerts`, and `packing-insights` when `supabase/functions/**` changes on `main`.
 
-## Required GitHub secret
+## Required GitHub secrets
 
 | Secret | Required | How to get it |
 |--------|----------|----------------|
 | `SUPABASE_ACCESS_TOKEN` | **Yes** | [Account → Access Tokens](https://supabase.com/dashboard/account/tokens) — must start with **`sbp_`** (not the anon key, not `service_role`, not the project ref) |
+| `GEMINI_API_KEY` | **For AI packing** | [Google AI Studio](https://aistudio.google.com/apikey) — synced to Supabase on deploy when set |
+
+## Supabase Edge Function secrets (Dashboard)
+
+Set these under **Project Settings → Edge Functions** (or let the deploy workflow sync `GEMINI_API_KEY` from GitHub):
+
+| Secret | Function | Purpose |
+|--------|----------|---------|
+| `GEMINI_API_KEY` | `packing-insights` | Gemini `gemini-2.0-flash-lite` for on-demand trip packing advice |
+| `WEATHERKIT_*` | `weather` | Apple WeatherKit JWT (existing) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `weather-alerts` | Cron alerts (existing) |
+| `FCM_SERVER_KEY` | `weather-alerts` | Push notifications (existing) |
+
+### Database migration for AI insights
+
+Apply migration `supabase/migrations/009_packing_ai_insights.sql` (adds `ai_insights`, `ai_generated_at` to `packing_trips`):
+
+```bash
+npx supabase db push --project-ref "$PROJECT_REF"
+```
+
+Or run the SQL in the Supabase SQL editor.
 
 ## Project reference (one of these)
 
