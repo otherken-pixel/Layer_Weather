@@ -106,6 +106,7 @@ export interface WeatherData {
 
 export type OutfitType =
   | "shorts_tshirt"
+  | "pants_shortsleeve"
   | "pants_tshirt"
   | "light_jacket"
   | "heavy_jacket"
