@@ -220,10 +220,10 @@ const SECTIONS: HelpSection[] = [
           <>
             <p>Go to the Packing tab and follow these steps:</p>
             <ol style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li>Tap the search bar and type your travel destination (city, country, or region).</li>
-              <li>Select the correct location from the search results.</li>
-              <li>Choose your travel dates.</li>
-              <li>Tap <strong>Generate List</strong> — the app fetches the weather forecast for your destination and builds a packing list based on expected conditions.</li>
+              <li>Type your travel destination in the search bar and select from the results.</li>
+              <li>Set your departure and return dates using the date pickers.</li>
+              <li>Tap <strong>Pack for [Destination]</strong> — the app fetches the weather forecast for your exact travel dates and builds a packing list based on expected conditions.</li>
+              <li>Tap <strong>Save Trip</strong> to store the trip so you can come back and refresh it as your departure approaches.</li>
             </ol>
           </>
         ),
@@ -231,19 +231,54 @@ const SECTIONS: HelpSection[] = [
       {
         question: "How is the packing list generated?",
         answer: (
-          <p>WearToday pulls a multi-day weather forecast for your destination covering your travel dates. It then applies the same outfit logic used on the Today tab — your warmth thresholds, rain tolerance, and style preferences — to suggest the types and quantities of clothing you'll need. If you've added items to your Wardrobe, those items are referenced by name in the list.</p>
+          <p>WearToday pulls the weather forecast for your destination covering your exact travel dates. It uses Apple WeatherKit (primary) for trips within 10 days, and an extended 16-day forecast for trips up to 16 days out. The same outfit logic from the Today tab — your warmth thresholds, rain tolerance, and personal wardrobe — is applied to recommend the right types and quantities of clothing. If you've added items to your Wardrobe, those are matched by name in the list with a green checkmark.</p>
         ),
       },
       {
-        question: "Can I customize the generated packing list?",
+        question: "Can I save multiple upcoming trips?",
         answer: (
-          <p>Yes. After the list is generated you can check off items you've already packed and add your own custom items. The list is saved so you can return to it as you continue packing in the days before your trip.</p>
+          <>
+            <p>Yes — tap <strong>Save Trip</strong> after generating a packing list, and the trip is added to the <em>My Trips</em> section below the form. You can save as many future trips as you like. Each trip card shows the destination, date range, and how far away it is.</p>
+            <p style={{ marginTop: 8 }}>For trips more than 16 days away, you can still save the trip — the forecast won't be available yet, but the card will show when the forecast unlocks so you know when to come back.</p>
+          </>
+        ),
+      },
+      {
+        question: "How do I refresh a saved trip's packing list?",
+        answer: (
+          <>
+            <p>Tap any saved trip card to expand it, then tap <strong>↻ Refresh Weather</strong>. The app fetches the latest forecast for your trip dates and regenerates the packing list. If anything changed since your last refresh, a banner highlights:</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><strong style={{ color: "#15803D" }}>+ Now needed</strong> — items added because of new weather (e.g. rain jacket added when rain arrives).</li>
+              <li><strong style={{ color: "#6B7280" }}>No longer needed</strong> — items removed because conditions improved (e.g. heavy coat removed if a cold snap passes).</li>
+            </ul>
+            <p style={{ marginTop: 8 }}>The updated list and new weather snapshot are saved automatically.</p>
+          </>
+        ),
+      },
+      {
+        question: "What is the 1-day-out notification?",
+        answer: (
+          <p>The night before any saved trip departs, WearToday checks the latest weather forecast against your stored packing list. If conditions have changed significantly — a temperature swing of 10°F or more, new rain days, or unexpected snow — you'll receive a push notification prompting you to open the app and review your updated packing list. If conditions are stable, you'll get a simple reminder that your trip starts tomorrow. Notifications require push permission to be enabled on your device.</p>
+        ),
+      },
+      {
+        question: "How far ahead can I see a forecast?",
+        answer: (
+          <>
+            <p>Forecast availability depends on how soon your trip is:</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><strong>Within 10 days</strong> — Full Apple WeatherKit forecast. Most accurate.</li>
+              <li><strong>11–16 days</strong> — Extended Open-Meteo forecast. Good directional accuracy, less precise day-to-day.</li>
+              <li><strong>More than 16 days</strong> — No forecast yet. Save the trip and the card will show the exact date the forecast becomes available.</li>
+            </ul>
+          </>
         ),
       },
       {
         question: "What if my destination isn't found?",
         answer: (
-          <p>Try a broader search term — for example, the nearest major city instead of a small town. The app uses a geocoding API to resolve locations, so well-known cities will always work. If the destination still can't be found, you can enter weather conditions manually to generate a list.</p>
+          <p>Try a broader search term — for example, the nearest major city instead of a small town. Well-known cities, regions, and countries always resolve correctly. If you're having trouble with an unusual spelling, try the English name of the location.</p>
         ),
       },
     ],

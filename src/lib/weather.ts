@@ -160,6 +160,7 @@ async function fetchFromEdgeFunction(
 async function fetchFromOpenMeteo(
   latitude: number,
   longitude: number,
+  forecastDays = 7,
 ): Promise<WeatherData> {
   const params = new URLSearchParams({
     latitude: latitude.toString(),
@@ -182,7 +183,7 @@ async function fetchFromOpenMeteo(
     wind_speed_unit: "mph",
     precipitation_unit: "inch",
     timezone: "auto",
-    forecast_days: "7",
+    forecast_days: forecastDays.toString(),
   });
 
   const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`);
@@ -277,6 +278,56 @@ export async function fetchWeatherData(
     console.warn("WeatherKit edge function unavailable, using Open-Meteo fallback:", err);
     return fetchFromOpenMeteo(latitude, longitude);
   }
+}
+
+function toLocalDayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Fetch daily forecasts for a specific date range using Apple WeatherKit (primary)
+ * or Open-Meteo (fallback / extended range). Returns null when the trip is more
+ * than 16 days away (no reliable forecast exists yet).
+ */
+export async function fetchWeatherForDateRange(
+  latitude: number,
+  longitude: number,
+  departureDate: Date,
+  returnDate: Date,
+  opts?: { countryCode?: string },
+): Promise<{ forecasts: DailyForecast[]; isForecastComplete: boolean } | null> {
+  const today = new Date();
+  const todayKey = toLocalDayKey(today);
+  const retKey = toLocalDayKey(returnDate);
+
+  const todayMidnight = new Date(todayKey + "T00:00:00").getTime();
+  const retMidnight = new Date(retKey + "T00:00:00").getTime();
+  const daysToReturn = Math.ceil((retMidnight - todayMidnight) / 86400000);
+
+  if (daysToReturn > 16) return null;
+
+  let allDaily: DailyForecast[];
+
+  if (daysToReturn <= 10) {
+    try {
+      allDaily = (await fetchFromEdgeFunction(latitude, longitude, opts?.countryCode)).daily;
+    } catch (err) {
+      console.warn("WeatherKit unavailable for date-range fetch, using Open-Meteo:", err);
+      allDaily = (await fetchFromOpenMeteo(latitude, longitude, 16)).daily;
+    }
+  } else {
+    allDaily = (await fetchFromOpenMeteo(latitude, longitude, 16)).daily;
+  }
+
+  const depKey = toLocalDayKey(departureDate);
+  const forecasts = allDaily.filter((d) => {
+    const key = toLocalDayKey(d.date);
+    return key >= depKey && key <= retKey;
+  });
+
+  const expectedDays = Math.round((retMidnight - new Date(depKey + "T00:00:00").getTime()) / 86400000) + 1;
+
+  return { forecasts, isForecastComplete: forecasts.length >= expectedDays };
 }
 
 // ── Reverse geocode via Nominatim ─────────────────────────────────────────────
