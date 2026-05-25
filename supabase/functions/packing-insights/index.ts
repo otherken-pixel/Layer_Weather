@@ -7,6 +7,7 @@ const CORS = {
 
 const MODEL = "gemini-2.0-flash-lite";
 const MAX_TRIP_DAYS = 21;
+const VALID_CATEGORIES = new Set(["tops", "bottoms", "outerwear", "footwear", "accessories"]);
 
 interface PackingItem {
   category: string;
@@ -43,42 +44,6 @@ interface RequestBody {
   wardrobe_items?: { name: string; category: string }[];
 }
 
-const RESPONSE_SCHEMA = {
-  type: "object",
-  properties: {
-    weather_summary: { type: "string" },
-    daily_highlights: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          date: { type: "string" },
-          summary: { type: "string" },
-        },
-        required: ["date", "summary"],
-      },
-    },
-    packing_recommendations: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          category: {
-            type: "string",
-            enum: ["tops", "bottoms", "outerwear", "footwear", "accessories"],
-          },
-          name: { type: "string" },
-          quantity: { type: "integer" },
-          reason: { type: "string" },
-        },
-        required: ["category", "name", "quantity"],
-      },
-    },
-    packing_notes: { type: "string" },
-  },
-  required: ["weather_summary", "daily_highlights", "packing_recommendations", "packing_notes"],
-};
-
 function tripDayCount(dep: string, ret: string): number {
   const d1 = new Date(dep + "T00:00:00");
   const d2 = new Date(ret + "T00:00:00");
@@ -107,55 +72,122 @@ Daily forecasts:
 ${JSON.stringify(body.daily_forecasts)}
 ${baseline}${wardrobe}
 
-Return JSON with:
-- weather_summary: 2-4 sentences about the trip weather pattern
-- daily_highlights: one short line per forecast day (date as YYYY-MM-DD)
-- packing_recommendations: complete packing list with category, name, quantity, reason
-- packing_notes: 1-2 sentences of practical tips (layering, laundry, etc.)`;
+Respond with ONLY valid JSON (no markdown) matching this shape:
+{
+  "weather_summary": "string",
+  "daily_highlights": [{"date":"YYYY-MM-DD","summary":"string"}],
+  "packing_recommendations": [{"category":"tops|bottoms|outerwear|footwear|accessories","name":"string","quantity":number,"reason":"string"}],
+  "packing_notes": "string"
+}`;
+}
+
+function normalizeCategory(raw: unknown): string {
+  const c = String(raw ?? "").toLowerCase().trim();
+  if (VALID_CATEGORIES.has(c)) return c;
+  if (/jacket|coat|rain|outer|fleece|parka/i.test(c)) return "outerwear";
+  if (/shirt|tee|top|blouse/i.test(c)) return "tops";
+  if (/pant|jean|short|skirt|bottom/i.test(c)) return "bottoms";
+  if (/shoe|boot|sandal|sneaker|foot/i.test(c)) return "footwear";
+  return "accessories";
+}
+
+function parseGeminiJson(text: string): Record<string, unknown> {
+  const trimmed = text.trim();
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fenced?.[1]) return JSON.parse(fenced[1].trim()) as Record<string, unknown>;
+    throw new Error("Gemini returned invalid JSON");
+  }
+}
+
+function normalizePackingItems(raw: unknown): PackingItem[] {
+  if (!Array.isArray(raw)) return [];
+  const items: PackingItem[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const o = entry as Record<string, unknown>;
+    const name = String(o.name ?? "").trim();
+    if (!name) continue;
+    const qty = Math.max(1, Math.round(Number(o.quantity) || 1));
+    items.push({
+      category: normalizeCategory(o.category),
+      name,
+      quantity: qty,
+      reason: o.reason != null ? String(o.reason) : undefined,
+    });
+  }
+  return items;
 }
 
 async function callGemini(apiKey: string, prompt: string): Promise<Record<string, unknown>> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 4096,
         responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
       },
     }),
   });
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${errText.slice(0, 300)}`);
+    let detail = errText.slice(0, 400);
+    try {
+      const parsed = JSON.parse(errText) as { error?: { message?: string } };
+      if (parsed.error?.message) detail = parsed.error.message;
+    } catch { /* keep raw */ }
+    if (res.status === 400 && /API key/i.test(detail)) {
+      throw new Error("Gemini API key is invalid. Check GEMINI_API_KEY in Supabase Edge Function secrets.");
+    }
+    throw new Error(`Gemini API error (${res.status}): ${detail}`);
   }
 
   const json = await res.json();
   const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text || typeof text !== "string") {
-    throw new Error("Empty Gemini response");
+    const blockReason = json?.candidates?.[0]?.finishReason ?? json?.promptFeedback?.blockReason;
+    throw new Error(blockReason ? `Gemini blocked response: ${blockReason}` : "Empty Gemini response");
   }
-  return JSON.parse(text) as Record<string, unknown>;
+  return parseGeminiJson(text);
 }
 
 function validateInsights(raw: Record<string, unknown>): Record<string, unknown> {
-  if (typeof raw.weather_summary !== "string") throw new Error("Invalid weather_summary");
-  if (!Array.isArray(raw.daily_highlights)) throw new Error("Invalid daily_highlights");
-  if (!Array.isArray(raw.packing_recommendations)) throw new Error("Invalid packing_recommendations");
-  if (typeof raw.packing_notes !== "string") throw new Error("Invalid packing_notes");
-  return raw;
+  const packing = normalizePackingItems(raw.packing_recommendations);
+  if (!packing.length) throw new Error("AI returned an empty packing list");
+
+  const highlights = Array.isArray(raw.daily_highlights)
+    ? raw.daily_highlights
+        .filter((h) => h && typeof h === "object")
+        .map((h) => {
+          const row = h as Record<string, unknown>;
+          return { date: String(row.date ?? ""), summary: String(row.summary ?? "") };
+        })
+        .filter((h) => h.date && h.summary)
+    : [];
+
+  return {
+    weather_summary: typeof raw.weather_summary === "string" ? raw.weather_summary : "Weather summary unavailable.",
+    daily_highlights: highlights,
+    packing_recommendations: packing,
+    packing_notes: typeof raw.packing_notes === "string" ? raw.packing_notes : "",
+  };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
   try {
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 503,
