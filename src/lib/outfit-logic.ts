@@ -18,7 +18,10 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
-/** At or above this feels-like (°F), recommend short sleeves + pants instead of long sleeves + pants. */
+/**
+ * Default floor (°F) for short sleeves + pants. The live boundary also rises with
+ * `light_jacket_max_temp` so calibrated bands stay ordered and feedback can move it.
+ */
 export const PANTS_SHORTSLEEVE_MIN_TEMP_F = 68;
 
 /** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
@@ -290,6 +293,15 @@ export function getOutfitRecommendation(opts: {
     heavyCoat: calibration.heavy_coat_max_temp + sensitivityShift,
   };
 
+  /** Short-sleeve + pants vs long-sleeve + pants; must stay above `lightJacket` as calibration moves. */
+  const pantsShortsleeveMin = Math.min(
+    calibration.shorts_min_temp + sensitivityShift - 1,
+    Math.max(
+      PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift,
+      adjustedThresholds.lightJacket + 3,
+    ),
+  );
+
   // Humidity makes warm air feel worse (muggy), cold air feel worse (damp)
   let effectiveFeelsLike = feelsLike;
   if (calibration.humidity_sensitivity) {
@@ -322,7 +334,7 @@ export function getOutfitRecommendation(opts: {
   let outfit: OutfitType;
   if (effectiveFeelsLike >= adjustedThresholds.shorts) {
     outfit = weatherCode <= 1 ? "dress" : "shorts_tshirt";
-  } else if (effectiveFeelsLike >= PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift) {
+  } else if (effectiveFeelsLike >= pantsShortsleeveMin) {
     outfit = "pants_shortsleeve";
   } else if (effectiveFeelsLike >= adjustedThresholds.lightJacket) {
     outfit = "pants_tshirt";
