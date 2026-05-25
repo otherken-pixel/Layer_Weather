@@ -13,6 +13,7 @@ import {
 import {
   fetchPackingInsights,
   forecastsForPackingRules,
+  packingInsightsErrorMessage,
   wardrobeForInsights,
 } from "@/lib/packing-insights";
 import type { SavedPackingTrip, PackingItem, SerializedDailyForecast, DailyForecast, PackingAiInsights } from "@/types";
@@ -335,8 +336,8 @@ export default function Packing() {
       setCurrentAiInsights(insights);
       const annotated = annotatePackingListWithWardrobe(insights.packing_recommendations, wardrobeItems);
       setCurrentItems(annotated);
-    } catch {
-      setError("Could not generate smart packing advice. Try again.");
+    } catch (err) {
+      setError(await packingInsightsErrorMessage(err));
     } finally {
       setAiLoadingId(null);
     }
@@ -393,8 +394,8 @@ export default function Packing() {
         ),
       );
       setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
-    } catch {
-      setError("Could not generate smart packing advice. Try again.");
+    } catch (err) {
+      setError(await packingInsightsErrorMessage(err));
     } finally {
       setAiLoadingId(null);
     }
