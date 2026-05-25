@@ -21,7 +21,8 @@ import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
 import { getWeatherScenario } from "@/lib/wardrobeScenario";
-import { addSavedLocation, getSavedLocations } from "@/lib/saved-locations";
+import { addSavedLocation, getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
+import { DEVICE_LOCATION_KEY } from "@/store";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
@@ -45,6 +46,7 @@ export default function Home() {
   const {
     profile, userId, calibration, outfitTimeline, location,
     savedLocations, setSavedLocations,
+    activeLocationIsDevice, setActiveLocationIsDevice,
     setProfile, setCalibration, setLocation, weatherLastFetched,
     weatherWardrobes, setWeatherWardrobes,
     setWardrobeItems,
@@ -54,6 +56,7 @@ export default function Home() {
   const isDark = useDarkMode(profile?.theme_preference ?? null);
   const navigate = useNavigate();
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
+  const [locationPickerMode, setLocationPickerMode] = useState<"add" | "update">("update");
 
   const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
   const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
@@ -96,7 +99,8 @@ export default function Home() {
         skipNextCityRefreshRef.current = false;
         return;
       }
-      refresh(true);
+      // Pass city as cache key so switching between saved cities uses per-city cache.
+      refresh(false, { cacheKey: city });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location?.city]);
@@ -112,6 +116,18 @@ export default function Home() {
       } finally {
         skipNextCityRefreshRef.current = false;
         prevCityRef.current = useAppStore.getState().location?.city ?? null;
+        // Auto-seed the resolved location into saved list so tab bar appears immediately.
+        const loc = useAppStore.getState().location;
+        if (loc?.city) {
+          const current = await getSavedLocations().catch(() => [] as typeof savedLocations);
+          const alreadySaved = current.some(
+            (l) => l.city.toLowerCase() === loc.city.toLowerCase(),
+          );
+          if (!alreadySaved) {
+            const updated = await addSavedLocation(loc).catch(() => null);
+            if (updated) setSavedLocations(updated);
+          }
+        }
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,6 +153,7 @@ export default function Home() {
   }, [location]);
 
   async function handleLocationSaved(ctx?: { fromCitySave?: boolean }) {
+    setActiveLocationIsDevice(false);
     await refresh(true);
     // City path: sheet already called addSavedLocation with forward-geocoded name; refresh may
     // rename via reverse geocode — skip addSavedLocation so dedup by city string is not bypassed.
@@ -150,8 +167,36 @@ export default function Home() {
   }
 
   async function handleTabSelect(loc: LocationData) {
+    setActiveLocationIsDevice(false);
     setLocation(loc);
-    // setLocation triggers the city-change effect above which calls refresh(true)
+    // setLocation triggers the city-change effect above which calls refresh(true) with city cache key
+    // Pass the city as cache key via the effect below
+  }
+
+  async function handleDeviceTabSelect() {
+    setActiveLocationIsDevice(true);
+    refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+  }
+
+  async function handleDeleteCity(city: string) {
+    const updated = await removeSavedLocation(city).catch(() => null);
+    if (updated) {
+      setSavedLocations(updated);
+      // If the deleted city was active, switch to device GPS
+      if (location?.city?.toLowerCase() === city.toLowerCase()) {
+        handleDeviceTabSelect();
+      }
+    }
+  }
+
+  function handleOpenAddCity() {
+    setLocationPickerMode("add");
+    setLocationPickerOpen(true);
+  }
+
+  function handleOpenUpdateLocation() {
+    setLocationPickerMode("update");
+    setLocationPickerOpen(true);
   }
 
   async function handleOutfitFeedback(value: OutfitFeedbackValue) {
@@ -322,13 +367,14 @@ export default function Home() {
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
               onRefresh={() => refresh(true, { useDeviceLocation: true })}
-              onLocationPress={() => setLocationPickerOpen(true)}
+              onLocationPress={handleOpenUpdateLocation}
             />
             <LocationPickerSheet
               open={locationPickerOpen}
               onClose={() => setLocationPickerOpen(false)}
               onSaved={handleLocationSaved}
               variant="sky"
+              mode={locationPickerMode}
             />
             <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
             <WeatherAnimationLayer
@@ -337,15 +383,16 @@ export default function Home() {
             />
           </div>
 
-          {/* Location tab switcher — shown when 2+ saved locations exist */}
-          {savedLocations.length >= 2 && (
-            <LocationTabs
-              locations={savedLocations}
-              activeCity={location?.city ?? null}
-              onSelect={handleTabSelect}
-              onAdd={() => setLocationPickerOpen(true)}
-            />
-          )}
+          {/* Location tab switcher — always visible once at least one city is saved */}
+          <LocationTabs
+            locations={savedLocations}
+            activeCity={location?.city ?? null}
+            activeIsDevice={activeLocationIsDevice}
+            onSelect={handleTabSelect}
+            onSelectDevice={handleDeviceTabSelect}
+            onAdd={handleOpenAddCity}
+            onDelete={handleDeleteCity}
+          />
 
           {/* Cards area */}
           <div style={{

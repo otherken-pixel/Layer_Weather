@@ -1,6 +1,16 @@
 import { create } from "zustand";
 import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference } from "@/types";
 
+export interface CachedCityWeather {
+  weather: WeatherData;
+  outfit: OutfitRecommendation;
+  outfitTimeline: DayOutfitTimeline | null;
+  fetchedAt: Date;
+}
+
+/** Key used in cityWeatherCache when viewing device GPS weather. */
+export const DEVICE_LOCATION_KEY = "__device__";
+
 interface AppState {
   // Auth
   userId: string | null;
@@ -11,10 +21,14 @@ interface AppState {
   // Location & Weather
   location: LocationData | null;
   savedLocations: LocationData[];
+  /** True when the currently displayed weather is from device GPS (not a saved city). */
+  activeLocationIsDevice: boolean;
   weather: WeatherData | null;
   outfit: OutfitRecommendation | null;
   outfitTimeline: DayOutfitTimeline | null;
   weatherLastFetched: Date | null;
+  /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
+  cityWeatherCache: Record<string, CachedCityWeather>;
 
   // Wardrobe
   wardrobeItems: WardrobeItem[];
@@ -40,12 +54,14 @@ interface AppState {
   setIsOnboarded: (v: boolean) => void;
   setLocation: (loc: LocationData | null) => void;
   setSavedLocations: (locs: LocationData[]) => void;
+  setActiveLocationIsDevice: (v: boolean) => void;
   setWeather: (data: WeatherData | null) => void;
   setOutfit: (outfit: OutfitRecommendation | null) => void;
   setOutfitTimeline: (timeline: DayOutfitTimeline | null) => void;
   setWeatherLastFetched: (d: Date | null) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
+  setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
   reset: () => void;
 }
 
@@ -57,6 +73,7 @@ const initialState = {
   formality: "casual" as FormalityPreference,
   location: null,
   savedLocations: [] as LocationData[],
+  activeLocationIsDevice: false,
   wardrobeItems: [] as WardrobeItem[],
   weatherWardrobes: [] as WeatherWardrobePreset[],
   weather: null,
@@ -65,6 +82,7 @@ const initialState = {
   weatherLastFetched: null,
   isLoadingWeather: false,
   weatherError: null,
+  cityWeatherCache: {} as Record<string, CachedCityWeather>,
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -77,6 +95,7 @@ export const useAppStore = create<AppState>((set) => ({
   setIsOnboarded: (isOnboarded) => set({ isOnboarded }),
   setLocation: (location) => set({ location }),
   setSavedLocations: (savedLocations) => set({ savedLocations }),
+  setActiveLocationIsDevice: (activeLocationIsDevice) => set({ activeLocationIsDevice }),
   setWardrobeItems: (itemsOrUpdater) =>
     set((state) => ({
       wardrobeItems:
@@ -91,5 +110,7 @@ export const useAppStore = create<AppState>((set) => ({
   setWeatherLastFetched: (weatherLastFetched) => set({ weatherLastFetched }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
+  setCityWeatherCache: (key, entry) =>
+    set((state) => ({ cityWeatherCache: { ...state.cityWeatherCache, [key]: entry } })),
   reset: () => set(initialState),
 }));

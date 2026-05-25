@@ -1,7 +1,8 @@
 import { useCallback, useRef } from "react";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
-import { useAppStore } from "@/store";
+import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
+import type { CachedCityWeather } from "@/store";
 import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex } from "@/lib/weather";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { upsertProfile } from "@/lib/supabase";
@@ -79,6 +80,8 @@ async function resolveCoordinates(
 export type RefreshOptions = {
   /** When true with force, prefer GPS over saved/tab coordinates (native only). */
   useDeviceLocation?: boolean;
+  /** City name key to use when writing/reading the per-city cache. Defaults to resolved city. */
+  cacheKey?: string;
 };
 
 export function useWeather() {
@@ -86,8 +89,9 @@ export function useWeather() {
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
     profile, calibration, userId, formality,
+    cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
-    setIsLoadingWeather, setWeatherError,
+    setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -95,8 +99,23 @@ export function useWeather() {
   const refresh = useCallback(async (force = false, options: RefreshOptions = {}) => {
     if (!force && !isStale && weather) return;
 
-    const { useDeviceLocation = false } = options;
+    const { useDeviceLocation = false, cacheKey } = options;
     const generation = ++refreshGeneration.current;
+
+    // Check per-city cache before hitting the network.
+    // Skip cache when force=true (explicit user pull-to-refresh).
+    if (!force && cacheKey) {
+      const cached = cityWeatherCache[cacheKey];
+      if (cached && Date.now() - cached.fetchedAt.getTime() < STALE_AFTER_MS) {
+        setWeather(cached.weather);
+        setOutfit(cached.outfit);
+        setOutfitTimeline(cached.outfitTimeline);
+        setWeatherLastFetched(cached.fetchedAt);
+        setActiveLocationIsDevice(cacheKey === DEVICE_LOCATION_KEY);
+        return;
+      }
+    }
+
     setIsLoadingWeather(true);
     setWeatherError(null);
 
@@ -112,7 +131,7 @@ export function useWeather() {
           let countryCode: string | undefined =
             storeLocation?.country?.trim() || undefined;
 
-          if (force || !city) {
+          if (force || !city || useDeviceLocation) {
             const place = await withTimeout(
               reverseGeocodePlace(latitude, longitude),
               GEOCODE_TIMEOUT_MS,
@@ -132,7 +151,9 @@ export function useWeather() {
             region: "",
             country: countryCode ?? "",
           });
-          if (userId) {
+          setActiveLocationIsDevice(useDeviceLocation);
+
+          if (userId && !useDeviceLocation) {
             upsertProfile(userId, {
               last_latitude: latitude,
               last_longitude: longitude,
@@ -153,7 +174,8 @@ export function useWeather() {
           data.current.location = city;
           data.current.aqiIndex = aqiIndex;
           setWeather(data);
-          setWeatherLastFetched(new Date());
+          const fetchedAt = new Date();
+          setWeatherLastFetched(fetchedAt);
 
           const cal = calibration ?? DEFAULT_CALIBRATION;
           const stylePreference = storeProfile?.style_preference;
@@ -181,7 +203,16 @@ export function useWeather() {
               h.time.getMonth() === today.getMonth() &&
               h.time.getDate() === today.getDate(),
           );
-          setOutfitTimeline(getDayOutfitTimeline(todayHourly, cal, stylePreference, formalityPref));
+          const timeline = getDayOutfitTimeline(todayHourly, cal, stylePreference, formalityPref);
+          setOutfitTimeline(timeline);
+
+          // Write to per-city cache.
+          const resolvedKey = cacheKey ?? (useDeviceLocation ? DEVICE_LOCATION_KEY : city);
+          if (resolvedKey) {
+            const entry: CachedCityWeather = { weather: data, outfit: rec, outfitTimeline: timeline, fetchedAt };
+            setCityWeatherCache(resolvedKey, entry);
+          }
+
           saveWidgetSnapshot(data, rec).catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
@@ -195,7 +226,7 @@ export function useWeather() {
       setIsLoadingWeather(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStale, weather, calibration, profile, userId, location, formality]);
+  }, [isStale, weather, calibration, profile, userId, location, formality, cityWeatherCache]);
 
   return { weather, outfit, location, isLoadingWeather, weatherError, isStale, refresh };
 }
