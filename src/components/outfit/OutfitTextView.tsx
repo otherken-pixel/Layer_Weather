@@ -2,8 +2,9 @@ import React from "react";
 import type { FootwearKind, OutfitType } from "@/types";
 
 const OUTFIT_LABELS: Record<OutfitType, { top: string; bottom: string; layer?: string }> = {
-  shorts_tshirt:  { top: "T-shirt",           bottom: "Shorts" },
-  pants_tshirt:   { top: "Long-sleeve shirt",  bottom: "Pants" },
+  shorts_tshirt:    { top: "T-shirt",           bottom: "Shorts" },
+  pants_shortsleeve: { top: "T-shirt",           bottom: "Pants" },
+  pants_tshirt:     { top: "Long-sleeve shirt",  bottom: "Pants" },
   light_jacket:   { top: "Light jacket",       bottom: "Pants",  layer: "T-shirt underneath" },
   heavy_jacket:   { top: "Heavy jacket",       bottom: "Pants",  layer: "Warm layer underneath" },
   heavy_coat:     { top: "Heavy coat",         bottom: "Pants",  layer: "Warm layers underneath" },

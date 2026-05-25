@@ -184,6 +184,13 @@ export const OutfitColors = {
     bottomShadow: "#357ABD",
     label: "Hot Day Vibes",
   },
+  pants_shortsleeve: {
+    top: "#FFFFFF",
+    topShadow: "#E8E8E8",
+    bottom: "#2D3748",
+    bottomShadow: "#1A202C",
+    label: "Easy Going",
+  },
   pants_tshirt: {
     top: "#F0F4F8",
     topShadow: "#D9E2EC",

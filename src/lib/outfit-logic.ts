@@ -18,10 +18,14 @@ export const FLIP_FLOPS_MIN_TEMP_F = 85;
 /** Below this feels-like → snow boots (when not rainy) */
 export const SNOW_BOOTS_BELOW_TEMP_F = 50;
 
+/** At or above this feels-like (°F), recommend short sleeves + pants instead of long sleeves + pants. */
+export const PANTS_SHORTSLEEVE_MIN_TEMP_F = 68;
+
 /** Relative warmth / layering (higher = more layers). Rain variants match their base layer for lateral changes. */
 const OUTFIT_WARMTH: Record<OutfitType, number> = {
   shorts_tshirt: 1,
   dress: 1,
+  pants_shortsleeve: 2,
   pants_tshirt: 2,
   light_jacket: 3,
   rain_light: 3,
@@ -123,6 +127,11 @@ export function getOutfitReason(opts: {
     return isWindy
       ? `${feelsLike}°F + breezy → light layer up`
       : `${feelsLike}°F → light jacket recommended`;
+  }
+  if (outfit === "pants_shortsleeve") {
+    return isHumid
+      ? `${feelsLike}°F · ${humidity}% humidity → short sleeves`
+      : `${feelsLike}°F → short sleeves & pants`;
   }
   if (outfit === "pants_tshirt") {
     return isHumid
@@ -313,6 +322,8 @@ export function getOutfitRecommendation(opts: {
   let outfit: OutfitType;
   if (effectiveFeelsLike >= adjustedThresholds.shorts) {
     outfit = weatherCode <= 1 ? "dress" : "shorts_tshirt";
+  } else if (effectiveFeelsLike >= PANTS_SHORTSLEEVE_MIN_TEMP_F + sensitivityShift) {
+    outfit = "pants_shortsleeve";
   } else if (effectiveFeelsLike >= adjustedThresholds.lightJacket) {
     outfit = "pants_tshirt";
   } else if (effectiveFeelsLike >= lightJacketFloor) {
@@ -334,6 +345,7 @@ export function getOutfitRecommendation(opts: {
       outfit = "rain_heavy";
     } else if (
       outfit === "shorts_tshirt" ||
+      outfit === "pants_shortsleeve" ||
       outfit === "pants_tshirt" ||
       outfit === "light_jacket"
     ) {
@@ -399,6 +411,7 @@ function getOutfitLabel(outfit: OutfitType): string {
   const labels: Record<OutfitType, string> = {
     shorts_tshirt: "Short Sleeves & Shorts",
     dress: "Dress Weather",
+    pants_shortsleeve: "Short Sleeves & Pants",
     pants_tshirt: "Long Sleeves & Pants",
     light_jacket: "Light Jacket",
     heavy_jacket: "Heavy Jacket",
@@ -425,6 +438,8 @@ function buildDescription(
       return `Beautiful ${feelsLike}°F clear day — perfect weather for a dress. Light, breezy, and comfortable.${windNote}`;
     case "shorts_tshirt":
       return `Short sleeves and shorts are the move at ${feelsLike}°F. Light, breathable fabrics will keep you comfortable.${windNote}`;
+    case "pants_shortsleeve":
+      return `At ${feelsLike}°F, a short-sleeve shirt with pants is the sweet spot — comfortable without overheating.${windNote}`;
     case "pants_tshirt":
       return `At ${feelsLike}°F, a long-sleeve shirt and pants is the right call. Light layers you can adjust as needed.${windNote}`;
     case "light_jacket":

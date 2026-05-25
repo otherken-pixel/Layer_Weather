@@ -19,9 +19,10 @@ export interface AnnotatedPackingItem {
 
 // Warmth ranges per outfit type
 const TOP_WARMTH: Record<OutfitType, [number, number]> = {
-  shorts_tshirt: [1, 2],
-  dress:         [1, 2],
-  pants_tshirt:  [2, 3],
+  shorts_tshirt:    [1, 2],
+  dress:            [1, 2],
+  pants_shortsleeve: [1, 2],
+  pants_tshirt:     [2, 3],
   light_jacket:  [2, 3],
   rain_light:    [2, 3],
   heavy_jacket:  [3, 4],
@@ -30,9 +31,10 @@ const TOP_WARMTH: Record<OutfitType, [number, number]> = {
 };
 
 const BOTTOM_WARMTH: Record<OutfitType, [number, number]> = {
-  shorts_tshirt: [1, 2],
-  dress:         [1, 2],
-  pants_tshirt:  [2, 4],
+  shorts_tshirt:    [1, 2],
+  dress:            [1, 2],
+  pants_shortsleeve: [2, 4],
+  pants_tshirt:     [2, 4],
   light_jacket:  [2, 4],
   rain_light:    [2, 4],
   heavy_jacket:  [2, 4],
@@ -42,9 +44,10 @@ const BOTTOM_WARMTH: Record<OutfitType, [number, number]> = {
 
 // null means no outerwear needed for this outfit type
 const OUTERWEAR_WARMTH: Record<OutfitType, [number, number] | null> = {
-  shorts_tshirt: null,
-  dress:         null,
-  pants_tshirt:  null,
+  shorts_tshirt:    null,
+  dress:            null,
+  pants_shortsleeve: null,
+  pants_tshirt:     null,
   light_jacket:  [2, 3],
   rain_light:    [2, 4],
   heavy_jacket:  [3, 4],

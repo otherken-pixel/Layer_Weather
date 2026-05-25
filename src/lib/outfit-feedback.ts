@@ -48,7 +48,7 @@ export function computeCalibrationFromFeedback(
     shortsMin = clamp(shortsMin + STEP, BOUNDS.shorts_min_temp);
   }
 
-  if (countByOutfit("pants_tshirt") >= TRIGGER_COUNT) {
+  if (countByOutfit("pants_shortsleeve") >= TRIGGER_COUNT || countByOutfit("pants_tshirt") >= TRIGGER_COUNT) {
     lightJacketMax = clamp(lightJacketMax + STEP, BOUNDS.light_jacket_max_temp);
   }
 

@@ -2,6 +2,7 @@ import type { FootwearKind, OutfitType } from "@/types";
 
 export const topMap: Record<OutfitType, string> = {
   shorts_tshirt: "TShirt",
+  pants_shortsleeve: "TShirt",
   pants_tshirt: "LongSleeve",
   light_jacket: "Jacket",
   heavy_jacket: "HeavyJacket",
@@ -13,6 +14,7 @@ export const topMap: Record<OutfitType, string> = {
 
 export const bottomMap: Record<OutfitType, string | null> = {
   shorts_tshirt: "Shorts",
+  pants_shortsleeve: "Pants",
   pants_tshirt: "Pants",
   light_jacket: "Pants",
   heavy_jacket: "Pants",
