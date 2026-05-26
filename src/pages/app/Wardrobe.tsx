@@ -11,6 +11,7 @@ import SvgPickerGrid, { PickerSvgThumb } from "@/components/wardrobe/SvgPickerGr
 import OutfitFlatLay from "@/components/outfit/OutfitFlatLay";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
+import { useIsDark } from "@/hooks/useDarkMode";
 
 const DRESS_SVG_ID = "tops-feminine-dress";
 
@@ -551,7 +552,7 @@ export default function Wardrobe() {
   const weatherWardrobes  = useAppStore((s) => s.weatherWardrobes);
   const setWeatherWardrobes = useAppStore((s) => s.setWeatherWardrobes);
   const setWardrobeItems = useAppStore((s) => s.setWardrobeItems);
-  const isDark = profile?.theme_preference === "dark";
+  const isDark = useIsDark();
 
   const [loading, setLoading] = useState(true);
   const [editingScenario, setEditingScenario] = useState<WeatherScenario | null>(null);
