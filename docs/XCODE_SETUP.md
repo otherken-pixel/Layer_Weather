@@ -8,11 +8,28 @@ the iOS project with Capacitor, follow these steps to wire everything into Xcode
 ## 0. Prerequisites
 
 ```bash
-npx cap add ios       # generates ios/ if not yet present
-npx cap sync          # syncs web assets + plugins
-cd ios && pod install # installs CocoaPods dependencies
-open App/App.xcworkspace
+npx cap add ios          # generates ios/ if not yet present
+npx cap sync             # syncs web assets + plugins
+cd ios && pod install    # installs CocoaPods dependencies
+cd ..                    # back to project root
+
+# Wire all native Swift targets into the Xcode project automatically:
+ruby scripts/setup-xcode-targets.rb
+
+open ios/App/App.xcworkspace
 ```
+
+The script (idempotent — safe to re-run) handles:
+- Adding `MainApp/` and `Shared/` files to the App target
+- Patching `Info.plist` with required usage description strings
+- Adding `PrivacyInfo.xcprivacy` to the App bundle
+- Patching `AppDelegate.swift` to activate WatchConnectivity
+- Creating the **LayerWeatherWidgets** (iOS widget extension) target
+- Creating the **LayerWeatherWatch** (standalone Watch App) target
+- Creating the **LayerWeatherWatchComplications** (watchOS complications) target
+
+After running the script, complete the manual Xcode steps below (capabilities
+require your Apple Developer account and cannot be scripted).
 
 ---
 
