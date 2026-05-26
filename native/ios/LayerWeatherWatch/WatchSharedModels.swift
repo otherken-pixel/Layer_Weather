@@ -298,50 +298,40 @@ struct WidgetData {
         )
     }
 
-    /// Decodes widget data from a WatchConnectivity payload (`transferUserInfo` / message reply).
-    /// The phone sends App Group keys (`widget_snapshot`, etc.) with JSON string values.
-    static func fromConnectivityPayload(_ payload: [String: Any]) -> WidgetData {
+    /// Merges a phone `buildPayload()` dictionary into widget data (`transferUserInfo` / message reply).
+    /// The phone sends short keys (`snapshot`, `hourly`, …) with JSON blobs as `Data`.
+    static func mergingPhonePayload(_ payload: [String: Any], into existing: WidgetData? = nil) -> WidgetData {
         let decoder = JSONDecoder()
 
-        func jsonData(for key: String) -> Data? {
-            (payload[key] as? String)?.data(using: .utf8)
-        }
+        var snapshot: WidgetSnapshot? = existing?.snapshot
+        var hourly: [HourlyWidgetEntry] = existing?.hourly ?? []
+        var daily: [DailyWidgetEntry] = existing?.daily ?? []
+        var timeline: [TimelineWidgetEntry] = existing?.timeline ?? []
+        var commuteAlert: CommuteWidgetAlert? = existing?.commuteAlert
+        var accentColor = existing?.accentColor ?? "#4F8EF7"
+        var thermalSensitivity = existing?.thermalSensitivity ?? 0
 
-        var snapshot: WidgetSnapshot?
-        if let data = jsonData(for: AppGroupKeys.snapshot) {
-            snapshot = try? decoder.decode(WidgetSnapshot.self, from: data)
+        if let data = payload["snapshot"] as? Data {
+            snapshot = (try? decoder.decode(WidgetSnapshot.self, from: data)) ?? snapshot
         }
-
-        var hourly: [HourlyWidgetEntry] = []
-        if let data = jsonData(for: AppGroupKeys.hourly) {
-            hourly = (try? decoder.decode([HourlyWidgetEntry].self, from: data)) ?? []
+        if let data = payload["hourly"] as? Data {
+            hourly = (try? decoder.decode([HourlyWidgetEntry].self, from: data)) ?? hourly
         }
-
-        var daily: [DailyWidgetEntry] = []
-        if let data = jsonData(for: AppGroupKeys.daily) {
-            daily = (try? decoder.decode([DailyWidgetEntry].self, from: data)) ?? []
+        if let data = payload["daily"] as? Data {
+            daily = (try? decoder.decode([DailyWidgetEntry].self, from: data)) ?? daily
         }
-
-        var timeline: [TimelineWidgetEntry] = []
-        if let data = jsonData(for: AppGroupKeys.timeline) {
-            timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? []
+        if let data = payload["timeline"] as? Data {
+            timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? timeline
         }
-
-        var commuteAlert: CommuteWidgetAlert?
-        if let data = jsonData(for: AppGroupKeys.commuteAlert) {
-            commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
+        if let data = payload["commuteAlert"] as? Data {
+            commuteAlert = (try? decoder.decode(CommuteWidgetAlert.self, from: data)) ?? commuteAlert
         }
-
-        let accentColor = payload[AppGroupKeys.accentColor] as? String ?? "#4F8EF7"
-        let thermalSensitivity: Int = {
-            if let value = payload[AppGroupKeys.thermalSensitivity] as? Int {
-                return value
-            }
-            if let string = payload[AppGroupKeys.thermalSensitivity] as? String {
-                return Int(string) ?? 0
-            }
-            return 0
-        }()
+        if let color = payload["accentColor"] as? String {
+            accentColor = color
+        }
+        if let sensitivity = payload["thermalSensitivity"] as? Int {
+            thermalSensitivity = sensitivity
+        }
 
         return WidgetData(
             snapshot: snapshot,
