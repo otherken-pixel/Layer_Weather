@@ -4,6 +4,8 @@ import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import App from "./App";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NativeConfigMissing } from "@/components/NativeConfigMissing";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import "./index.css";
 
 async function initNativeShell() {
@@ -18,10 +20,19 @@ async function initNativeShell() {
 
 initNativeShell().catch(console.warn);
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+function Root() {
+  if (Capacitor.isNativePlatform() && !isSupabaseConfigured) {
+    return <NativeConfigMissing />;
+  }
+  return (
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <Root />
   </React.StrictMode>
 );

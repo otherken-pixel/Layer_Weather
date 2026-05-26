@@ -3,16 +3,24 @@ import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, Ward
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? "";
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? "";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+export const isSupabaseConfigured = supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
+
+export const supabase = createClient(
+  isSupabaseConfigured ? supabaseUrl : "https://placeholder.supabase.co",
+  isSupabaseConfigured
+    ? supabaseAnonKey
+    : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder",
+  {
+    auth: {
+      autoRefreshToken: isSupabaseConfigured,
+      persistSession: isSupabaseConfigured,
+      detectSessionInUrl: isSupabaseConfigured,
+    },
+  }
+);
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
