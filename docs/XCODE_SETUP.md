@@ -7,17 +7,38 @@ the iOS project with Capacitor, follow these steps to wire everything into Xcode
 
 ## 0. Prerequisites
 
+From the project root, run the one-shot prepare script (recommended):
+
 ```bash
+npm run ios:prepare
+npm run ios:open         # opens App.xcworkspace in Xcode
+```
+
+Or step by step:
+
+```bash
+npm install
+npm run build
 npx cap add ios          # generates ios/ if not yet present
-npx cap sync             # syncs web assets + plugins
-cd ios && pod install    # installs CocoaPods dependencies
-cd ..                    # back to project root
+npx cap sync ios         # syncs web assets + plugins
+cd ios/App && pod install && cd ../..   # CocoaPods live next to the Podfile
 
 # Wire all native Swift targets into the Xcode project automatically:
 ruby scripts/setup-xcode-targets.rb
 
-open ios/App/App.xcworkspace
+open ios/App/App.xcworkspace   # MUST use .xcworkspace, not .xcodeproj
 ```
+
+> **Important:** Always open `ios/App/App.xcworkspace`. Opening `App.xcodeproj` directly causes **"Unable to resolve module dependency: Capacitor"** because Xcode cannot see the CocoaPods frameworks.
+
+### Troubleshooting: Capacitor module not found
+
+| Symptom | Fix |
+|---------|-----|
+| `Unable to resolve module dependency: 'Capacitor'` in `AppDelegate.swift` | Run `npm run ios:prepare`, then open **`App.xcworkspace`** (not `.xcodeproj`) |
+| `Sandbox is not in sync with the Podfile.lock` | `cd ios/App && pod install` |
+| CocoaPods not installed | `sudo gem install cocoapods` or `bundle install && bundle exec pod install --project-directory=ios/App` |
+| Stale Xcode cache | Product → Clean Build Folder; delete Derived Data (Xcode → Settings → Locations) |
 
 The script (idempotent — safe to re-run) handles:
 - Adding `MainApp/` and `Shared/` files to the App target
