@@ -178,7 +178,7 @@ export default function Register() {
           <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.4)" }}>
             By creating an account you agree to our{" "}
             <a
-              href="https://www.layerweather.app/terms"
+              href="/terms"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
@@ -187,7 +187,7 @@ export default function Register() {
             </a>
             ,{" "}
             <a
-              href="https://www.layerweather.app/privacy"
+              href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
@@ -196,7 +196,7 @@ export default function Register() {
             </a>
             , and{" "}
             <a
-              href="https://www.layerweather.app/eula"
+              href="/eula"
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
