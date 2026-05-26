@@ -141,9 +141,10 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     private func applyConnectivityPayload(_ payload: [String: Any], playSuccessHaptic: Bool = false) {
-        let newData = WidgetData.mergingPhonePayload(payload, into: widgetData)
         DispatchQueue.main.async { [weak self] in
-            self?.widgetData = newData
+            guard let self else { return }
+            let newData = WidgetData.mergingPhonePayload(payload, into: self.widgetData)
+            self.widgetData = newData
             if playSuccessHaptic {
                 HapticManager.shared.playSuccess()
             }
