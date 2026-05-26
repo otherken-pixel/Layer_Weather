@@ -79,7 +79,7 @@ export function ConfirmModal({
               <h2 style={{ fontSize: 17, fontWeight: 700, color: titleColor, margin: "0 0 8px" }}>
                 {title}
               </h2>
-              <p style={{ fontSize: 13, color: messageColor, lineHeight: 1.5, margin: 0 }}>
+              <p style={{ fontSize: 13, color: messageColor, lineHeight: 1.5, margin: 0, whiteSpace: "pre-line" }}>
                 {message}
               </p>
             </div>
