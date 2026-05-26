@@ -141,7 +141,11 @@ final class WatchWeatherService {
             location: "\(String(format: "%.2f", coordinates.lat))°, \(String(format: "%.2f", coordinates.lon))°",
             outfitLabel: outfitLabel(feelsLike: current.apparentTemperature, precipProb: current.precipitationProbability),
             outfitDescription: "Based on current conditions.",
-            warmthTier: warmthTier(feelsLike: current.apparentTemperature, condition: condition),
+            warmthTier: warmthTier(
+                feelsLike: current.apparentTemperature,
+                precipProb: current.precipitationProbability,
+                weatherCode: current.weatherCode
+            ),
             garmentTop: garmentTop(feelsLike: current.apparentTemperature),
             garmentBottom: nil,
             umbrella: current.precipitationProbability > 50,
@@ -158,9 +162,11 @@ final class WatchWeatherService {
         // Build hourly entries (next 24 hours)
         let now = Date()
         let hourlyEntries: [HourlyWidgetEntry] = zip(hourly.time.indices, hourly.time).compactMap { (index, timeStr) in
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime]
-            guard let date = formatter.date(from: timeStr + ":00"),
+            let parseFormatter = DateFormatter()
+            parseFormatter.locale = Locale(identifier: "en_US_POSIX")
+            parseFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+            parseFormatter.dateFormat = timeStr.count == 16 ? "yyyy-MM-dd'T'HH:mm" : "yyyy-MM-dd'T'HH:mm:ss"
+            guard let date = parseFormatter.date(from: timeStr),
                   date >= now,
                   date <= now.addingTimeInterval(86400) else { return nil }
 
@@ -171,15 +177,17 @@ final class WatchWeatherService {
             let codeVal = index < hourly.weatherCode.count ? hourly.weatherCode[index] : current.weatherCode
             let cond = wmoCondition(code: codeVal)
 
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime]
             return HourlyWidgetEntry(
-                hour: formatter.string(from: date),
+                hour: isoFormatter.string(from: date),
                 temp: tempVal,
                 feelsLike: feelsVal,
                 precipProb: precipVal,
                 condition: cond,
                 weatherCode: codeVal,
                 isDay: h >= 6 && h < 20,
-                warmthTier: warmthTier(feelsLike: feelsVal, condition: cond)
+                warmthTier: warmthTier(feelsLike: feelsVal, precipProb: precipVal, weatherCode: codeVal)
             )
         }
 
@@ -216,13 +224,19 @@ final class WatchWeatherService {
 
     // MARK: - Simple Outfit Logic (Watch fallback)
 
-    private func warmthTier(feelsLike: Double, condition: String) -> String {
-        let isRain = ["rain", "heavy_rain", "drizzle"].contains(condition)
-        let isSnow = condition == "snow"
+    /// Matches `warmthTierFromFeelsLike` in `src/lib/widget.ts`.
+    private func warmthTier(feelsLike: Double, precipProb: Double, weatherCode: Int) -> String {
+        let isSnow = weatherCode >= 71 && weatherCode <= 77
         if isSnow { return "warmth_6_snow" }
-        if feelsLike >= 85 { return isRain ? "warmth_1_rain" : "warmth_1" }
-        if feelsLike >= 75 { return isRain ? "warmth_2_rain" : "warmth_2" }
-        if feelsLike >= 65 { return isRain ? "warmth_3_rain" : "warmth_3" }
+        let isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 82)
+        if isRain {
+            if feelsLike >= 65 { return "warmth_1_rain" }
+            if feelsLike >= 50 { return "warmth_2_rain" }
+            return "warmth_3_rain"
+        }
+        if feelsLike >= 85 { return "warmth_1" }
+        if feelsLike >= 75 { return "warmth_2" }
+        if feelsLike >= 65 { return "warmth_3" }
         if feelsLike >= 55 { return "warmth_4" }
         if feelsLike >= 40 { return "warmth_5" }
         return "warmth_6"
