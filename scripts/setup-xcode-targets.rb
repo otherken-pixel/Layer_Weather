@@ -84,13 +84,20 @@ end
 
 # Embed an app extension product into a host (iOS App or watchOS App). xcodeproj does not do this automatically.
 def embed_app_extension(host_target, extension_target)
-  host_target.add_dependency(extension_target)
+  ref = extension_target.product_reference
+
+  unless host_target.dependencies.any? { |dep| dep.target == extension_target }
+    host_target.add_dependency(extension_target)
+  end
+
   phase_name = 'Embed App Extensions'
   phase = host_target.copy_files_build_phases.find { |p| p.name == phase_name } ||
           host_target.new_copy_files_build_phase(phase_name).tap do |p|
             p.symbol_dst_subfolder_spec = :plug_ins
           end
-  phase.add_file_reference(extension_target.product_reference, true)
+  return if phase.files.any? { |bf| bf.file_ref == ref }
+
+  phase.add_file_reference(ref, true)
 end
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -306,6 +313,11 @@ else
   puts "  ✓  LayerWeatherWidgets target created (12 source files)"
 end
 
+if (wt = project.targets.find { |t| t.name == 'LayerWeatherWidgets' })
+  embed_app_extension(main_target, wt)
+  puts "  ✓  LayerWeatherWidgets embedded in App"
+end
+
 # ══════════════════════════════════════════════════════════════════════════
 # PHASE 3 — LayerWeatherWatch (standalone SwiftUI Watch App)
 # ══════════════════════════════════════════════════════════════════════════
@@ -379,6 +391,13 @@ else
   add_source(ct, cg_sh, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
 
   puts "  ✓  LayerWeatherWatchComplications target created (2 source files)"
+end
+
+wwatch = project.targets.find { |t| t.name == 'LayerWeatherWatch' }
+ct = project.targets.find { |t| t.name == 'LayerWeatherWatchComplications' }
+if wwatch && ct
+  embed_app_extension(wwatch, ct)
+  puts "  ✓  LayerWeatherWatchComplications embedded in LayerWeatherWatch"
 end
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -60,11 +60,16 @@ if [[ ! -d "$IOS_APP_DIR/Pods" ]]; then
 fi
 
 if [[ -f "$ROOT/scripts/setup-xcode-targets.rb" ]] && [[ -d "$ROOT/native/ios" ]]; then
-  if ! ruby -e "require 'xcodeproj'" 2>/dev/null; then
-    echo "==> Skipping setup-xcode-targets.rb (install xcodeproj: gem install xcodeproj)"
+  if command -v bundle >/dev/null 2>&1 && [[ -f "$ROOT/Gemfile" ]]; then
+    setup_ruby=(bundle exec ruby)
+  else
+    setup_ruby=(ruby)
+  fi
+  if ! (cd "$ROOT" && "${setup_ruby[@]}" -e "require 'xcodeproj'") 2>/dev/null; then
+    echo "==> Skipping setup-xcode-targets.rb (install xcodeproj: gem install xcodeproj, or bundle install from project root)"
   else
     echo "==> Wiring native widget/watch targets into Xcode…"
-    ruby "$ROOT/scripts/setup-xcode-targets.rb"
+    (cd "$ROOT" && "${setup_ruby[@]}" "$ROOT/scripts/setup-xcode-targets.rb")
   fi
 fi
 
