@@ -33,6 +33,52 @@ function wmoCode(wkCode: string): number {
   return APP_TO_WMO[appCondition(wkCode)] ?? 0;
 }
 
+// ── Daytime (8 AM–8 PM) condition helper ─────────────────────────────────────
+
+const CONDITION_SEVERITY: Record<string, number> = {
+  thunderstorm: 8, heavy_rain: 7, snow: 6, rain: 5,
+  drizzle: 4, foggy: 3, cloudy: 2, partly_cloudy: 1, clear: 0,
+};
+
+function daytimeStats(
+  hours: Record<string, unknown>[],
+  dayStart: string,
+  timezone: string,
+): { condition: string; precipProb: number } {
+  const dayKey = new Date(dayStart).toLocaleDateString("en-CA", { timeZone: timezone });
+
+  const window = hours.filter((h) => {
+    const t = new Date(h.forecastStart as string);
+    if (t.toLocaleDateString("en-CA", { timeZone: timezone }) !== dayKey) return false;
+    const hour = parseInt(
+      new Intl.DateTimeFormat("en-CA", { timeZone: timezone, hour: "2-digit", hour12: false })
+        .formatToParts(t)
+        .find((p) => p.type === "hour")?.value ?? "0",
+    ) % 24;
+    return hour >= 8 && hour < 20;
+  });
+
+  if (window.length === 0) return { condition: "cloudy", precipProb: 0 };
+
+  const counts: Record<string, number> = {};
+  let maxPrecip = 0;
+  for (const h of window) {
+    const c = appCondition(h.conditionCode as string ?? "Cloudy");
+    counts[c] = (counts[c] ?? 0) + 1;
+    const p = Math.round(((h.precipitationChance as number) ?? 0) * 100);
+    if (p > maxPrecip) maxPrecip = p;
+  }
+
+  // Most frequent condition; severity breaks ties
+  const dominant = Object.entries(counts).sort((a, b) =>
+    b[1] !== a[1]
+      ? b[1] - a[1]
+      : (CONDITION_SEVERITY[b[0]] ?? 0) - (CONDITION_SEVERITY[a[0]] ?? 0),
+  )[0][0];
+
+  return { condition: dominant, precipProb: maxPrecip };
+}
+
 // ── Unit conversions ──────────────────────────────────────────────────────────
 
 const cToF = (c: number) => Math.round((c * 9) / 5 + 32);
@@ -182,6 +228,7 @@ Deno.serve(async (req) => {
       daily: days.slice(0, 7).map((d) => {
         const day = (d.daytimeForecast ?? {}) as Record<string, unknown>;
         const night = (d.overnightForecast ?? {}) as Record<string, unknown>;
+        const daytime = daytimeStats(hours, d.forecastStart as string, timezone);
         return {
           date: d.forecastStart,
           tempMin: cToF(d.temperatureMin as number ?? 0),
@@ -192,9 +239,9 @@ Deno.serve(async (req) => {
           feelsLikeMax: cToF(
             day.temperatureApparent as number ?? d.temperatureMax as number ?? 0,
           ),
-          precipProb: Math.round(((d.precipitationChance as number) ?? 0) * 100),
-          condition: appCondition(d.conditionCode as string ?? "Cloudy"),
-          weatherCode: wmoCode(d.conditionCode as string ?? "Cloudy"),
+          precipProb: daytime.precipProb,
+          condition: daytime.condition,
+          weatherCode: APP_TO_WMO[daytime.condition] ?? 0,
           sunrise: d.sunrise,
           sunset: d.sunset,
         };
