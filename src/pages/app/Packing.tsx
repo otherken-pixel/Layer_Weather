@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAppStore } from "@/store";
 import { useAccentColor } from "@/hooks/useAccentColor";
+import { useIsDark } from "@/hooks/useDarkMode";
 import { fetchWeatherForDateRange } from "@/lib/weather";
 import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { annotatePackingListWithWardrobe, type AnnotatedPackingItem } from "@/lib/wardrobe-matching";
@@ -129,6 +130,17 @@ function formatLastUpdated(iso: string | null): string {
 export default function Packing() {
   const { calibration, wardrobeItems, userId, profile } = useAppStore();
   const { accentSolid } = useAccentColor();
+  const isDark = useIsDark();
+  const pageBg       = isDark ? "#1C1C1E" : "#F2F2F7";
+  const cardBg       = isDark ? "#2C2C2E" : "#FFFFFF";
+  const inputBg      = isDark ? "#3A3A3C" : "#F3F4F6";
+  const inputBorder  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+  const inputText    = isDark ? "#F4F4F5" : "#111827";
+  const textPrimary  = isDark ? "#F4F4F5" : "#111827";
+  const hintColor    = isDark ? "#9BA4B4" : "#9CA3AF";
+  const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6";
+  const cardShadow   = isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)";
+  const cardBorder   = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
   // ── New-trip form ──
@@ -416,25 +428,25 @@ export default function Packing() {
   const today = todayStr();
 
   return (
-    <div style={{ minHeight: "100%", background: "#F2F2F7", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100%", background: pageBg, display: "flex", flexDirection: "column" }}>
 
       {/* ── Header ── */}
       <div style={{
-        background: "#F2F2F7",
+        background: pageBg,
         paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)",
         paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
       }}>
-        <h1 style={{ fontSize: 30, fontWeight: 800, color: "#111827", letterSpacing: "-0.03em", margin: 0 }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, color: textPrimary, letterSpacing: "-0.03em", margin: 0 }}>
           Travel Packing
         </h1>
-        <p style={{ fontSize: 14, color: "#9CA3AF", marginTop: 4 }}>Weather-smart packing lists for any trip</p>
+        <p style={{ fontSize: 14, color: hintColor, marginTop: 4 }}>Weather-smart packing lists for any trip</p>
       </div>
 
       <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 12 }}>
 
         {/* ── New trip form ── */}
-        <div style={{ background: "#fff", borderRadius: 24, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+        <div style={{ background: cardBg, borderRadius: 24, padding: 16, boxShadow: cardShadow, border: cardBorder }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
             Destination
           </p>
           <div style={{ display: "flex", gap: 8 }}>
@@ -443,7 +455,7 @@ export default function Packing() {
               onChange={(e) => { setDestination(e.target.value); setSelected(null); setGeoResults([]); setNoResults(false); }}
               onKeyDown={(e) => e.key === "Enter" && search()}
               placeholder="Paris, Tokyo, New York…"
-              style={{ flex: 1, background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 14, padding: "12px 14px", fontSize: 15, color: "#111827", outline: "none" }}
+              style={{ flex: 1, background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 14, padding: "12px 14px", fontSize: 15, color: inputText, outline: "none", colorScheme: isDark ? "dark" : "light" }}
             />
             <button
               onClick={search}
@@ -460,8 +472,8 @@ export default function Packing() {
                 <button
                   key={i} type="button"
                   onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
-                  className="flex items-center gap-2 min-h-[44px] py-2.5 px-1 w-full bg-transparent border-0 cursor-pointer text-left text-sm text-neutral-900"
-                  style={{ borderBottom: i < geoResults.length - 1 ? "1px solid #F3F4F6" : "none" }}
+                  className="flex items-center gap-2 min-h-[44px] py-2.5 px-1 w-full bg-transparent border-0 cursor-pointer text-left text-sm"
+                  style={{ borderBottom: i < geoResults.length - 1 ? `1px solid ${dividerColor}` : "none", color: textPrimary }}
                 >
                   <span>📍</span>
                   <span>{r.name}{r.admin1 ? `, ${r.admin1}` : ""}, {r.country}</span>
@@ -471,7 +483,7 @@ export default function Packing() {
           )}
 
           {noResults && !selected && (
-            <p style={{ fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 8, paddingBottom: 4 }}>
+            <p style={{ fontSize: 13, color: hintColor, textAlign: "center", marginTop: 8, paddingBottom: 4 }}>
               No destinations found — try a different spelling.
             </p>
           )}
@@ -479,7 +491,7 @@ export default function Packing() {
           {/* Date pickers */}
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                 Departure
               </p>
               <input
@@ -490,11 +502,11 @@ export default function Packing() {
                   setDepartureDate(e.target.value);
                   if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value);
                 }}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: departureDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none" }}
+                style={{ width: "100%", background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: departureDate ? inputText : hintColor, outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", colorScheme: isDark ? "dark" : "light" }}
               />
             </div>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
                 Return
               </p>
               <input
@@ -502,26 +514,26 @@ export default function Packing() {
                 min={departureDate || today}
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
-                style={{ width: "100%", background: "#F3F4F6", border: "1.5px solid #E5E7EB", borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: returnDate ? "#111827" : "#9CA3AF", outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none" }}
+                style={{ width: "100%", background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: returnDate ? inputText : hintColor, outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", colorScheme: isDark ? "dark" : "light" }}
               />
             </div>
           </div>
 
           {departureDate && returnDate && (
-            <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: hintColor, marginTop: 8 }}>
               {tripLengthDays(departureDate, returnDate)} day{tripLengthDays(departureDate, returnDate) !== 1 ? "s" : ""}
               {" · "}
               {forecastStatus(departureDate, returnDate) === "full" && <span style={{ color: "#22C55E" }}>Full forecast available</span>}
               {forecastStatus(departureDate, returnDate) === "extended" && <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>}
-              {forecastStatus(departureDate, returnDate) === "unavailable" && <span style={{ color: "#9CA3AF" }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
+              {forecastStatus(departureDate, returnDate) === "unavailable" && <span style={{ color: hintColor }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
             </p>
           )}
         </div>
 
         {/* Error */}
         {error && (
-          <div style={{ background: "#FEF2F2", borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-            <p style={{ fontSize: 13, color: "#EF4444", margin: 0, flex: 1 }}>{error}</p>
+          <div style={{ background: isDark ? "rgba(239,68,68,0.12)" : "#FEF2F2", borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <p style={{ fontSize: 13, color: isDark ? "#F87171" : "#EF4444", margin: 0, flex: 1 }}>{error}</p>
             {selected && departureDate && returnDate && forecastStatus(departureDate, returnDate) === "unavailable" && (
               <button
                 onClick={saveTripWithoutForecast}
@@ -539,8 +551,8 @@ export default function Packing() {
           onClick={generate}
           disabled={!canGenerate || loading}
           style={{
-            background: canGenerate ? accentSolid : "#E5E7EB",
-            color: canGenerate ? "white" : "#9CA3AF",
+            background: canGenerate ? accentSolid : isDark ? "#3A3A3C" : "#E5E7EB",
+            color: canGenerate ? "white" : isDark ? "#6B7280" : "#9CA3AF",
             border: "none", borderRadius: 16, padding: "16px 0",
             fontSize: 16, fontWeight: 700, width: "100%",
             cursor: canGenerate && !loading ? "pointer" : "not-allowed",
@@ -555,8 +567,8 @@ export default function Packing() {
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", paddingLeft: 4, marginTop: 4 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", margin: 0 }}>{selected?.name}</h2>
-                <span style={{ fontSize: 14, color: "#9CA3AF" }}>{formatDateRange(departureDate, returnDate)}</span>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: textPrimary, margin: 0 }}>{selected?.name}</h2>
+                <span style={{ fontSize: 14, color: hintColor }}>{formatDateRange(departureDate, returnDate)}</span>
               </div>
               {userId && (
                 <button
@@ -576,8 +588,8 @@ export default function Packing() {
             </div>
 
             {forecastIncomplete && (
-              <div style={{ background: "#FFFBEB", borderRadius: 12, padding: "10px 14px" }}>
-                <p style={{ fontSize: 12, color: "#92400E", margin: 0 }}>⚠️ Partial forecast — recommendations cover the days available. Refresh closer to departure for the full picture.</p>
+              <div style={{ background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB", borderRadius: 12, padding: "10px 14px" }}>
+                <p style={{ fontSize: 12, color: isDark ? "#FCD34D" : "#92400E", margin: 0 }}>⚠️ Partial forecast — recommendations cover the days available. Refresh closer to departure for the full picture.</p>
               </div>
             )}
 
@@ -590,7 +602,7 @@ export default function Packing() {
               onClick={requestAiInsightsForCurrent}
               disabled={aiLoadingId === "current"}
               style={{
-                background: "#fff",
+                background: cardBg,
                 color: accentSolid,
                 border: `2px solid ${accentSolid}`,
                 borderRadius: 14,
@@ -629,12 +641,12 @@ export default function Packing() {
         {/* ── Saved trips ── */}
         {(savedTrips.length > 0 || loadingTrips) && (
           <div style={{ marginTop: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", paddingLeft: 4, marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", paddingLeft: 4, marginBottom: 10 }}>
               My Trips
             </p>
 
             {loadingTrips && (
-              <p style={{ fontSize: 14, color: "#9CA3AF", textAlign: "center", padding: "16px 0" }}>Loading trips…</p>
+              <p style={{ fontSize: 14, color: hintColor, textAlign: "center", padding: "16px 0" }}>Loading trips…</p>
             )}
 
             {savedTrips.map((trip) => {
@@ -654,9 +666,10 @@ export default function Packing() {
                 <div
                   key={trip.id}
                   style={{
-                    background: "#fff",
+                    background: cardBg,
                     borderRadius: 20,
-                    boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                    boxShadow: cardShadow,
+                    border: cardBorder,
                     marginBottom: 10,
                     overflow: "hidden",
                     opacity: isPast ? 0.75 : 1,
@@ -669,16 +682,16 @@ export default function Packing() {
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{trip.destination}</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: textPrimary }}>{trip.destination}</span>
                         <span style={{
                           fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "2px 7px",
-                          background: isPast ? "#F3F4F6" : countdown === "Tomorrow" || countdown === "Today" ? "#FEF3C7" : "#EDE9FE",
-                          color: isPast ? "#9CA3AF" : countdown === "Tomorrow" || countdown === "Today" ? "#92400E" : accentSolid,
+                          background: isPast ? (isDark ? "#3A3A3C" : "#F3F4F6") : countdown === "Tomorrow" || countdown === "Today" ? (isDark ? "rgba(251,191,36,0.18)" : "#FEF3C7") : (isDark ? "rgba(124,58,237,0.18)" : "#EDE9FE"),
+                          color: isPast ? hintColor : countdown === "Tomorrow" || countdown === "Today" ? (isDark ? "#FCD34D" : "#92400E") : accentSolid,
                         }}>
                           {countdown}
                         </span>
                       </div>
-                      <p style={{ fontSize: 13, color: "#9CA3AF", margin: "2px 0 0" }}>
+                      <p style={{ fontSize: 13, color: hintColor, margin: "2px 0 0" }}>
                         {formatDateRange(trip.departure_date, trip.return_date)} · {tripLengthDays(trip.departure_date, trip.return_date)} days
                       </p>
                     </div>
@@ -695,7 +708,7 @@ export default function Packing() {
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            style={{ fontSize: 12, color: "#6B7280", background: "#F3F4F6", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}
+                            style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#6B7280", background: inputBg, border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}
                           >
                             Cancel
                           </button>
@@ -703,7 +716,7 @@ export default function Packing() {
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(trip.id)}
-                          style={{ width: 32, height: 32, borderRadius: 10, background: "#F3F4F6", border: "none", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ width: 32, height: 32, borderRadius: 10, background: inputBg, border: "none", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                           aria-label="Delete trip"
                         >
                           🗑️
@@ -711,20 +724,20 @@ export default function Packing() {
                       )}
                     </div>
 
-                    <span style={{ fontSize: 18, color: "#D1D5DB", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}>›</span>
+                    <span style={{ fontSize: 18, color: isDark ? "#4B5563" : "#D1D5DB", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}>›</span>
                   </div>
 
                   {/* Expanded content */}
                   {isExpanded && (
-                    <div style={{ borderTop: "1px solid #F3F4F6", padding: "14px 16px" }}>
+                    <div style={{ borderTop: `1px solid ${dividerColor}`, padding: "14px 16px" }}>
                       {/* Refresh row */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
                         <div>
                           {trip.last_generated_at && (
-                            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>Updated {formatLastUpdated(trip.last_generated_at)}</p>
+                            <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>Updated {formatLastUpdated(trip.last_generated_at)}</p>
                           )}
                           {fStatus === "unavailable" && !isPast && (
-                            <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>Forecast available {forecastAvailableOn(trip.departure_date)}</p>
+                            <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>Forecast available {forecastAvailableOn(trip.departure_date)}</p>
                           )}
                           {fStatus !== "unavailable" && !trip.last_generated_at && (
                             <p style={{ fontSize: 12, color: accentSolid, margin: 0 }}>Forecast is ready — tap Refresh</p>
@@ -736,8 +749,8 @@ export default function Packing() {
                             disabled={isRefreshing || fStatus === "unavailable"}
                             style={{
                               fontSize: 13, fontWeight: 700,
-                              color: fStatus === "unavailable" ? "#9CA3AF" : "white",
-                              background: fStatus === "unavailable" ? "#F3F4F6" : accentSolid,
+                              color: fStatus === "unavailable" ? hintColor : "white",
+                              background: fStatus === "unavailable" ? inputBg : accentSolid,
                               border: "none", borderRadius: 10, padding: "7px 14px",
                               cursor: isRefreshing || fStatus === "unavailable" ? "not-allowed" : "pointer",
                               flexShrink: 0,
@@ -760,7 +773,7 @@ export default function Packing() {
                           style={{
                             width: "100%",
                             marginBottom: 12,
-                            background: "#fff",
+                            background: cardBg,
                             color: accentSolid,
                             border: `2px solid ${accentSolid}`,
                             borderRadius: 12,
@@ -780,17 +793,17 @@ export default function Packing() {
                       )}
 
                       {canRequestAi && !hasForecastData && (
-                        <p style={{ fontSize: 12, color: "#9CA3AF", margin: "0 0 12px", textAlign: "center" }}>
+                        <p style={{ fontSize: 12, color: hintColor, margin: "0 0 12px", textAlign: "center" }}>
                           Refresh weather first, then you can request smart packing advice.
                         </p>
                       )}
 
                       {/* Diff banner */}
                       {diff && (diff.added.length > 0 || diff.removed.length > 0) && (
-                        <div style={{ background: "#FFFBEB", borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: "#92400E", margin: "0 0 4px" }}>Weather changed — packing list updated</p>
+                        <div style={{ background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB", borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#FCD34D" : "#92400E", margin: "0 0 4px" }}>Weather changed — packing list updated</p>
                           {diff.added.length > 0 && <p style={{ fontSize: 12, color: "#15803D", margin: 0 }}>+ Now needed: {diff.added.join(", ")}</p>}
-                          {diff.removed.length > 0 && <p style={{ fontSize: 12, color: "#6B7280", margin: "2px 0 0", textDecoration: "line-through" }}>No longer needed: {diff.removed.join(", ")}</p>}
+                          {diff.removed.length > 0 && <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#6B7280", margin: "2px 0 0", textDecoration: "line-through" }}>No longer needed: {diff.removed.join(", ")}</p>}
                         </div>
                       )}
 
@@ -811,7 +824,7 @@ export default function Packing() {
                           );
                         })
                       ) : (
-                        <p style={{ fontSize: 14, color: "#9CA3AF", textAlign: "center", padding: "16px 0" }}>
+                        <p style={{ fontSize: 14, color: hintColor, textAlign: "center", padding: "16px 0" }}>
                           {fStatus === "unavailable" ? "Forecast not yet available — check back closer to departure." : "Tap Refresh to generate your packing list."}
                         </p>
                       )}
@@ -825,16 +838,16 @@ export default function Packing() {
 
         {/* Empty saved trips prompt */}
         {!loadingTrips && savedTrips.length === 0 && !currentItems.length && userId && (
-          <div style={{ background: "#fff", borderRadius: 20, padding: "20px 16px", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginTop: 4 }}>
+          <div style={{ background: cardBg, borderRadius: 20, padding: "20px 16px", textAlign: "center", boxShadow: cardShadow, border: cardBorder, marginTop: 4 }}>
             <p style={{ fontSize: 28, margin: "0 0 8px" }}>✈️</p>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#111827", margin: "0 0 4px" }}>No trips saved yet</p>
-            <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0 }}>Search a destination, pick your dates, and save trips here to get updated packing lists as your trip approaches.</p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: textPrimary, margin: "0 0 4px" }}>No trips saved yet</p>
+            <p style={{ fontSize: 13, color: hintColor, margin: 0 }}>Search a destination, pick your dates, and save trips here to get updated packing lists as your trip approaches.</p>
           </div>
         )}
 
         {!userId && savedTrips.length === 0 && (
-          <div style={{ background: "#fff", borderRadius: 20, padding: "16px", textAlign: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginTop: 4 }}>
-            <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0 }}>Sign in to save trips and get weather-updated packing lists.</p>
+          <div style={{ background: cardBg, borderRadius: 20, padding: "16px", textAlign: "center", boxShadow: cardShadow, border: cardBorder, marginTop: 4 }}>
+            <p style={{ fontSize: 13, color: hintColor, margin: 0 }}>Sign in to save trips and get weather-updated packing lists.</p>
           </div>
         )}
       </div>
@@ -851,15 +864,16 @@ function PackingAiInsightsCard({
   insights: PackingAiInsights;
   accentSolid: string;
 }) {
+  const isDark = useIsDark();
   const [highlightsOpen, setHighlightsOpen] = useState(false);
   return (
-    <div style={{ background: "#F5F3FF", borderRadius: 16, padding: 14, marginBottom: 12, border: `1px solid ${accentSolid}22` }}>
+    <div style={{ background: isDark ? "rgba(124,58,237,0.12)" : "#F5F3FF", borderRadius: 16, padding: 14, marginBottom: 12, border: `1px solid ${accentSolid}22` }}>
       <p style={{ fontSize: 11, fontWeight: 700, color: accentSolid, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 8px" }}>
         Smart packing advice
       </p>
-      <p style={{ fontSize: 14, color: "#374151", margin: "0 0 8px", lineHeight: 1.45 }}>{insights.weather_summary}</p>
+      <p style={{ fontSize: 14, color: isDark ? "#E5E7EB" : "#374151", margin: "0 0 8px", lineHeight: 1.45 }}>{insights.weather_summary}</p>
       {insights.packing_notes && (
-        <p style={{ fontSize: 13, color: "#6B7280", margin: 0, fontStyle: "italic" }}>{insights.packing_notes}</p>
+        <p style={{ fontSize: 13, color: isDark ? "#9BA4B4" : "#6B7280", margin: 0, fontStyle: "italic" }}>{insights.packing_notes}</p>
       )}
       {insights.daily_highlights.length > 0 && (
         <div style={{ marginTop: 10 }}>
@@ -871,7 +885,7 @@ function PackingAiInsightsCard({
             {highlightsOpen ? "Hide" : "Show"} day-by-day ({insights.daily_highlights.length})
           </button>
           {highlightsOpen && (
-            <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>
+            <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", lineHeight: 1.5 }}>
               {insights.daily_highlights.map((h) => (
                 <li key={h.date}>
                   <strong>{h.date}</strong> — {h.summary}
@@ -900,12 +914,13 @@ function PackingCategoryCard({
   diffAdded: Set<string>;
   diffRemoved: string[];
 }) {
+  const isDark = useIsDark();
   const removedSet = new Set(diffRemoved);
   return (
-    <div style={{ background: "#F9FAFB", borderRadius: 18, padding: 14, marginBottom: 10 }}>
+    <div style={{ background: isDark ? "#2C2C2E" : "#F9FAFB", borderRadius: 18, padding: 14, marginBottom: 10, border: isDark ? "1px solid rgba(255,255,255,0.06)" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
         <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[cat]}</span>
-        <p style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#6B7280" : "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
           {cat}
         </p>
       </div>
@@ -916,7 +931,7 @@ function PackingCategoryCard({
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, opacity: removedSet.has(item.name) ? 0.4 : 1 }}>
               <span style={{
                 minWidth: 36, height: 36, borderRadius: 12,
-                background: isNew ? "#DCFCE7" : item.ownedItem ? "#DCFCE7" : "#EDE9FE",
+                background: isNew ? "#DCFCE7" : item.ownedItem ? "#DCFCE7" : isDark ? "rgba(124,58,237,0.18)" : "#EDE9FE",
                 color: isNew ? "#15803D" : item.ownedItem ? "#15803D" : accentSolid,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 12, fontWeight: 800,
@@ -925,17 +940,17 @@ function PackingCategoryCard({
               </span>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", margin: 0 }}>{item.name}</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: isDark ? "#F4F4F5" : "#111827", margin: 0 }}>{item.name}</p>
                   {isNew && <span style={{ fontSize: 10, fontWeight: 700, color: "#15803D", background: "#DCFCE7", borderRadius: 4, padding: "1px 5px" }}>NEW</span>}
                 </div>
                 {item.ownedItem && (
                   <p style={{ fontSize: 12, color: "#15803D", margin: 0, fontWeight: 600 }}>✓ You have: {item.ownedItem.name}</p>
                 )}
                 {item.reason && !item.ownedItem && (
-                  <p style={{ fontSize: 12, color: "#9CA3AF", margin: 0 }}>{item.reason}</p>
+                  <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#9CA3AF", margin: 0 }}>{item.reason}</p>
                 )}
               </div>
-              <span style={{ fontSize: 16, color: item.ownedItem ? "#22C55E" : "#D1D5DB" }}>✓</span>
+              <span style={{ fontSize: 16, color: item.ownedItem ? "#22C55E" : isDark ? "#4B5563" : "#D1D5DB" }}>✓</span>
             </div>
           );
         })}

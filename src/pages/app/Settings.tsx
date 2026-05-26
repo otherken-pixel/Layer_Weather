@@ -46,6 +46,11 @@ export default function Settings() {
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
   const [cityQuery, setCityQuery] = useState(location?.city ?? profile?.last_city ?? "");
   const [accentColor, setAccentColor] = useState<string>(profile?.accent_color ?? loadAccentLocal());
+  const [themePreference, setThemePreference] = useState<"light" | "dark" | "system">(
+    profile?.theme_preference === "light" ? "light"
+    : profile?.theme_preference === "dark" ? "dark"
+    : "system"
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
@@ -87,6 +92,7 @@ export default function Settings() {
         formality_preference: formality,
         commute_start: commuteStart,
         commute_end: commuteEnd,
+        theme_preference: themePreference === "system" ? null : themePreference,
       });
       setStoreFormality(formality);
       if (updated) {
@@ -382,6 +388,60 @@ export default function Settings() {
           </ThemedCard>
           <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
             Saved with your profile. Tap Save below to apply.
+          </p>
+        </Section>
+
+        {/* Appearance */}
+        <Section title="Appearance" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, marginBottom: 4 }}>Color Mode</p>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 12 }}>
+              Override the system setting or let your phone decide.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {(
+                [
+                  { key: "system", label: "Follow Phone", emoji: "📱", desc: "Matches your device's light/dark setting" },
+                  { key: "light",  label: "Light",        emoji: "☀️",  desc: "Always use light mode" },
+                  { key: "dark",   label: "Dark",         emoji: "🌙",  desc: "Always use dark mode" },
+                ] as const
+              ).map(({ key, label, emoji, desc }) => {
+                const active = themePreference === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setThemePreference(key);
+                      if (profile) {
+                        setProfile({ ...profile, theme_preference: key === "system" ? null : key });
+                      }
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 12, padding: "10px 12px",
+                      borderRadius: 14, textAlign: "left",
+                      background: active
+                        ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                        : isDark ? "#3A3A3C" : "#F9FAFB",
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+                      cursor: "pointer", width: "100%",
+                    }}
+                  >
+                    <span style={{ fontSize: 20 }}>{emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? isDark ? "var(--accent-light)" : "var(--accent-primary)" : rowTextColor, margin: 0 }}>
+                        {label}
+                      </p>
+                      <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>{desc}</p>
+                    </div>
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </ThemedCard>
+          <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
+            Takes effect immediately. Saved with your profile.
           </p>
         </Section>
 
