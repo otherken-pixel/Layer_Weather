@@ -300,9 +300,10 @@ export default function Forecast() {
                   {d.windDir != null ? windDirLabel(d.windDir) : "—"}
                 </span>
                 <span style={{ fontSize: 10, color: textMuted }}>
-                  {new Date(d.timeMs).getHours() === 0 || new Date(d.timeMs).getHours() === 12
-                    ? new Date(d.timeMs).toLocaleTimeString("en", { hour: "numeric" })
-                    : ""}
+                  {(() => {
+                    const h = new Date(d.timeMs).getHours();
+                    return h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`;
+                  })()}
                 </span>
               </div>
             ))}
