@@ -3,7 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
-import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex } from "@/lib/weather";
+import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex, fetchNOAAConfidence } from "@/lib/weather";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
 import { upsertProfile } from "@/lib/supabase";
@@ -176,6 +176,7 @@ export function useWeather() {
     cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
+    setForecastConfidence,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -308,6 +309,16 @@ export function useWeather() {
             };
             setCityWeatherCache(resolvedKey, entry);
             saveCityWeatherCache(resolvedKey, entry).catch(() => {});
+          }
+
+          // Fetch NOAA confidence in parallel (US only, non-blocking)
+          if ((countryCode ?? "").toUpperCase() === "US") {
+            const next12Pops = data.hourly.slice(0, 12).map((h) => h.precipProb);
+            fetchNOAAConfidence(latitude, longitude, next12Pops)
+              .then((conf) => { if (generation === refreshGeneration.current) setForecastConfidence(conf); })
+              .catch(() => {});
+          } else {
+            setForecastConfidence(null);
           }
 
           saveWidgetSnapshot(data, rec).catch(() => {});

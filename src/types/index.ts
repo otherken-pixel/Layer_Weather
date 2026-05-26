@@ -79,8 +79,11 @@ export interface HourlyForecast {
   condition: WeatherCondition;
   weatherCode: number;
   windSpeed: number;
+  windDirection?: number;
   isDay: boolean;
 }
+
+export type ForecastConfidence = "high" | "medium" | "low" | null;
 
 export interface DailyForecast {
   date: Date;

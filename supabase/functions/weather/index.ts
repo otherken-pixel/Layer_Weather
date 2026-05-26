@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
         condition: appCondition(h.conditionCode as string ?? "Cloudy"),
         weatherCode: wmoCode(h.conditionCode as string ?? "Cloudy"),
         windSpeed: kmhToMph(h.windSpeed as number ?? 0),
+        windDirection: Math.round(h.windDirection as number ?? 0),
         isDay: h.daylight as boolean ?? true,
       })),
       daily: days.slice(0, 7).map((d) => {

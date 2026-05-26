@@ -15,6 +15,7 @@ import Help from "@/pages/app/Help";
 
 const Radar = lazy(() => import("@/pages/app/Radar"));
 const Wardrobe = lazy(() => import("@/pages/app/Wardrobe"));
+const Forecast = lazy(() => import("@/pages/app/Forecast"));
 
 function useHashError() {
   const [hashError, setHashError] = useState<{ code: string; description: string } | null>(null);
@@ -83,6 +84,7 @@ export default function App() {
             <Route path="/app" element={<AppLayout />}>
               <Route index element={<Navigate to="home" replace />} />
               <Route path="home" element={<Home />} />
+              <Route path="forecast" element={<Suspense fallback={<div style={{ flex: 1, background: "#F2F2F7" }} />}><Forecast /></Suspense>} />
               <Route path="radar" element={<Suspense fallback={<div style={{ flex: 1, background: "#0d1117" }} />}><Radar /></Suspense>} />
               <Route path="packing" element={<Packing />} />
               <Route path="wardrobe" element={<Suspense fallback={<div style={{ flex: 1, background: "#F2F2F7" }} />}><Wardrobe /></Suspense>} />

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 
 export interface CachedCityWeather {
@@ -28,6 +28,7 @@ interface AppState {
   outfit: OutfitRecommendation | null;
   outfitTimeline: DayOutfitTimeline | null;
   weatherLastFetched: Date | null;
+  forecastConfidence: ForecastConfidence;
   /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
   cityWeatherCache: Record<string, CachedCityWeather>;
 
@@ -69,6 +70,7 @@ interface AppState {
   setOutfit: (outfit: OutfitRecommendation | null) => void;
   setOutfitTimeline: (timeline: DayOutfitTimeline | null) => void;
   setWeatherLastFetched: (d: Date | null) => void;
+  setForecastConfidence: (c: ForecastConfidence) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
   setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
@@ -94,6 +96,7 @@ const initialState = {
   outfit: null,
   outfitTimeline: null,
   weatherLastFetched: null,
+  forecastConfidence: null,
   isLoadingWeather: false,
   weatherError: null,
   cityWeatherCache: {} as Record<string, CachedCityWeather>,
@@ -125,6 +128,7 @@ export const useAppStore = create<AppState>((set) => ({
   setOutfit: (outfit) => set({ outfit }),
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),
   setWeatherLastFetched: (weatherLastFetched) => set({ weatherLastFetched }),
+  setForecastConfidence: (forecastConfidence) => set({ forecastConfidence }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>
