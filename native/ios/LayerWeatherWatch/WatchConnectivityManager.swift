@@ -72,7 +72,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     // MARK: - Message Handling
 
     private func handleMessageReply(_ reply: [String: Any]) {
-        guard reply[AppGroupKeys.snapshot] != nil else {
+        guard !reply.isEmpty else {
             loadFromAppGroup()
             return
         }
@@ -141,7 +141,7 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     private func applyConnectivityPayload(_ payload: [String: Any], playSuccessHaptic: Bool = false) {
-        let newData = WidgetData.fromConnectivityPayload(payload)
+        let newData = WidgetData.mergingPhonePayload(payload, into: widgetData)
         DispatchQueue.main.async { [weak self] in
             self?.widgetData = newData
             if playSuccessHaptic {
