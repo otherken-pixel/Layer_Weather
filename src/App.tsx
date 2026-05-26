@@ -12,6 +12,9 @@ import Home from "@/pages/app/Home";
 import Packing from "@/pages/app/Packing";
 import Settings from "@/pages/app/Settings";
 import Help from "@/pages/app/Help";
+import PrivacyPolicy from "@/pages/legal/PrivacyPolicy";
+import TermsOfService from "@/pages/legal/TermsOfService";
+import Eula from "@/pages/legal/Eula";
 
 const Radar = lazy(() => import("@/pages/app/Radar"));
 const Wardrobe = lazy(() => import("@/pages/app/Wardrobe"));
@@ -71,6 +74,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/eula" element={<Eula />} />
         {!isAuthenticated ? (
           <>
             <Route path="/welcome" element={<Welcome />} />

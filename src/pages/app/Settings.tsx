@@ -723,7 +723,7 @@ export default function Settings() {
             </button>
             <Divider dividerColor={dividerColor} />
             <a
-              href="https://www.layerweather.app/privacy"
+              href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -746,7 +746,7 @@ export default function Settings() {
             </a>
             <Divider dividerColor={dividerColor} />
             <a
-              href="https://www.layerweather.app/terms"
+              href="/terms"
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -769,7 +769,7 @@ export default function Settings() {
             </a>
             <Divider dividerColor={dividerColor} />
             <a
-              href="https://www.layerweather.app/eula"
+              href="/eula"
               target="_blank"
               rel="noopener noreferrer"
               style={{
