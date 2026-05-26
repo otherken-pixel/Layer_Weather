@@ -4,7 +4,7 @@ const CORS = {
 };
 
 const NWS_HEADERS = {
-  "User-Agent": "WearToday/1.0 (contact@weartoday.app)",
+  "User-Agent": "Layer_Weather/1.0 (contact@weartoday.app)",
   "Accept": "application/geo+json",
 };
 

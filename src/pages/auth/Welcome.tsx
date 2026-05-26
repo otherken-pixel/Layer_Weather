@@ -66,7 +66,7 @@ export default function Welcome() {
               confidence.
             </h1>
             <p className="text-base mt-4 leading-relaxed text-white/80">
-              WearToday learns your exact temperature<br />
+              Layer Weather learns your exact temperature<br />
               comfort zone and recommends the perfect<br />
               outfit every single morning.
             </p>

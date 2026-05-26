@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.weartoday.app",
-  appName: "WearToday",
+  appName: "Layer Weather",
   webDir: "dist",
   server: { androidScheme: "https" },
   plugins: {

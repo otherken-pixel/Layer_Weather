@@ -37,7 +37,7 @@ export default function Logo({ size = 32, hideText = false }: Props) {
             lineHeight: 1,
           }}
         >
-          WearToday
+          Layer Weather
         </span>
       )}
     </div>

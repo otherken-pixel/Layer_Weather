@@ -312,7 +312,7 @@ Deno.serve(async (_req) => {
               ? `Pack check: ${trip.destination} weather changed`
               : `Tomorrow: ${trip.destination} — review your packing list`;
             const body = changed
-              ? `Forecast is ${reason}. Open WearToday to see your updated packing list.`
+              ? `Forecast is ${reason}. Open Layer Weather to see your updated packing list.`
               : `Your trip to ${trip.destination} starts tomorrow. Your packing list is ready to review.`;
 
             await sendFcmNotification(fcmToken, title, body);

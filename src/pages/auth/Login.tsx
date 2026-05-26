@@ -95,7 +95,7 @@ export default function Login() {
             Welcome back
           </h1>
           <p className="text-base mt-2" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Sign in to your WearToday account
+            Sign in to your Layer Weather account
           </p>
         </div>
 

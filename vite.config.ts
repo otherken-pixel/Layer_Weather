@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => {
         registerType: "autoUpdate",
         includeAssets: ["icons/*.png"],
         manifest: {
-          name: "WearToday",
-          short_name: "WearToday",
+          name: "Layer Weather",
+          short_name: "Layer",
           description: "Weather-smart outfit recommendations",
           theme_color: "#6C63FF",
           background_color: "#1a1a2e",

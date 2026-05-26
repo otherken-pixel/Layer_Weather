@@ -112,7 +112,7 @@ export default function Settings() {
   }
 
   async function handleSignOut() {
-    if (!confirm("Sign out of WearToday?")) return;
+    if (!confirm("Sign out of Layer Weather?")) return;
     await signOut();
   }
 
@@ -544,7 +544,7 @@ export default function Settings() {
             />
           </ThemedCard>
           <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
-            WearToday warns you about temperature drops during your commute.
+            Layer Weather warns you about temperature drops during your commute.
           </p>
         </Section>
 
@@ -591,7 +591,7 @@ export default function Settings() {
         <Section title="Today's Agenda" labelColor={sectionLabelColor}>
           <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow} padding="p-3">
             <p style={{ fontSize: 12, color: hintColor, marginBottom: 10 }}>
-              Set the event type so WearToday can tailor the outfit style.
+              Set the event type so Layer Weather can tailor the outfit style.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {(Object.entries(EVENT_TYPE_LABELS) as [EventType, typeof EVENT_TYPE_LABELS[EventType]][]).map(([key, info]) => {
@@ -718,7 +718,7 @@ export default function Settings() {
                   <line x1="4" y1="20" x2="8" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                   <line x1="32" y1="20" x2="36" y2="20" stroke="var(--accent-primary)" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
-                <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>WearToday</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>Layer Weather</span>
               </div>
               {/* Version — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark card (5.0:1 ✓) */}
               <span style={{ fontSize: 12, color: hintColor }}>v1.0.0</span>

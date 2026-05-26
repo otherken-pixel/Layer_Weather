@@ -180,7 +180,7 @@ export default function Onboarding() {
                 </div>
               </div>
               <div className="text-center">
-                <h1 className="text-4xl font-black text-white leading-tight">Let's calibrate{"\n"}your WearToday</h1>
+                <h1 className="text-4xl font-black text-white leading-tight">Let's calibrate{"\n"}your Layer Weather</h1>
                 <p className="text-base mt-3 max-w-[260px] mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.75)" }}>
                   Answer a few quick questions so we can nail your outfit recommendations. Takes 60 seconds.
                 </p>
@@ -233,7 +233,7 @@ export default function Onboarding() {
               <div>
                 <h2 className="text-3xl font-black text-white">Your location</h2>
                 <p className="text-base mt-2 leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  WearToday needs your location for local weather and radar. You can change this anytime on Today.
+                  Layer Weather needs your location for local weather and radar. You can change this anytime on Today.
                 </p>
               </div>
               <input
@@ -308,7 +308,7 @@ export default function Onboarding() {
                 <p className="text-base mt-3 max-w-[240px] mx-auto leading-relaxed" style={{ color: "rgba(255,255,255,0.8)" }}>
                   {isRecalibration
                     ? "Your outfit preferences have been updated."
-                    : "WearToday is calibrated to your comfort. Let's see what to wear."}
+                    : "Layer Weather is calibrated to your comfort. Let's see what to wear."}
                 </p>
               </div>
               <Button
