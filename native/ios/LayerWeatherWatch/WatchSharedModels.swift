@@ -298,6 +298,62 @@ struct WidgetData {
         )
     }
 
+    /// Decodes widget data from a WatchConnectivity payload (`transferUserInfo` / message reply).
+    /// The phone sends App Group keys (`widget_snapshot`, etc.) with JSON string values.
+    static func fromConnectivityPayload(_ payload: [String: Any]) -> WidgetData {
+        let decoder = JSONDecoder()
+
+        func jsonData(for key: String) -> Data? {
+            (payload[key] as? String)?.data(using: .utf8)
+        }
+
+        var snapshot: WidgetSnapshot?
+        if let data = jsonData(for: AppGroupKeys.snapshot) {
+            snapshot = try? decoder.decode(WidgetSnapshot.self, from: data)
+        }
+
+        var hourly: [HourlyWidgetEntry] = []
+        if let data = jsonData(for: AppGroupKeys.hourly) {
+            hourly = (try? decoder.decode([HourlyWidgetEntry].self, from: data)) ?? []
+        }
+
+        var daily: [DailyWidgetEntry] = []
+        if let data = jsonData(for: AppGroupKeys.daily) {
+            daily = (try? decoder.decode([DailyWidgetEntry].self, from: data)) ?? []
+        }
+
+        var timeline: [TimelineWidgetEntry] = []
+        if let data = jsonData(for: AppGroupKeys.timeline) {
+            timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? []
+        }
+
+        var commuteAlert: CommuteWidgetAlert?
+        if let data = jsonData(for: AppGroupKeys.commuteAlert) {
+            commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
+        }
+
+        let accentColor = payload[AppGroupKeys.accentColor] as? String ?? "#4F8EF7"
+        let thermalSensitivity: Int = {
+            if let value = payload[AppGroupKeys.thermalSensitivity] as? Int {
+                return value
+            }
+            if let string = payload[AppGroupKeys.thermalSensitivity] as? String {
+                return Int(string) ?? 0
+            }
+            return 0
+        }()
+
+        return WidgetData(
+            snapshot: snapshot,
+            hourly: hourly,
+            daily: daily,
+            timeline: timeline,
+            commuteAlert: commuteAlert,
+            accentColor: accentColor,
+            thermalSensitivity: thermalSensitivity
+        )
+    }
+
     static var placeholder: WidgetData {
         WidgetData(
             snapshot: .placeholder,

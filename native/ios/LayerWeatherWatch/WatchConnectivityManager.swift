@@ -72,27 +72,11 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     // MARK: - Message Handling
 
     private func handleMessageReply(_ reply: [String: Any]) {
-        // If reply contains embedded JSON data, decode it
-        if let snapshotData = reply["snapshot"] as? Data {
-            let decoder = JSONDecoder()
-            if let snapshot = try? decoder.decode(WidgetSnapshot.self, from: snapshotData) {
-                DispatchQueue.main.async { [weak self] in
-                    let current = self?.widgetData ?? .placeholder
-                    self?.widgetData = WidgetData(
-                        snapshot: snapshot,
-                        hourly: current.hourly,
-                        daily: current.daily,
-                        timeline: current.timeline,
-                        commuteAlert: current.commuteAlert,
-                        accentColor: current.accentColor,
-                        thermalSensitivity: current.thermalSensitivity
-                    )
-                }
-            }
-        } else {
-            // Reload from App Group (phone should have written to shared UserDefaults)
+        guard reply[AppGroupKeys.snapshot] != nil else {
             loadFromAppGroup()
+            return
         }
+        applyConnectivityPayload(reply)
     }
 
     // MARK: - Send Feedback to Phone
@@ -153,52 +137,16 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        // Decode full WidgetData from userInfo
-        let decoder = JSONDecoder()
+        applyConnectivityPayload(userInfo, playSuccessHaptic: true)
+    }
 
-        var snapshot: WidgetSnapshot? = widgetData?.snapshot
-        var hourly: [HourlyWidgetEntry] = widgetData?.hourly ?? []
-        var daily: [DailyWidgetEntry] = widgetData?.daily ?? []
-        var timeline: [TimelineWidgetEntry] = widgetData?.timeline ?? []
-        var commuteAlert: CommuteWidgetAlert? = widgetData?.commuteAlert
-        var accentColor = widgetData?.accentColor ?? "#4F8EF7"
-        var thermalSensitivity = widgetData?.thermalSensitivity ?? 0
-
-        if let data = userInfo["snapshot"] as? Data {
-            snapshot = try? decoder.decode(WidgetSnapshot.self, from: data)
-        }
-        if let data = userInfo["hourly"] as? Data {
-            hourly = (try? decoder.decode([HourlyWidgetEntry].self, from: data)) ?? hourly
-        }
-        if let data = userInfo["daily"] as? Data {
-            daily = (try? decoder.decode([DailyWidgetEntry].self, from: data)) ?? daily
-        }
-        if let data = userInfo["timeline"] as? Data {
-            timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? timeline
-        }
-        if let data = userInfo["commuteAlert"] as? Data {
-            commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
-        }
-        if let color = userInfo["accentColor"] as? String {
-            accentColor = color
-        }
-        if let sensitivity = userInfo["thermalSensitivity"] as? Int {
-            thermalSensitivity = sensitivity
-        }
-
-        let newData = WidgetData(
-            snapshot: snapshot,
-            hourly: hourly,
-            daily: daily,
-            timeline: timeline,
-            commuteAlert: commuteAlert,
-            accentColor: accentColor,
-            thermalSensitivity: thermalSensitivity
-        )
-
+    private func applyConnectivityPayload(_ payload: [String: Any], playSuccessHaptic: Bool = false) {
+        let newData = WidgetData.fromConnectivityPayload(payload)
         DispatchQueue.main.async { [weak self] in
             self?.widgetData = newData
-            HapticManager.shared.playSuccess()
+            if playSuccessHaptic {
+                HapticManager.shared.playSuccess()
+            }
         }
     }
 
