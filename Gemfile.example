@@ -1,0 +1,9 @@
+# Optional: only use if you prefer Bundler over Homebrew CocoaPods.
+# Copy to Gemfile, then:
+#   bundle config set --local path vendor/bundle
+#   bundle install
+#
+# Most developers should use: brew install cocoapods
+# source "https://rubygems.org"
+# gem "cocoapods", "~> 1.16"
+# gem "xcodeproj", "~> 1.27"
