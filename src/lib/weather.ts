@@ -377,8 +377,9 @@ export async function fetchNOAAConfidence(
     if (error || !data || typeof data !== "object") return null;
     const rec = data as Record<string, unknown>;
     if (rec.error) return null;
+    if (typeof rec.noaaPop !== "number") return null;
 
-    const noaaPop = rec.noaaPop as number;
+    const noaaPop = rec.noaaPop;
     const wkAvg =
       weatherkitPrecipProbs.length > 0
         ? weatherkitPrecipProbs.reduce((s, v) => s + v, 0) / weatherkitPrecipProbs.length
