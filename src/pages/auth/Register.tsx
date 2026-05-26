@@ -184,8 +184,8 @@ export default function Register() {
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Terms of Service
-            </a>{" "}
-            and{" "}
+            </a>
+            ,{" "}
             <a
               href="https://www.layerweather.app/privacy"
               target="_blank"
@@ -193,6 +193,15 @@ export default function Register() {
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Privacy Policy
+            </a>
+            , and{" "}
+            <a
+              href="https://www.layerweather.app/eula"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
+            >
+              EULA
             </a>
             .
           </p>

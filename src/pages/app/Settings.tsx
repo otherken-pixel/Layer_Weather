@@ -768,6 +768,29 @@ export default function Settings() {
               <span style={{ fontSize: 18, color: hintColor }}>›</span>
             </a>
             <Divider dividerColor={dividerColor} />
+            <a
+              href="https://www.layerweather.app/eula"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                textDecoration: "none", marginTop: 14, marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.10)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 14,
+                }}>
+                  📋
+                </div>
+                <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>EULA</span>
+              </div>
+              <span style={{ fontSize: 18, color: hintColor }}>›</span>
+            </a>
+            <Divider dividerColor={dividerColor} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <svg width="22" height="22" viewBox="0 0 40 40" fill="none">
