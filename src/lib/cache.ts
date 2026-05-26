@@ -74,6 +74,7 @@ function reviveWeather(raw: Record<string, unknown>): WeatherData {
       condition: h.condition as WeatherCondition,
       weatherCode: h.weatherCode as number,
       windSpeed: h.windSpeed as number,
+      windDirection: h.windDirection as number | undefined,
       isDay: h.isDay as boolean,
     })),
     daily: (dailyRaw ?? []).map((d) => ({

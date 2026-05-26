@@ -5,6 +5,7 @@ import type {
   HourlyForecast,
   DailyForecast,
   WeatherCondition,
+  ForecastConfidence,
 } from "@/types";
 
 const WEATHER_FETCH_TIMEOUT_MS = 12_000;
@@ -86,6 +87,7 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
       condition: h.condition as WeatherCondition,
       weatherCode: h.weatherCode as number,
       windSpeed: h.windSpeed as number,
+      windDirection: h.windDirection as number | undefined,
       isDay: h.isDay as boolean,
     }))
     .filter((h) => h.time >= now);
@@ -172,7 +174,7 @@ async function fetchFromOpenMeteo(
     ].join(","),
     hourly: [
       "temperature_2m", "apparent_temperature", "precipitation_probability",
-      "weather_code", "wind_speed_10m", "is_day",
+      "weather_code", "wind_speed_10m", "wind_direction_10m", "is_day",
     ].join(","),
     daily: [
       "temperature_2m_max", "temperature_2m_min",
@@ -221,6 +223,7 @@ async function fetchFromOpenMeteo(
       condition: wmoToCondition((hourly.weather_code as number[])[i]),
       weatherCode: (hourly.weather_code as number[])[i],
       windSpeed: Math.round((hourly.wind_speed_10m as number[])[i]),
+      windDirection: Math.round((hourly.wind_direction_10m as number[])[i]),
       isDay: (hourly.is_day as number[])[i] === 1,
     }))
     .filter((h) => h.time >= now);
@@ -359,6 +362,37 @@ export async function reverseGeocodePlace(lat: number, lon: number): Promise<Rev
 export async function reverseGeocode(lat: number, lon: number): Promise<string> {
   const { city } = await reverseGeocodePlace(lat, lon);
   return city;
+}
+
+// ── NOAA forecast confidence (US only) ────────────────────────────────────────
+export async function fetchNOAAConfidence(
+  latitude: number,
+  longitude: number,
+  weatherkitPrecipProbs: number[],
+): Promise<ForecastConfidence> {
+  try {
+    const { data, error } = await supabase.functions.invoke("noaa-forecast", {
+      body: { lat: latitude, lon: longitude },
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const rec = data as Record<string, unknown>;
+    if (rec.error) return null;
+    if (typeof rec.noaaPop !== "number") return null;
+
+    const noaaPop = rec.noaaPop;
+    const wkAvg =
+      weatherkitPrecipProbs.length > 0
+        ? weatherkitPrecipProbs.reduce((s, v) => s + v, 0) / weatherkitPrecipProbs.length
+        : null;
+
+    if (wkAvg === null) return null;
+    const diff = Math.abs(noaaPop - wkAvg);
+    if (diff < 15) return "high";
+    if (diff < 35) return "medium";
+    return "low";
+  } catch {
+    return null;
+  }
 }
 
 // ── Group hourly forecasts by calendar day ────────────────────────────────────
