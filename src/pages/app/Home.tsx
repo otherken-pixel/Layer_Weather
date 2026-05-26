@@ -53,6 +53,7 @@ export default function Home() {
     weatherWardrobes, setWeatherWardrobes,
     setWardrobeItems,
     svgCatalogById,
+    forecastConfidence,
   } = useAppStore();
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
@@ -476,6 +477,34 @@ export default function Home() {
               onViewWardrobe={() => navigate("/app/wardrobe")}
             />
 
+            {/* NOAA forecast confidence badge (US only) */}
+            {forecastConfidence === "low" && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 16px", borderRadius: 16,
+                background: isDark ? "rgba(251,146,60,0.15)" : "#FFF7ED",
+                border: "1px solid #FED7AA",
+              }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                <p style={{ fontSize: 13, color: isDark ? "#FDBA74" : "#C2410C", flex: 1, margin: 0 }}>
+                  Uncertain forecast — models disagree. Pack layers and consider an umbrella.
+                </p>
+              </div>
+            )}
+            {forecastConfidence === "medium" && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 16px", borderRadius: 16,
+                background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB",
+                border: "1px solid #FDE68A",
+              }}>
+                <span style={{ fontSize: 16, flexShrink: 0 }}>🌤️</span>
+                <p style={{ fontSize: 13, color: isDark ? "#FCD34D" : "#92400E", flex: 1, margin: 0 }}>
+                  Forecast may vary — check again closer to the time.
+                </p>
+              </div>
+            )}
+
             {/* Calendar style hint */}
             {styleHint && eventType !== "default" && (
               <div style={{
@@ -508,7 +537,7 @@ export default function Home() {
             )}
 
             {/* Hourly strip */}
-            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} isDark={isDark} cardSurface={cardSurface} />
+            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} isDark={isDark} cardSurface={cardSurface} onFullForecast={() => navigate("/app/forecast")} />
 
             {/* 7-Day forecast */}
             {weather.daily.length > 0 && (
@@ -540,11 +569,13 @@ function HourlyStrip({
   tempUnit,
   isDark,
   cardSurface,
+  onFullForecast,
 }: {
   hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
   tempUnit: "F" | "C";
   isDark: boolean;
   cardSurface: string;
+  onFullForecast?: () => void;
 }) {
   // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
   const labelColor = isDark ? Colors.dark.textMuted : "#4B5563";
@@ -557,13 +588,24 @@ function HourlyStrip({
       boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
       border: isDark ? `1px solid ${Colors.dark.border}` : undefined,
     }}>
-      <p style={{
-        fontSize: 14, fontWeight: 700,
-        color: labelColor,
-        letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
-      }}>
-        Hourly Forecast
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <p style={{
+          fontSize: 14, fontWeight: 700,
+          color: labelColor,
+          letterSpacing: "0.08em", textTransform: "uppercase", margin: 0,
+        }}>
+          Hourly Forecast
+        </p>
+        {onFullForecast && (
+          <button
+            type="button"
+            onClick={onFullForecast}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--accent-primary)", padding: 0 }}
+          >
+            48h →
+          </button>
+        )}
+      </div>
       <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 2 }}>
         {hourly.map((h, i) => {
           const isNow = i === 0;
