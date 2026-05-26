@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, deleteUserAccount, upsertProfile } from "@/lib/supabase";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -732,8 +732,8 @@ export default function Settings() {
               <span style={{ fontSize: 18, color: hintColor }}>›</span>
             </button>
             <Divider dividerColor={dividerColor} />
-            <a
-              href="/privacy"
+            <Link
+              to="/privacy"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
@@ -751,10 +751,10 @@ export default function Settings() {
                 <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>Privacy Policy</span>
               </div>
               <span style={{ fontSize: 18, color: hintColor }}>›</span>
-            </a>
+            </Link>
             <Divider dividerColor={dividerColor} />
-            <a
-              href="/terms"
+            <Link
+              to="/terms"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
@@ -772,10 +772,10 @@ export default function Settings() {
                 <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>Terms of Service</span>
               </div>
               <span style={{ fontSize: 18, color: hintColor }}>›</span>
-            </a>
+            </Link>
             <Divider dividerColor={dividerColor} />
-            <a
-              href="/eula"
+            <Link
+              to="/eula"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
@@ -793,7 +793,7 @@ export default function Settings() {
                 <span style={{ fontSize: 15, fontWeight: 600, color: rowTextColor }}>EULA</span>
               </div>
               <span style={{ fontSize: 18, color: hintColor }}>›</span>
-            </a>
+            </Link>
             <Divider dividerColor={dividerColor} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

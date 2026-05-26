@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import Logo from "@/components/ui/Logo";
@@ -177,26 +177,26 @@ export default function Register() {
 
           <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.4)" }}>
             By creating an account you agree to our{" "}
-            <a
-              href="/terms"
+            <Link
+              to="/terms"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Terms of Service
-            </a>
+            </Link>
             ,{" "}
-            <a
-              href="/privacy"
+            <Link
+              to="/privacy"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Privacy Policy
-            </a>
+            </Link>
             , and{" "}
-            <a
-              href="/eula"
+            <Link
+              to="/eula"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               EULA
-            </a>
+            </Link>
             .
           </p>
 
