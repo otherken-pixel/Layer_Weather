@@ -95,7 +95,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         var thermalSensitivity = widgetData?.thermalSensitivity ?? 0
 
         if let data = payload["snapshot"] as? Data {
-            snapshot = try? decoder.decode(WidgetSnapshot.self, from: data)
+            snapshot = (try? decoder.decode(WidgetSnapshot.self, from: data)) ?? snapshot
         }
         if let data = payload["hourly"] as? Data {
             hourly = (try? decoder.decode([HourlyWidgetEntry].self, from: data)) ?? hourly
@@ -107,7 +107,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? timeline
         }
         if let data = payload["commuteAlert"] as? Data {
-            commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
+            commuteAlert = (try? decoder.decode(CommuteWidgetAlert.self, from: data)) ?? commuteAlert
         }
         if let color = payload["accentColor"] as? String {
             accentColor = color
