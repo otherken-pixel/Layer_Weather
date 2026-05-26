@@ -128,7 +128,7 @@ export async function shareOutfitCard(
   opts: Parameters<typeof generateShareCard>[0],
 ): Promise<void> {
   const blob = await generateShareCard(opts);
-  const file = new File([blob], "weartoday.png", { type: "image/png" });
+  const file = new File([blob], "layer-weather.png", { type: "image/png" });
 
   if (
     typeof navigator !== "undefined" &&
@@ -141,7 +141,7 @@ export async function shareOutfitCard(
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "weartoday.png";
+    a.download = "layer-weather.png";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
