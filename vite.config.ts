@@ -7,6 +7,8 @@ import { SVG_WARMUP_STORAGE_PATHS } from "./src/lib/svgWarmupPaths";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const supabaseUrl = env.VITE_SUPABASE_URL?.replace(/\/$/, "");
+  // Service workers break Capacitor WebView (⚡️ JS Eval error). PWA is web-only.
+  const isNativeBuild = process.env.CAPACITOR_BUILD === "1";
 
   const svgPrecacheEntries = supabaseUrl
     ? SVG_WARMUP_STORAGE_PATHS.map((storagePath) => ({
@@ -15,57 +17,56 @@ export default defineConfig(({ mode }) => {
       }))
     : [];
 
+  const pwaPlugin = VitePWA({
+    registerType: "autoUpdate",
+    includeAssets: ["icons/*.png"],
+    manifest: {
+      name: "Layer Weather",
+      short_name: "Layer",
+      description: "Weather-smart outfit recommendations",
+      theme_color: "#6C63FF",
+      background_color: "#1a1a2e",
+      display: "standalone",
+      orientation: "portrait",
+      start_url: "/",
+      icons: [
+        { src: "/icons/icon.png", sizes: "1024x1024", type: "image/png" },
+        {
+          src: "/icons/adaptive-icon.png",
+          sizes: "1024x1024",
+          type: "image/png",
+          purpose: "maskable",
+        },
+      ],
+    },
+    workbox: {
+      globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+      additionalManifestEntries: svgPrecacheEntries,
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/,
+          handler: "NetworkFirst",
+          options: { cacheName: "weather-api", expiration: { maxAgeSeconds: 900 } },
+        },
+        {
+          urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/svg_clothes_files\/.*/,
+          handler: "StaleWhileRevalidate",
+          options: {
+            cacheName: "svg-clothes",
+            expiration: {
+              maxEntries: 120,
+              maxAgeSeconds: 60 * 60 * 24 * 30,
+              purgeOnQuotaError: true,
+            },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+      ],
+    },
+  });
+
   return {
-    plugins: [
-      react(),
-      VitePWA({
-        registerType: "autoUpdate",
-        includeAssets: ["icons/*.png"],
-        manifest: {
-          name: "Layer Weather",
-          short_name: "Layer",
-          description: "Weather-smart outfit recommendations",
-          theme_color: "#6C63FF",
-          background_color: "#1a1a2e",
-          display: "standalone",
-          orientation: "portrait",
-          start_url: "/",
-          icons: [
-            { src: "/icons/icon.png", sizes: "1024x1024", type: "image/png" },
-            {
-              src: "/icons/adaptive-icon.png",
-              sizes: "1024x1024",
-              type: "image/png",
-              purpose: "maskable",
-            },
-          ],
-        },
-        workbox: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-          additionalManifestEntries: svgPrecacheEntries,
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/,
-              handler: "NetworkFirst",
-              options: { cacheName: "weather-api", expiration: { maxAgeSeconds: 900 } },
-            },
-            {
-              urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/svg_clothes_files\/.*/,
-              handler: "StaleWhileRevalidate",
-              options: {
-                cacheName: "svg-clothes",
-                expiration: {
-                  maxEntries: 120,
-                  maxAgeSeconds: 60 * 60 * 24 * 30,
-                  purgeOnQuotaError: true,
-                },
-                cacheableResponse: { statuses: [0, 200] },
-              },
-            },
-          ],
-        },
-      }),
-    ],
+    plugins: [react(), ...(isNativeBuild ? [] : [pwaPlugin])],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

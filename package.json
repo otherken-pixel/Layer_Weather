@@ -14,7 +14,9 @@
     "ios:open": "npx cap open ios",
     "ios:fix": "bash scripts/fix-ios-build.sh",
     "ios:pods": "cd ios/App && pod install",
-    "ios:pods:update": "cd ios/App && pod install --repo-update"
+    "ios:pods:update": "cd ios/App && pod install --repo-update",
+    "build:ios": "CAPACITOR_BUILD=1 vite build",
+    "ios:icons": "bash scripts/sync-ios-app-icon.sh"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

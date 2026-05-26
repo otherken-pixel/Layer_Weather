@@ -36,8 +36,15 @@ if [[ ! -f "$PODFILE" ]]; then
   npx cap add ios
 fi
 
-echo "==> Building web app…"
-npm run build
+if [[ ! -f "$ROOT/.env" ]]; then
+  echo "ERROR: Missing .env in project root."
+  echo "  cp .env.example .env"
+  echo "  Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY from Supabase → Project Settings → API"
+  exit 1
+fi
+
+echo "==> Building web app for iOS (no service worker)…"
+npm run build:ios
 
 echo "==> Capacitor sync (using system pod, not Bundler)…"
 export CAPACITOR_COCOAPODS_PATH="pod"
@@ -67,6 +74,8 @@ fi
 if ! grep -q "Pods.xcodeproj" "$WORKSPACE/contents.xcworkspacedata" 2>/dev/null; then
   echo "WARNING: Workspace may not reference Pods.xcodeproj — ensure you open App.xcworkspace"
 fi
+
+bash "$ROOT/scripts/sync-ios-app-icon.sh" || true
 
 echo ""
 echo "✅ Pods installed successfully."
