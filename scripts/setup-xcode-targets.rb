@@ -82,6 +82,17 @@ def target_exists?(project, name)
   project.targets.any? { |t| t.name == name }
 end
 
+# Embed an app extension product into a host (iOS App or watchOS App). xcodeproj does not do this automatically.
+def embed_app_extension(host_target, extension_target)
+  host_target.add_dependency(extension_target)
+  phase_name = 'Embed App Extensions'
+  phase = host_target.copy_files_build_phases.find { |p| p.name == phase_name } ||
+          host_target.new_copy_files_build_phase(phase_name).tap do |p|
+            p.symbol_dst_subfolder_spec = :plug_ins
+          end
+  phase.add_file_reference(extension_target.product_reference, true)
+end
+
 # ══════════════════════════════════════════════════════════════════════════
 # PHASE 1 — Add native files to the existing App (Capacitor) target
 # ══════════════════════════════════════════════════════════════════════════
