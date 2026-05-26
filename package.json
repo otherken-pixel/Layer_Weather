@@ -12,7 +12,9 @@
     "cap:sync": "npm run build && npx cap sync",
     "ios:prepare": "bash scripts/prepare-ios.sh",
     "ios:open": "npx cap open ios",
-    "ios:fix": "bash scripts/fix-ios-build.sh"
+    "ios:fix": "bash scripts/fix-ios-build.sh",
+    "ios:pods": "cd ios/App && pod install",
+    "ios:pods:update": "cd ios/App && pod install --repo-update"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
