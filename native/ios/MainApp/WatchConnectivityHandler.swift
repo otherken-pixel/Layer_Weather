@@ -69,17 +69,26 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
 
     private func buildPayload() -> [String: Any] {
         let defaults = sharedDefaults
-        let keys = [
-            "widget_snapshot", "widget_hourly", "widget_daily",
-            "widget_timeline", "widget_commute_alert",
-            "widget_accent_color", "widget_thermal_sensitivity",
-            "widget_last_coordinates",
+        /// Keys must match what `WatchConnectivityManager.didReceiveUserInfo` expects (short names + `Data` for JSON blobs).
+        let jsonFieldMappings: [(defaultsKey: String, payloadKey: String)] = [
+            ("widget_snapshot", "snapshot"),
+            ("widget_hourly", "hourly"),
+            ("widget_daily", "daily"),
+            ("widget_timeline", "timeline"),
+            ("widget_commute_alert", "commuteAlert"),
         ]
         var payload: [String: Any] = [:]
-        for key in keys {
-            if let value = defaults?.string(forKey: key) {
-                payload[key] = value
-            }
+        for mapping in jsonFieldMappings {
+            guard let str = defaults?.string(forKey: mapping.defaultsKey),
+                  let data = str.data(using: .utf8) else { continue }
+            payload[mapping.payloadKey] = data
+        }
+        if let color = defaults?.string(forKey: "widget_accent_color") {
+            payload["accentColor"] = color
+        }
+        if let thermalStr = defaults?.string(forKey: "widget_thermal_sensitivity"),
+           let thermal = Int(thermalStr) {
+            payload["thermalSensitivity"] = thermal
         }
         return payload
     }
