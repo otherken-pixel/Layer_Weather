@@ -44,6 +44,7 @@ function daytimeStats(
   hours: Record<string, unknown>[],
   dayStart: string,
   timezone: string,
+  daily?: Record<string, unknown>,
 ): { condition: string; precipProb: number } {
   const dayKey = new Date(dayStart).toLocaleDateString("en-CA", { timeZone: timezone });
 
@@ -58,7 +59,15 @@ function daytimeStats(
     return hour >= 8 && hour < 20;
   });
 
-  if (window.length === 0) return { condition: "cloudy", precipProb: 0 };
+  if (window.length === 0) {
+    if (daily) {
+      return {
+        condition: appCondition(daily.conditionCode as string ?? "Cloudy"),
+        precipProb: Math.round(((daily.precipitationChance as number) ?? 0) * 100),
+      };
+    }
+    return { condition: "cloudy", precipProb: 0 };
+  }
 
   const counts: Record<string, number> = {};
   let maxPrecip = 0;
@@ -229,7 +238,7 @@ Deno.serve(async (req) => {
       daily: days.slice(0, 7).map((d) => {
         const day = (d.daytimeForecast ?? {}) as Record<string, unknown>;
         const night = (d.overnightForecast ?? {}) as Record<string, unknown>;
-        const daytime = daytimeStats(hours, d.forecastStart as string, timezone);
+        const daytime = daytimeStats(hours, d.forecastStart as string, timezone, d);
         return {
           date: d.forecastStart,
           tempMin: cToF(d.temperatureMin as number ?? 0),
