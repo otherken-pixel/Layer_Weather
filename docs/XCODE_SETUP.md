@@ -61,6 +61,17 @@ Shared App Group: `group.com.layerweather.shared`
 
 Open **`ios/App/App.xcworkspace`**, not `App.xcodeproj`. Run `npm run ios:pods` from project root.
 
+
+### `Cannot find WatchConnectivityHandler in scope`
+
+AppDelegate calls `WatchConnectivityHandler` but the Swift file is not in the **App** target. Run:
+
+```bash
+npm run ios:extensions
+```
+
+Clean build in Xcode (Shift+Cmd+K).
+
 ### Widget / watch targets missing
 
 ```bash

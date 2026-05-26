@@ -45,20 +45,49 @@ end
 
 # Add a Swift source file to a target using an absolute-path file reference.
 # Skips silently if a reference with the same basename already exists in group.
+def file_in_compile_phase?(target, basename)
+  target.source_build_phase.files.any? do |build_file|
+    ref = build_file.file_ref
+    ref && File.basename(ref.path.to_s) == basename
+  end
+end
+
 def add_source(target, group, abs_path)
   abs_path = abs_path.to_s
-  basename  = File.basename(abs_path)
+  basename = File.basename(abs_path)
 
-  if group.files.any? { |f| File.basename(f.path.to_s) == basename }
-    puts "  ↩  #{basename} (already present)"
+  unless File.exist?(abs_path)
+    puts "  ⚠  #{basename} not found at #{abs_path}"
     return
   end
 
-  ref = group.new_reference(abs_path)
-  ref.source_tree          = '<absolute>'
-  ref.last_known_file_type = 'sourcecode.swift'
+  if file_in_compile_phase?(target, basename)
+    puts "  ↩  #{basename} (already compiled by #{target.name})"
+    return
+  end
+
+  ref = group.files.find { |f| File.basename(f.path.to_s) == basename }
+  if ref
+    puts "  ↳  #{basename} (adding file ref to #{target.name} compile sources)"
+  else
+    ref = group.new_reference(abs_path)
+    ref.source_tree = '<absolute>'
+    ref.last_known_file_type = 'sourcecode.swift'
+    puts "  +  #{basename} → #{target.name}"
+  end
   target.source_build_phase.add_file_reference(ref, true)
-  puts "  +  #{basename} → #{target.name}"
+end
+
+def add_system_framework(project, target, framework_name)
+  path = "System/Library/Frameworks/#{framework_name}.framework"
+  ref = project.frameworks_group.files.find { |f| f.path == path } ||
+        project.frameworks_group.new_reference(path)
+  ref.source_tree = 'SDKROOT'
+  ref.last_known_file_type = 'wrapper.framework'
+  return if target.frameworks_build_phase.files.any? { |bf| bf.file_ref == ref }
+
+  target.frameworks_build_phase.add_file_reference(ref, true)
+  puts "  +  linked #{framework_name}.framework → #{target.name}"
 end
 
 def write_plist(path, content)
@@ -113,6 +142,9 @@ add_source(main_target, main_grp, NATIVE / 'MainApp/WatchConnectivityHandler.swi
 add_source(main_target, shared_grp, NATIVE / 'Shared/AppGroupKeys.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/SharedWeatherModels.swift')
 
+add_system_framework(project, main_target, 'WatchConnectivity')
+add_system_framework(project, main_target, 'WidgetKit')
+
 # ── Patch Info.plist ───────────────────────────────────────────────────────
 info_plist_path = APP_SRC / 'Info.plist'
 if info_plist_path.exist?
@@ -153,7 +185,12 @@ delegate_path = APP_SRC / 'AppDelegate.swift'
 if delegate_path.exist?
   src = File.read(delegate_path)
   if src.include?('WatchConnectivityHandler')
-    puts "  ↩  AppDelegate.swift already patched"
+    if file_in_compile_phase?(main_target, 'WatchConnectivityHandler.swift')
+      puts "  ↩  AppDelegate.swift already patched"
+    else
+      puts "  ⚠  AppDelegate references WatchConnectivityHandler but Swift file is not in App compile sources"
+      puts "     (fixed above — rebuild in Xcode)"
+    end
   else
     # Add import after the last import line
     src = src.sub(/(import \S+\n)(?!import)/, "\\1import WatchConnectivity\n")
