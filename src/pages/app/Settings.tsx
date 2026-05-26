@@ -872,7 +872,7 @@ export default function Settings() {
           confirmLabel={deleting ? "Deleting…" : "Delete Forever"}
           cancelLabel="Cancel"
           destructive
-          onConfirm={() => { setDeleteConfirmModalOpen(false); handleDeleteAccount(); }}
+          onConfirm={() => { void handleDeleteAccount(); }}
           onCancel={() => setDeleteConfirmModalOpen(false)}
           isDark={isDark}
         />

@@ -271,7 +271,8 @@ export async function deleteUserAccount(userId: string): Promise<void> {
 
   for (const table of tables) {
     const col = table === "profiles" ? "id" : "user_id";
-    await supabase.from(table).delete().eq(col, userId);
+    const { error } = await supabase.from(table).delete().eq(col, userId);
+    if (error) throw error;
   }
 
   try {
