@@ -15,6 +15,7 @@ vite.config.d.ts
 .env.local
 .DS_Store
 *.log
+vendor/bundle/
 ios/
 android/
 

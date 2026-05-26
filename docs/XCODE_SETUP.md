@@ -37,8 +37,39 @@ open ios/App/App.xcworkspace   # MUST use .xcworkspace, not .xcodeproj
 |---------|-----|
 | `Unable to resolve module dependency: 'Capacitor'` in `AppDelegate.swift` | Run `npm run ios:prepare`, then open **`App.xcworkspace`** (not `.xcodeproj`) |
 | `Sandbox is not in sync with the Podfile.lock` | `cd ios/App && pod install` |
-| CocoaPods not installed | `sudo gem install cocoapods` or `bundle install && bundle exec pod install --project-directory=ios/App` |
+| CocoaPods not installed | `brew install cocoapods` (recommended), or see Bundler section below |
+| `Gem::FilePermissionError` on `npx cap sync` | See **Bundler permission error** below |
 | Stale Xcode cache | Product → Clean Build Folder; delete Derived Data (Xcode → Settings → Locations) |
+
+### Troubleshooting: Bundler permission error (`Gem::FilePermissionError`)
+
+Capacitor sees the project `Gemfile` and runs `bundle exec pod`. macOS system Ruby cannot write to `/Library/Ruby/Gems`.
+
+**Option A — Homebrew CocoaPods (simplest):**
+
+```bash
+brew install cocoapods
+mv Gemfile Gemfile.bak    # optional: stops cap sync from using Bundler
+npx cap sync ios
+cd ios/App && pod install
+```
+
+**Option B — Bundler with local gems (keeps the Gemfile):**
+
+```bash
+bundle config set --local path vendor/bundle
+bundle install
+npx cap sync ios
+```
+
+The repo includes `.bundle/config` so gems install under `vendor/bundle/` (no sudo).
+
+**Option C — Skip Bundler for one command:**
+
+```bash
+export CAPACITOR_COCOAPODS_PATH="$(which pod)"
+npx cap sync ios
+```
 
 The script (idempotent — safe to re-run) handles:
 - Adding `MainApp/` and `Shared/` files to the App target

@@ -39,16 +39,16 @@ echo "==> Installing CocoaPods (ios/App)…"
 cd "$IOS_APP_DIR"
 
 if command -v bundle >/dev/null 2>&1 && [[ -f "$ROOT/Gemfile" ]]; then
-  (cd "$ROOT" && bundle check >/dev/null 2>&1 || bundle install --quiet)
+  (cd "$ROOT" && bundle config set --local path vendor/bundle 2>/dev/null || true)
+  (cd "$ROOT" && bundle check >/dev/null 2>&1 || bundle install)
   (cd "$ROOT" && bundle exec pod install --project-directory="$IOS_APP_DIR")
-else
-  if ! command -v pod >/dev/null 2>&1; then
-    echo "ERROR: CocoaPods is not installed."
-    echo "Install with: sudo gem install cocoapods"
-    echo "Or use Bundler from the project root: bundle install && bundle exec pod install --project-directory=ios/App"
-    exit 1
-  fi
+elif command -v pod >/dev/null 2>&1; then
   pod install
+else
+  echo "ERROR: CocoaPods is not installed."
+  echo "Install with: brew install cocoapods"
+  echo "Or use Bundler: bundle config set --local path vendor/bundle && bundle install"
+  exit 1
 fi
 
 cd "$ROOT"
