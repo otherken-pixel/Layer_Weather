@@ -114,7 +114,7 @@ export async function generateShareCard(opts: {
   // Branding
   ctx.font = `11px ${fontFamily}`;
   ctx.fillStyle = "rgba(255,255,255,0.4)";
-  ctx.fillText("WearToday", 200, outfitDescription.trim() ? nextY : 200);
+  ctx.fillText("Layer Weather", 200, outfitDescription.trim() ? nextY : 200);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => {

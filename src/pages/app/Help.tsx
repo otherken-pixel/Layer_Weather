@@ -22,10 +22,10 @@ const SECTIONS: HelpSection[] = [
     title: "Getting Started",
     items: [
       {
-        question: "What does WearToday do?",
+        question: "What does Layer Weather do?",
         answer: (
           <>
-            <p>WearToday recommends what to wear based on your local weather and your personal comfort preferences. Every morning it checks the forecast for your location, factors in your commute times, and suggests a complete outfit — from what to layer to whether you need an umbrella.</p>
+            <p>Layer Weather recommends what to wear based on your local weather and your personal comfort preferences. Every morning it checks the forecast for your location, factors in your commute times, and suggests a complete outfit — from what to layer to whether you need an umbrella.</p>
             <p style={{ marginTop: 8 }}>The more you use it and give feedback, the better your recommendations become.</p>
           </>
         ),
@@ -34,7 +34,7 @@ const SECTIONS: HelpSection[] = [
         question: "How does first-time onboarding work?",
         answer: (
           <>
-            <p>When you first sign in, WearToday walks you through a short setup:</p>
+            <p>When you first sign in, Layer Weather walks you through a short setup:</p>
             <ol style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
               <li><strong>Swipe calibration</strong> — Swipe right on outfits you'd wear, left on ones that feel too hot or cold. This sets your initial temperature thresholds.</li>
               <li><strong>Thermal sensitivity</strong> — Slide to tell the app whether you run hot, cold, or right in the middle.</li>
@@ -149,7 +149,7 @@ const SECTIONS: HelpSection[] = [
         question: "What happens when I'm offline or weather can't load?",
         answer: (
           <>
-            <p>WearToday caches weather data for up to 12 hours. If your connection drops, the app continues to show the last successfully fetched forecast with a yellow banner that reads <em>"Showing data from X minutes ago."</em></p>
+            <p>Layer Weather caches weather data for up to 12 hours. If your connection drops, the app continues to show the last successfully fetched forecast with a yellow banner that reads <em>"Showing data from X minutes ago."</em></p>
             <p style={{ marginTop: 8 }}>If there's no cached data at all, you'll see a full-screen error with a <strong>Try again</strong> button. Tap it once your connection is restored.</p>
           </>
         ),
@@ -165,7 +165,7 @@ const SECTIONS: HelpSection[] = [
         question: "How does the Wardrobe feature work?",
         answer: (
           <>
-            <p>Your Wardrobe lets you build a personal outfit for each of six weather types using the app's clothing illustrations. Once set up, WearToday automatically shows your chosen outfit on the Today screen whenever the weather matches that type — no guessing, no generic suggestions.</p>
+            <p>Your Wardrobe lets you build a personal outfit for each of six weather types using the app's clothing illustrations. Once set up, Layer Weather automatically shows your chosen outfit on the Today screen whenever the weather matches that type — no guessing, no generic suggestions.</p>
             <p style={{ marginTop: 8 }}>For example, if you set up a Rainy Day wardrobe with a rain jacket, jeans, and rain boots, that exact outfit will appear every time it rains.</p>
           </>
         ),
@@ -226,7 +226,7 @@ const SECTIONS: HelpSection[] = [
       {
         question: "Do I need to set up all six wardrobes?",
         answer: (
-          <p>No — you can set up as many or as few as you like. For any weather type you haven't configured, WearToday falls back to its standard system-generated outfit recommendation based on your temperature calibration. The app works fine with just one or two wardrobes set up for the conditions you care about most.</p>
+          <p>No — you can set up as many or as few as you like. For any weather type you haven't configured, Layer Weather falls back to its standard system-generated outfit recommendation based on your temperature calibration. The app works fine with just one or two wardrobes set up for the conditions you care about most.</p>
         ),
       },
       {
@@ -268,7 +268,7 @@ const SECTIONS: HelpSection[] = [
       {
         question: "How is the packing list generated?",
         answer: (
-          <p>WearToday pulls the weather forecast for your destination covering your exact travel dates. It uses Apple WeatherKit (primary) for trips within 10 days, and an extended 16-day forecast for trips up to 16 days out. The same outfit logic from the Today tab — your warmth thresholds, rain tolerance, and personal wardrobe — is applied to recommend the right types and quantities of clothing. Items that match clothing in your saved Wardrobe are marked with a green checkmark so you know you already own them.</p>
+          <p>Layer Weather pulls the weather forecast for your destination covering your exact travel dates. It uses Apple WeatherKit (primary) for trips within 10 days, and an extended 16-day forecast for trips up to 16 days out. The same outfit logic from the Today tab — your warmth thresholds, rain tolerance, and personal wardrobe — is applied to recommend the right types and quantities of clothing. Items that match clothing in your saved Wardrobe are marked with a green checkmark so you know you already own them.</p>
         ),
       },
       {
@@ -310,7 +310,7 @@ const SECTIONS: HelpSection[] = [
       {
         question: "What is the 1-day-out notification?",
         answer: (
-          <p>The night before any saved trip departs, WearToday checks the latest weather forecast against your stored packing list. If conditions have changed significantly — a temperature swing of 10°F or more, new rain days, or unexpected snow — you'll receive a push notification prompting you to open the app and review your updated packing list. If conditions are stable, you'll get a simple reminder that your trip starts tomorrow. Notifications require push permission to be enabled on your device.</p>
+          <p>The night before any saved trip departs, Layer Weather checks the latest weather forecast against your stored packing list. If conditions have changed significantly — a temperature swing of 10°F or more, new rain days, or unexpected snow — you'll receive a push notification prompting you to open the app and review your updated packing list. If conditions are stable, you'll get a simple reminder that your trip starts tomorrow. Notifications require push permission to be enabled on your device.</p>
         ),
       },
       {
@@ -403,7 +403,7 @@ const SECTIONS: HelpSection[] = [
         question: "What is Outfit Formality and why does it matter?",
         answer: (
           <>
-            <p>Outfit Formality tells WearToday what dress code to aim for when generating recommendations. It's found in <strong>Settings → Outfit Formality</strong>. The three levels are:</p>
+            <p>Outfit Formality tells Layer Weather what dress code to aim for when generating recommendations. It's found in <strong>Settings → Outfit Formality</strong>. The three levels are:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
               <li><strong>Activewear</strong> — Athletic fits, running gear, and performance fabrics. Ideal if you're heading to the gym or going for a run.</li>
               <li><strong>Casual</strong> — Everyday relaxed outfits. This is the default for most people.</li>
@@ -422,7 +422,7 @@ const SECTIONS: HelpSection[] = [
       {
         question: "What are Commute Times and how do they affect suggestions?",
         answer: (
-          <p>Under Settings → Commute, set your morning departure time and evening return time. WearToday uses these windows to check the weather during your actual time outdoors — not just the daily high or low. For example, if you leave at 7:30 AM when it's cold but return at 6:00 PM when it's warm, the app will suggest layers you can remove during the day. The Smart Layering Tip on the Today screen is also informed by your commute times.</p>
+          <p>Under Settings → Commute, set your morning departure time and evening return time. Layer Weather uses these windows to check the weather during your actual time outdoors — not just the daily high or low. For example, if you leave at 7:30 AM when it's cold but return at 6:00 PM when it's warm, the app will suggest layers you can remove during the day. The Smart Layering Tip on the Today screen is also informed by your commute times.</p>
         ),
       },
       {
@@ -442,7 +442,7 @@ const SECTIONS: HelpSection[] = [
         question: "What is Today's Agenda?",
         answer: (
           <>
-            <p>The Agenda setting tells WearToday what kind of day you're having so it can tailor outfit style hints accordingly. Options include <strong>Work, Casual, Exercise, Event, Travel,</strong> and <strong>Home</strong>. When an agenda is set, a small banner appears on the Today screen with a contextual tip — for example, setting it to Exercise shows an activewear prompt even if Formality is set to Casual.</p>
+            <p>The Agenda setting tells Layer Weather what kind of day you're having so it can tailor outfit style hints accordingly. Options include <strong>Work, Casual, Exercise, Event, Travel,</strong> and <strong>Home</strong>. When an agenda is set, a small banner appears on the Today screen with a contextual tip — for example, setting it to Exercise shows an activewear prompt even if Formality is set to Casual.</p>
             <p style={{ marginTop: 8 }}>Agenda applies immediately — no need to tap Save Changes. Reset it to Default to turn the hint off.</p>
           </>
         ),
@@ -630,7 +630,7 @@ export default function Help() {
           }}
         >
           <p style={{ fontSize: 14, lineHeight: 1.65, color: hintColor, margin: 0 }}>
-            Welcome to WearToday! Browse the topics below to learn how each part of the app works. Tap any question to expand the answer.
+            Welcome to Layer Weather! Browse the topics below to learn how each part of the app works. Tap any question to expand the answer.
           </p>
         </div>
 
