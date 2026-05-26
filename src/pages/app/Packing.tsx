@@ -920,7 +920,7 @@ function PackingCategoryCard({
     <div style={{ background: isDark ? "#2C2C2E" : "#F9FAFB", borderRadius: 18, padding: 14, marginBottom: 10, border: isDark ? "1px solid rgba(255,255,255,0.06)" : undefined }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
         <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[cat]}</span>
-        <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#6B7280" : "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#9BA4B4" : "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
           {cat}
         </p>
       </div>
