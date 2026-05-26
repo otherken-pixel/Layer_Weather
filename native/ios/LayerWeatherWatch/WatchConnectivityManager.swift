@@ -77,9 +77,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
             return
         }
         let newData = widgetData(byMergingWeatherPayload: reply)
-        DispatchQueue.main.async { [weak self] in
-            self?.widgetData = newData
-        }
+        widgetData = newData
     }
 
     /// Merges a phone `buildPayload()` dictionary into `WidgetData`, matching `didReceiveUserInfo`.
