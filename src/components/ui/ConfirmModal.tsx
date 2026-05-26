@@ -11,6 +11,8 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isDark?: boolean;
+  /** When true, overlay and action buttons do not dismiss or re-trigger the modal actions. */
+  actionsDisabled?: boolean;
 }
 
 export function ConfirmModal({
@@ -23,6 +25,7 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
   isDark = false,
+  actionsDisabled = false,
 }: ConfirmModalProps) {
   const overlayBg = isDark ? "rgba(0,0,0,0.72)" : "rgba(0,0,0,0.45)";
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
@@ -41,7 +44,10 @@ export function ConfirmModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          onClick={onCancel}
+          onClick={() => {
+            if (actionsDisabled) return;
+            onCancel();
+          }}
           style={{
             position: "fixed",
             inset: 0,
@@ -83,7 +89,11 @@ export function ConfirmModal({
             <div style={{ display: "flex" }}>
               <button
                 type="button"
-                onClick={onCancel}
+                disabled={actionsDisabled}
+                onClick={() => {
+                  if (actionsDisabled) return;
+                  onCancel();
+                }}
                 style={{
                   flex: 1,
                   padding: "14px 0",
@@ -92,7 +102,8 @@ export function ConfirmModal({
                   fontSize: 16,
                   fontWeight: 600,
                   color: cancelColor,
-                  cursor: "pointer",
+                  cursor: actionsDisabled ? "not-allowed" : "pointer",
+                  opacity: actionsDisabled ? 0.45 : 1,
                 }}
               >
                 {cancelLabel}
@@ -100,7 +111,11 @@ export function ConfirmModal({
               <div style={{ width: 1, background: dividerColor }} />
               <button
                 type="button"
-                onClick={onConfirm}
+                disabled={actionsDisabled}
+                onClick={() => {
+                  if (actionsDisabled) return;
+                  onConfirm();
+                }}
                 style={{
                   flex: 1,
                   padding: "14px 0",
@@ -109,7 +124,8 @@ export function ConfirmModal({
                   fontSize: 16,
                   fontWeight: destructive ? 700 : 600,
                   color: confirmColor,
-                  cursor: "pointer",
+                  cursor: actionsDisabled ? "not-allowed" : "pointer",
+                  opacity: actionsDisabled ? 0.45 : 1,
                 }}
               >
                 {confirmLabel}

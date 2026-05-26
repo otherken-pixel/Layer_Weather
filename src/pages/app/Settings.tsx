@@ -32,6 +32,9 @@ const ACCENT_SWATCHES = [
   { label: "Magenta", hex: "#C026D3" },
 ] as const;
 
+const DELETE_ACCOUNT_CONFIRM_MESSAGE =
+  "Your account and all Layer Weather data will be permanently erased. There is no way to recover it.";
+
 export default function Settings() {
   const navigate = useNavigate();
   const { profile, calibration, userId, setProfile, setFormality: setStoreFormality, location, savedLocations, setSavedLocations } = useAppStore();
@@ -59,6 +62,7 @@ export default function Settings() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const label = location?.city || profile?.last_city;
@@ -123,8 +127,14 @@ export default function Settings() {
   async function handleDeleteAccount() {
     if (!userId) return;
     setDeleting(true);
+    setDeleteError(null);
     try {
       await deleteUserAccount(userId);
+      setDeleteConfirmModalOpen(false);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Account deletion failed. Please try again.";
+      setDeleteError(message);
     } finally {
       setDeleting(false);
     }
@@ -860,7 +870,11 @@ export default function Settings() {
           confirmLabel="Continue"
           cancelLabel="Cancel"
           destructive
-          onConfirm={() => { setDeleteModalOpen(false); setDeleteConfirmModalOpen(true); }}
+          onConfirm={() => {
+            setDeleteModalOpen(false);
+            setDeleteError(null);
+            setDeleteConfirmModalOpen(true);
+          }}
           onCancel={() => setDeleteModalOpen(false)}
           isDark={isDark}
         />
@@ -868,12 +882,22 @@ export default function Settings() {
         <ConfirmModal
           open={deleteConfirmModalOpen}
           title="Last chance"
-          message="Your account and all Layer Weather data will be permanently erased. There is no way to recover it."
+          message={
+            deleteError
+              ? `${DELETE_ACCOUNT_CONFIRM_MESSAGE}\n\n${deleteError}`
+              : DELETE_ACCOUNT_CONFIRM_MESSAGE
+          }
           confirmLabel={deleting ? "Deleting…" : "Delete Forever"}
           cancelLabel="Cancel"
           destructive
-          onConfirm={() => { void handleDeleteAccount(); }}
-          onCancel={() => setDeleteConfirmModalOpen(false)}
+          actionsDisabled={deleting}
+          onConfirm={() => {
+            void handleDeleteAccount();
+          }}
+          onCancel={() => {
+            setDeleteConfirmModalOpen(false);
+            setDeleteError(null);
+          }}
           isDark={isDark}
         />
 
