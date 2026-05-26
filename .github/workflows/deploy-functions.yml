@@ -110,3 +110,10 @@ jobs:
           supabase functions deploy packing-insights \
             --project-ref "$SUPABASE_PROJECT_REF" \
             --use-api
+
+      - name: Deploy noaa-forecast function
+        run: |
+          supabase functions deploy noaa-forecast \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt \
+            --use-api
