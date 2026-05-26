@@ -37,8 +37,8 @@ struct ContentView: View {
             ForecastView(data: widgetData)
                 .tag(1)
 
-            // Tab 3: Conditions
-            ConditionsView(data: widgetData)
+            // Tab 3: Hair Forecast
+            HairForecastView(data: widgetData)
                 .tag(2)
 
             // Tab 4: Calibrate

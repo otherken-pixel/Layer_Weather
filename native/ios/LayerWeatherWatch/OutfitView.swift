@@ -117,41 +117,37 @@ struct OutfitView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Full screen gradient background
-            gradient.ignoresSafeArea()
+        ScrollView {
+            VStack(spacing: 6) {
+                // Top: location + time
+                topBar
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Top: location + time
-                    topBar
+                // Center: temperature block
+                temperatureBlock
 
-                    // Center: temperature block
-                    temperatureBlock
+                // Outfit card
+                outfitCard
 
-                    // Outfit card
-                    outfitCard
+                // Accessory row
+                accessoryRow
+                    .padding(.top, 4)
 
-                    // Accessory row
-                    accessoryRow
-                        .padding(.top, 8)
-
-                    // Commute alert
-                    if let alert = data.commuteAlert {
-                        commuteAlertBanner(alert)
-                            .padding(.top, 8)
-                    }
-
-                    // Crown hint
-                    Text("↓ Scroll for forecast")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.white.opacity(0.35))
-                        .padding(.top, 10)
-                        .padding(.bottom, 4)
+                // Commute alert
+                if let alert = data.commuteAlert {
+                    commuteAlertBanner(alert)
+                        .padding(.top, 4)
                 }
-                .padding(.horizontal, 8)
+
+                // Crown hint
+                Text("↓ Scroll for forecast")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.35))
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
             }
+            .padding(.horizontal, 8)
         }
+        .background(gradient.ignoresSafeArea())
         .gesture(
             TapGesture(count: 2)
                 .onEnded { _ in
@@ -163,42 +159,64 @@ struct OutfitView: View {
     // MARK: - Top Bar
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 4) {
             Text(snapshot.location)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.white.opacity(0.8))
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
 
-            Spacer()
+            Spacer(minLength: 4)
 
             Text(snapshot.timeSinceUpdate)
-                .font(.system(size: 10))
+                .font(.caption2)
                 .foregroundStyle(.white.opacity(0.5))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .padding(.top, 6)
+        .padding(.top, 2)
     }
 
     // MARK: - Temperature Block
 
     private var temperatureBlock: some View {
-        VStack(spacing: 2) {
-            HStack(alignment: .top, spacing: 6) {
-                Text("\(Int(snapshot.temp.rounded()))°")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-
-                Image(systemName: watchConditionSymbol(snapshot.condition, isDay: snapshot.isDay))
-                    .symbolRenderingMode(.multicolor)
-                    .font(.system(size: 20))
-                    .padding(.top, 10)
+        VStack(spacing: 0) {
+            // Temperature + condition icon — auto-scales to fit the watch width.
+            ViewThatFits(in: .horizontal) {
+                temperatureRow(tempFont: .system(size: 44, weight: .bold, design: .rounded),
+                               iconFont: .system(size: 22),
+                               iconTopPadding: 8)
+                temperatureRow(tempFont: .system(size: 36, weight: .bold, design: .rounded),
+                               iconFont: .system(size: 18),
+                               iconTopPadding: 6)
+                temperatureRow(tempFont: .system(size: 28, weight: .bold, design: .rounded),
+                               iconFont: .system(size: 14),
+                               iconTopPadding: 4)
             }
 
             Text("Feels \(Int(snapshot.feelsLike.rounded()))°")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.white.opacity(0.75))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
+    }
+
+    private func temperatureRow(tempFont: Font, iconFont: Font, iconTopPadding: CGFloat) -> some View {
+        HStack(alignment: .top, spacing: 4) {
+            Text("\(Int(snapshot.temp.rounded()))°")
+                .font(tempFont)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .fixedSize(horizontal: true, vertical: false)
+
+            Image(systemName: watchConditionSymbol(snapshot.condition, isDay: snapshot.isDay))
+                .symbolRenderingMode(.multicolor)
+                .font(iconFont)
+                .padding(.top, iconTopPadding)
+        }
     }
 
     // MARK: - Outfit Card
@@ -210,42 +228,46 @@ struct OutfitView: View {
                 Capsule()
                     .fill(tierColor)
                     .frame(width: 24, height: 4)
-                Spacer()
+                Spacer(minLength: 0)
             }
 
             // Outfit label
             Text(snapshot.outfitLabel)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.headline.weight(.bold))
                 .foregroundStyle(.white)
                 .lineLimit(2)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.7)
 
             // Garments
             VStack(alignment: .leading, spacing: 2) {
                 Label(snapshot.garmentTop, systemImage: "tshirt.fill")
-                    .font(.system(size: 11))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 if let bottom = snapshot.garmentBottom {
                     Label(bottom, systemImage: "figure.stand")
-                        .font(.system(size: 11))
+                        .font(.caption2)
                         .foregroundStyle(.white.opacity(0.85))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
 
                 Label(snapshot.footwear, systemImage: "shoe.fill")
-                    .font(.system(size: 11))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
-        .padding(12)
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial)
-        .cornerRadius(14)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             justRightFlash
-            ? RoundedRectangle(cornerRadius: 14)
+            ? RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.green.opacity(0.8), lineWidth: 2)
                 .animation(.easeInOut(duration: 0.3), value: justRightFlash)
             : nil
@@ -255,18 +277,20 @@ struct OutfitView: View {
     // MARK: - Accessory Row
 
     private var accessoryRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            Spacer(minLength: 0)
             accessoryIcon("umbrella.fill", active: snapshot.umbrella)
             accessoryIcon("sunglasses.fill", active: snapshot.sunglasses)
-            accessoryIcon("scarf.fill", active: snapshot.scarf)
+            accessoryIcon("wind.snow", active: snapshot.scarf)
             accessoryIcon("hand.raised.fill", active: snapshot.gloves)
             accessoryIcon("person.bust.fill", active: snapshot.beanie)
+            Spacer(minLength: 0)
         }
     }
 
     private func accessoryIcon(_ symbol: String, active: Bool) -> some View {
         Image(systemName: symbol)
-            .font(.system(size: 14))
+            .font(.footnote)
             .foregroundStyle(active ? .white : .white.opacity(0.2))
     }
 
@@ -275,18 +299,20 @@ struct OutfitView: View {
     private func commuteAlertBanner(_ alert: CommuteWidgetAlert) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "bolt.fill")
-                .font(.system(size: 11))
+                .font(.caption2)
                 .foregroundStyle(alert.urgencyColor)
 
             Text(alert.message)
-                .font(.system(size: 11))
+                .font(.caption2)
                 .foregroundStyle(.white)
                 .lineLimit(3)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(10)
+        .frame(maxWidth: .infinity)
         .background(alert.urgencyColor.opacity(0.2))
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onAppear {
             if alert.urgency == "critical" || alert.urgency == "warning" {
                 HapticManager.shared.playCommuteAlert()

@@ -88,8 +88,7 @@ struct LayerWeatherLockScreenWidget: Widget {
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
-            .accessoryInline,
-            .accessoryCorner
+            .accessoryInline
         ])
     }
 }
@@ -108,8 +107,6 @@ struct LockScreenWidgetSwitchView: View {
             LockRectangularView(entry: entry)
         case .accessoryInline:
             LockInlineView(entry: entry)
-        case .accessoryCorner:
-            LockCornerView(entry: entry)
         default:
             LockCircularView(entry: entry)
         }

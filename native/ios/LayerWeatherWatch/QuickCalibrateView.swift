@@ -57,53 +57,60 @@ struct QuickCalibrateView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Background
+        ScrollView {
+            VStack(spacing: 4) {
+                // Header
+                HStack {
+                    Text("How does it feel?")
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 2)
+
+                // Outfit + temp
+                VStack(spacing: 2) {
+                    Text(snapshot.outfitLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("\(Int(snapshot.temp.rounded()))°")
+                        .font(.system(.title, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
+                .padding(.vertical, 4)
+
+                // Large gesture area
+                gestureArea
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+
+                // Sensitivity control
+                sensitivityControl
+                    .padding(.top, 6)
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+        }
+        .background(
             WatchSkyGradient.gradient(
                 condition: snapshot.condition,
                 isDay: snapshot.isDay,
                 hour: Calendar.current.component(.hour, from: Date())
             )
             .ignoresSafeArea()
-
-            // Drag hint overlay
+        )
+        .overlay {
             if isDragging {
                 dragDirectionOverlay
             }
-
-            VStack(spacing: 0) {
-                // Header
-                Text("How does it feel?")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .padding(.top, 6)
-
-                // Outfit + temp
-                VStack(spacing: 2) {
-                    Text(snapshot.outfitLabel)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                    Text("\(Int(snapshot.temp.rounded()))°")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .padding(.vertical, 8)
-
-                // Large gesture area
-                gestureArea
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 60)
-
-                // Sensitivity control
-                sensitivityControl
-                    .padding(.top, 10)
-
-                Spacer(minLength: 4)
-            }
-            .padding(.horizontal, 10)
-
-            // Confirmation overlay
+        }
+        .overlay {
             if showConfirmation {
                 confirmationOverlay
             }
@@ -126,20 +133,27 @@ struct QuickCalibrateView: View {
             if let fb = feedbackGiven {
                 HStack(spacing: 6) {
                     Text(fb.emoji)
-                        .font(.system(size: 24))
+                        .font(.title2)
                     Text(fb.label)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(fb.color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
             } else {
                 VStack(spacing: 4) {
                     Text("← Too Cold   Too Warm →")
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .foregroundStyle(.white.opacity(0.6))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                     Text("Tap for Just Right")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.white.opacity(0.5))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
+                .padding(.horizontal, 6)
             }
         }
         .gesture(
@@ -173,30 +187,32 @@ struct QuickCalibrateView: View {
     private var dragDirectionOverlay: some View {
         HStack {
             Image(systemName: "chevron.left.circle.fill")
-                .font(.system(size: 22))
+                .font(.title3)
                 .foregroundStyle(FeedbackType.tooCold.color.opacity(0.8))
             Spacer()
             Image(systemName: "chevron.right.circle.fill")
-                .font(.system(size: 22))
+                .font(.title3)
                 .foregroundStyle(FeedbackType.tooWarm.color.opacity(0.8))
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 10)
     }
 
     // MARK: - Sensitivity Control
 
     private var sensitivityControl: some View {
         VStack(spacing: 6) {
-            HStack {
+            HStack(spacing: 4) {
                 Image(systemName: "thermometer.low")
-                    .font(.system(size: 10))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.5))
                 Text("Thermal Sensitivity")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(.white.opacity(0.7))
-                Spacer()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 4)
                 Image(systemName: "thermometer.high")
-                    .font(.system(size: 10))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.5))
             }
 
@@ -212,12 +228,16 @@ struct QuickCalibrateView: View {
 
             // Digital Crown binding
             Text("Use Crown to adjust")
-                .font(.system(size: 9))
+                .font(.caption2)
                 .foregroundStyle(.white.opacity(0.4))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .padding(10)
+        .frame(maxWidth: .infinity)
         .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .focusable(true)
         .digitalCrownRotation(
             $thermalSensitivity,
             from: -2,
@@ -261,18 +281,21 @@ struct QuickCalibrateView: View {
 
             VStack(spacing: 8) {
                 Text(confirmationLabel)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
 
                 if let fb = feedbackGiven {
                     Text(fb.emoji)
-                        .font(.system(size: 32))
+                        .font(.largeTitle)
                 }
             }
-            .padding(20)
+            .padding(16)
             .background(.ultraThinMaterial)
-            .cornerRadius(16)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 10)
         }
         .transition(.opacity.combined(with: .scale))
     }

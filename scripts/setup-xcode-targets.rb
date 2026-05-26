@@ -71,6 +71,10 @@ def add_source(target, group, abs_path)
     puts "  ↳  #{basename} (adding file ref to #{target.name} compile sources)"
   else
     ref = group.new_reference(abs_path)
+    # new_reference computes a relative path from the group's location, but we
+    # want a true absolute path so the file resolves identically regardless of
+    # how deep the group sits in the hierarchy.
+    ref.path = abs_path
     ref.source_tree = '<absolute>'
     ref.last_known_file_type = 'sourcecode.swift'
     puts "  +  #{basename} → #{target.name}"
@@ -121,6 +125,32 @@ def embed_app_extension(host_target, extension_target)
   return if phase.files.any? { |bf| bf.file_ref == ref }
 
   phase.add_file_reference(ref, true)
+end
+
+# NOTE: There used to be an embed_watch_content helper here. It caused Xcode
+# to classify the resulting archive as "Generic Xcode Archive" instead of an
+# iOS App Archive — meaning the App Store distribution method was missing.
+# The reliable way to embed a watch app into an iOS host is through Xcode's
+# General → Frameworks, Libraries, and Embedded Content UI, which we now
+# document as a manual setup step rather than scripting.
+
+# Copy the App Group entitlements template to `dest_abs_path` (if missing)
+# and wire CODE_SIGN_ENTITLEMENTS = `build_setting_path` on every build config
+# of `target`. Idempotent.
+def attach_app_group_entitlements(target, build_setting_path, dest_abs_path)
+  dest_abs_path = Pathname.new(dest_abs_path.to_s)
+  FileUtils.mkdir_p(dest_abs_path.dirname)
+  if dest_abs_path.exist?
+    puts "  ↩  #{dest_abs_path.basename} (already present)"
+  else
+    FileUtils.cp(ENTITLEMENTS_TEMPLATE.to_s, dest_abs_path.to_s)
+    puts "  +  #{dest_abs_path.basename} copied from ios-config/AppGroup.entitlements"
+  end
+
+  target.build_configurations.each do |c|
+    c.build_settings['CODE_SIGN_ENTITLEMENTS'] = build_setting_path
+  end
+  puts "  ✓  #{target.name}: CODE_SIGN_ENTITLEMENTS → #{build_setting_path}"
 end
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -267,6 +297,8 @@ WATCH_PLIST = <<~XML
     <string>1</string>
     <key>WKApplication</key>
     <true/>
+    <key>WKCompanionAppBundleIdentifier</key>
+    <string>#{BUNDLE_ID}</string>
   </dict>
   </plist>
 XML
@@ -314,12 +346,13 @@ else
   widgets_dir = APP_SRC / 'LayerWeatherWidgets'
   write_plist(widgets_dir / 'Info.plist', WIDGETS_PLIST)
 
-  wt = project.new_target(:app_extension, 'LayerWeatherWidgets', :ios, '16.0')
+  wt = project.new_target(:app_extension, 'LayerWeatherWidgets', :ios, '17.0')
   wt.build_configurations.each do |c|
     c.build_settings.merge!(
       'PRODUCT_BUNDLE_IDENTIFIER'  => "#{BUNDLE_ID}.widgets",
+      'PRODUCT_NAME'               => '$(TARGET_NAME)',
       'SWIFT_VERSION'              => '5.0',
-      'IPHONEOS_DEPLOYMENT_TARGET' => '16.0',
+      'IPHONEOS_DEPLOYMENT_TARGET' => '17.0',
       'INFOPLIST_FILE'             => 'App/LayerWeatherWidgets/Info.plist',
       'CODE_SIGN_STYLE'            => 'Automatic',
       'SKIP_INSTALL'               => 'YES',
@@ -365,23 +398,46 @@ else
   # Create as watch2_app then switch product_type to the modern standalone app type
   wwatch = project.new_target(:watch2_app, 'LayerWeatherWatch', :watchos, '10.0')
   wwatch.product_type = 'com.apple.product-type.application'
+  # xcodeproj leaves the product ref's `name` blank ("\.app"), which makes
+  # Xcode's Autocreate Schemes skip this target. Set it explicitly.
+  wwatch.product_reference.name = 'LayerWeatherWatch.app'
   wwatch.build_configurations.each do |c|
     c.build_settings.merge!(
-      'PRODUCT_BUNDLE_IDENTIFIER'  => "#{BUNDLE_ID}.watchapp",
-      'SWIFT_VERSION'              => '5.0',
-      'WATCHOS_DEPLOYMENT_TARGET'  => '10.0',
-      'SDKROOT'                    => 'watchos',
-      'TARGETED_DEVICE_FAMILY'     => '4',
-      'INFOPLIST_FILE'             => 'App/LayerWeatherWatch/Info.plist',
-      'GENERATE_INFOPLIST_FILE'    => 'NO',
-      'CODE_SIGN_STYLE'            => 'Automatic',
+      'PRODUCT_BUNDLE_IDENTIFIER'         => "#{BUNDLE_ID}.watchapp",
+      'PRODUCT_NAME'                      => '$(TARGET_NAME)',
+      'SWIFT_VERSION'                     => '5.0',
+      'WATCHOS_DEPLOYMENT_TARGET'         => '10.0',
+      'SDKROOT'                           => 'watchos',
+      'TARGETED_DEVICE_FAMILY'            => '4',
+      'INFOPLIST_FILE'                    => 'App/LayerWeatherWatch/Info.plist',
+      'GENERATE_INFOPLIST_FILE'           => 'NO',
+      'CODE_SIGN_STYLE'                   => 'Automatic',
+      'ASSETCATALOG_COMPILER_APPICON_NAME' => 'AppIcon',
+      # Watch app is embedded inside the iOS host's .app/Watch/ folder. Without
+      # SKIP_INSTALL=YES, Xcode also drops a standalone LayerWeatherWatch.app
+      # at the products root next to App.app, leading to a "Generic Xcode
+      # Archive" classification instead of "iOS App Archive".
+      'SKIP_INSTALL'                      => 'YES',
     )
+  end
+
+  # Wire the watch's Assets.xcassets into Resources so the AppIcon ships.
+  watch_assets_path = APP_SRC / 'LayerWeatherWatch/Assets.xcassets'
+  if watch_assets_path.exist?
+    wg_root = find_or_add_group(project.main_group, 'LayerWeatherWatch')
+    existing_ref = wg_root.files.find { |f| File.basename(f.path.to_s) == 'Assets.xcassets' }
+    asset_ref = existing_ref || wg_root.new_reference(watch_assets_path.to_s)
+    asset_ref.last_known_file_type = 'folder.assetcatalog'
+    unless wwatch.resources_build_phase.files.any? { |bf| bf.file_ref == asset_ref }
+      wwatch.resources_build_phase.add_file_reference(asset_ref, true)
+    end
+    puts "  +  Assets.xcassets wired into LayerWeatherWatch Resources"
   end
 
   wg = find_or_add_group(project.main_group, 'LayerWeatherWatch')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/LayerWeatherWatchApp.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/ContentView.swift')
-  add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/ConditionsView.swift')
+  add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/HairForecastView.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/ForecastView.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/OutfitView.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/QuickCalibrateView.swift')
@@ -392,6 +448,20 @@ else
 
   puts "  ✓  LayerWeatherWatch target created (10 source files)"
 end
+
+# NOTE: To make the watch app ship inside the iOS App Store upload (the
+# companion-pair model — App Store Connect's "Add Platform" menu doesn't list
+# watchOS for apps with WKCompanionAppBundleIdentifier), the watch app must be
+# embedded into the App target's product bundle at Watch/<WatchApp.app>.
+#
+# Doing this through xcodeproj manually causes Xcode to misclassify the
+# resulting archive as "Generic Xcode Archive" instead of "iOS App Archive".
+# Set this up via Xcode's UI instead:
+#   1. Select the App (iOS) target in the project navigator.
+#   2. Go to General → Frameworks, Libraries, and Embedded Content.
+#   3. Click + → select LayerWeatherWatch.app under Workspace.
+#   4. Set Embed to "Embed & Sign".
+# Xcode will generate the correct Embed Watch Content phase automatically.
 
 # ══════════════════════════════════════════════════════════════════════════
 # PHASE 4 — LayerWeatherWatchComplications (watchOS Widget Extension)
@@ -405,9 +475,11 @@ else
   write_plist(comp_dir / 'Info.plist', COMPLICATIONS_PLIST)
 
   ct = project.new_target(:app_extension, 'LayerWeatherWatchComplications', :watchos, '10.0')
+  ct.product_reference.name = 'LayerWeatherWatchComplications.appex'
   ct.build_configurations.each do |c|
     c.build_settings.merge!(
       'PRODUCT_BUNDLE_IDENTIFIER'  => "#{BUNDLE_ID}.watchapp.complications",
+      'PRODUCT_NAME'               => '$(TARGET_NAME)',
       'SWIFT_VERSION'              => '5.0',
       'WATCHOS_DEPLOYMENT_TARGET'  => '10.0',
       'SDKROOT'                    => 'watchos',

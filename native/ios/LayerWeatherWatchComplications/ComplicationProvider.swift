@@ -90,18 +90,28 @@ struct GraphicCircularView: View {
     private var tempNorm: Double { max(0, min(1, (snapshot.temp - 0) / 110)) }
 
     var body: some View {
-        Gauge(value: tempNorm) {
-            EmptyView()
-        } currentValueLabel: {
-            Text("\(Int(snapshot.temp.rounded()))°")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .widgetAccentable()
-        } minimumValueLabel: {
-            Image(systemName: wSymbol(snapshot.condition, isDay: snapshot.isDay))
-                .font(.system(size: 9))
-        } maximumValueLabel: {
-            EmptyView()
-        }
+        // NOTE: minimumValueLabel and maximumValueLabel must return the SAME
+        // concrete View type because Gauge declares them both as () -> BoundsLabel.
+        // We wrap the Image in Text(Image:) so both labels are `Text` (with the
+        // same .font modifier), keeping the SF Symbol at the minimum position.
+        Gauge(
+            value: tempNorm,
+            in: 0...1,
+            label: { Text("") },
+            currentValueLabel: {
+                Text("\(Int(snapshot.temp.rounded()))°")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .widgetAccentable()
+            },
+            minimumValueLabel: {
+                Text(Image(systemName: wSymbol(snapshot.condition, isDay: snapshot.isDay)))
+                    .font(.system(size: 9))
+            },
+            maximumValueLabel: {
+                Text("")
+                    .font(.system(size: 9))
+            }
+        )
         .gaugeStyle(.accessoryCircular)
         .tint(wTierColor(snapshot.warmthTier))
     }
@@ -188,13 +198,16 @@ struct GraphicCornerView: View {
     private var tempNorm: Double { max(0, min(1, (snapshot.temp - 0) / 110)) }
 
     var body: some View {
-        Gauge(value: tempNorm) {
-            EmptyView()
-        } currentValueLabel: {
-            Image(systemName: wSymbol(snapshot.condition, isDay: snapshot.isDay))
-                .symbolRenderingMode(.hierarchical)
-                .widgetAccentable()
-        }
+        Gauge(
+            value: tempNorm,
+            in: 0...1,
+            label: { Text("") },
+            currentValueLabel: {
+                Image(systemName: wSymbol(snapshot.condition, isDay: snapshot.isDay))
+                    .symbolRenderingMode(.hierarchical)
+                    .widgetAccentable()
+            }
+        )
         .gaugeStyle(.accessoryCircularCapacity)
         .tint(wTierColor(snapshot.warmthTier))
         .widgetLabel {

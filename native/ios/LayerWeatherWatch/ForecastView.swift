@@ -18,47 +18,46 @@ struct ForecastView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Background gradient
+        VStack(spacing: 0) {
+            // Header
+            headerView
+                .padding(.horizontal, 8)
+                .padding(.top, 2)
+                .padding(.bottom, 4)
+
+            // Hourly list
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(hourlyEntries) { entry in
+                        HourlyRowView(entry: entry)
+                            .onTapGesture {
+                                selectedEntry = entry
+                                HapticManager.shared.playClick()
+                            }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 12)
+            }
+            .focusable(true)
+            .digitalCrownRotation(
+                $crownOffset,
+                from: 0,
+                through: Double(hourlyEntries.count) * 50,
+                by: 50,
+                sensitivity: .medium,
+                isContinuous: false,
+                isHapticFeedbackEnabled: true
+            )
+        }
+        .background(
             WatchSkyGradient.gradient(
                 condition: snapshot.condition,
                 isDay: snapshot.isDay,
                 hour: Calendar.current.component(.hour, from: Date())
             )
             .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                // Header
-                headerView
-                    .padding(.horizontal, 8)
-                    .padding(.top, 4)
-                    .padding(.bottom, 6)
-
-                // Hourly list
-                ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(hourlyEntries) { entry in
-                            HourlyRowView(entry: entry)
-                                .onTapGesture {
-                                    selectedEntry = entry
-                                    HapticManager.shared.playClick()
-                                }
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.bottom, 12)
-                }
-                .digitalCrownRotation(
-                    $crownOffset,
-                    from: 0,
-                    through: Double(hourlyEntries.count) * 50,
-                    by: 50,
-                    sensitivity: .medium,
-                    isContinuous: false,
-                    isHapticFeedbackEnabled: true
-                )
-            }
-        }
+        )
         .sheet(item: $selectedEntry) { entry in
             HourlyDetailSheet(entry: entry)
         }
@@ -67,21 +66,25 @@ struct ForecastView: View {
     // MARK: - Header
 
     private var headerView: some View {
-        HStack {
+        HStack(spacing: 6) {
             VStack(alignment: .leading, spacing: 1) {
                 Text("Next 24 Hours")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 Text(Date(), format: .dateTime.weekday(.wide).month().day())
-                    .font(.system(size: 10))
+                    .font(.caption2)
                     .foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
 
-            Spacer()
+            Spacer(minLength: 4)
 
             Image(systemName: "clock.fill")
-                .font(.system(size: 12))
+                .font(.caption)
                 .foregroundStyle(.white.opacity(0.5))
         }
     }
@@ -101,24 +104,28 @@ struct HourlyRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             // Hour label
             Text(entry.formattedHour)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
-                .frame(width: 42, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(width: 40, alignment: .leading)
 
             // Condition icon
             Image(systemName: watchConditionSymbol(entry.condition, isDay: entry.isDay))
                 .symbolRenderingMode(.multicolor)
-                .font(.system(size: 14))
-                .frame(width: 20)
+                .font(.footnote)
+                .frame(width: 18)
 
             // Temperature
             Text("\(Int(entry.temp.rounded()))°")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
-                .frame(width: 32, alignment: .leading)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .frame(width: 30, alignment: .leading)
 
             // Precipitation probability bar
             precipBar(entry.precipProb)
@@ -128,10 +135,11 @@ struct HourlyRowView: View {
                 .fill(tierColor)
                 .frame(width: 7, height: 7)
         }
-        .padding(.vertical, 7)
-        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity)
         .background(.white.opacity(0.08))
-        .cornerRadius(10)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func precipBar(_ prob: Double) -> some View {
@@ -162,66 +170,76 @@ struct HourlyDetailSheet: View {
     }
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 6) {
+            // Time
+            Text(entry.formattedHour)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            // Condition icon + temp
+            HStack(spacing: 6) {
+                Image(systemName: watchConditionSymbol(entry.condition, isDay: entry.isDay))
+                    .symbolRenderingMode(.multicolor)
+                    .font(.title2)
+
+                Text("\(Int(entry.temp.rounded()))°")
+                    .font(.system(.largeTitle, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+
+            // Feels like
+            Text("Feels \(Int(entry.feelsLike.rounded()))°")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.7))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            // Stats row
+            HStack(spacing: 12) {
+                VStack(spacing: 2) {
+                    Image(systemName: "drop.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color(red: 0.38, green: 0.62, blue: 0.98))
+                    Text("\(Int(entry.precipProb))%")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+
+                VStack(spacing: 2) {
+                    Circle()
+                        .fill(tierColor)
+                        .frame(width: 12, height: 12)
+                    Text(entry.warmthTier.replacingOccurrences(of: "warmth_", with: "T"))
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+            }
+            .padding(10)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            Button("Dismiss") { dismiss() }
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.6))
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
             WatchSkyGradient.gradient(
                 condition: entry.condition,
                 isDay: entry.isDay,
                 hour: Calendar.current.component(.hour, from: entry.hourDate ?? Date())
             )
             .ignoresSafeArea()
-
-            VStack(spacing: 8) {
-                // Time
-                Text(entry.formattedHour)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-
-                // Condition icon + temp
-                HStack(spacing: 8) {
-                    Image(systemName: watchConditionSymbol(entry.condition, isDay: entry.isDay))
-                        .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 28))
-
-                    Text("\(Int(entry.temp.rounded()))°")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-
-                // Feels like
-                Text("Feels \(Int(entry.feelsLike.rounded()))°")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.7))
-
-                // Stats row
-                HStack(spacing: 16) {
-                    VStack(spacing: 2) {
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color(red: 0.38, green: 0.62, blue: 0.98))
-                        Text("\(Int(entry.precipProb))%")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white)
-                    }
-
-                    VStack(spacing: 2) {
-                        Circle()
-                            .fill(tierColor)
-                            .frame(width: 12, height: 12)
-                        Text(entry.warmthTier.replacingOccurrences(of: "warmth_", with: "T"))
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.7))
-                    }
-                }
-                .padding(10)
-                .background(.ultraThinMaterial)
-                .cornerRadius(12)
-
-                Button("Dismiss") { dismiss() }
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            .padding()
-        }
+        )
     }
 }
 

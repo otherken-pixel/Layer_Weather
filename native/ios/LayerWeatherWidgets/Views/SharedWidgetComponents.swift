@@ -151,7 +151,7 @@ struct AccessoryDots: View {
         HStack(spacing: 6) {
             accessoryDot(symbol: "umbrella.fill", active: snapshot.umbrella)
             accessoryDot(symbol: "sunglasses.fill", active: snapshot.sunglasses)
-            accessoryDot(symbol: "scarf.fill", active: snapshot.scarf)
+            accessoryDot(symbol: "wind.snow", active: snapshot.scarf)
             accessoryDot(symbol: "hand.raised.fill", active: snapshot.gloves)
             accessoryDot(symbol: "person.bust.fill", active: snapshot.beanie)
         }
