@@ -17,3 +17,6 @@ vite.config.d.ts
 *.log
 ios/
 android/
+
+# Native extension source files (widgets, watch app) are tracked even though ios/ is ignored
+!native/ios/

@@ -321,7 +321,13 @@ export function useWeather() {
             setForecastConfidence(null);
           }
 
-          saveWidgetSnapshot(data, rec).catch(() => {});
+          saveWidgetSnapshot(
+            data,
+            rec,
+            timeline,
+            storeProfile ?? undefined,
+            latitude !== undefined && longitude !== undefined ? { latitude, longitude } : undefined,
+          ).catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
         REFRESH_TIMEOUT_MS,
