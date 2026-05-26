@@ -76,6 +76,16 @@ if ! grep -q "Pods.xcodeproj" "$WORKSPACE/contents.xcworkspacedata" 2>/dev/null;
 fi
 
 bash "$ROOT/scripts/sync-ios-app-icon.sh" || true
+bash "$ROOT/scripts/sync-ios-watch-icon.sh" 2>/dev/null || true
+
+echo "==> Wiring widget, watch, and complication targets…"
+if [[ -f "$ROOT/scripts/setup-xcode-targets.rb" ]] && [[ -d "$ROOT/native/ios" ]]; then
+  if ruby -e "require 'xcodeproj'" 2>/dev/null; then
+    ruby "$ROOT/scripts/setup-xcode-targets.rb"
+  else
+    echo "WARNING: gem install xcodeproj — then run: ruby scripts/setup-xcode-targets.rb"
+  fi
+fi
 
 echo ""
 echo "✅ Pods installed successfully."

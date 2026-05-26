@@ -1,97 +1,91 @@
 # Xcode Setup — Layer Weather Widgets & Apple Watch App
 
-All native Swift source files live in `native/ios/` (tracked by git). After generating
-the iOS project with Capacitor, follow these steps to wire everything into Xcode.
+All native Swift source files live in `native/ios/` (tracked by git). The Capacitor iOS shell alone only includes the **App** target — widgets and watch targets are added by our setup script.
 
 ---
 
-## 0. Prerequisites
+## 0. One-command setup (recommended)
 
-From the project root, run the one-shot prepare script (recommended):
-
-```bash
-npm run ios:prepare
-npm run ios:open         # opens App.xcworkspace in Xcode
-```
-
-Or step by step:
-
-```bash
-npm install
-npm run build
-npx cap add ios          # generates ios/ if not yet present
-npx cap sync ios         # syncs web assets + plugins
-cd ios/App && pod install && cd ../..   # CocoaPods live next to the Podfile
-
-# Wire all native Swift targets into the Xcode project automatically:
-ruby scripts/setup-xcode-targets.rb
-
-open ios/App/App.xcworkspace   # MUST use .xcworkspace, not .xcodeproj
-```
-
-> **Important:** Always open `ios/App/App.xcworkspace`. Opening `App.xcodeproj` directly causes **"Unable to resolve module dependency: Capacitor"** because Xcode cannot see the CocoaPods frameworks.
-
-### Troubleshooting: Capacitor module not found
-
-| Symptom | Fix |
-|---------|-----|
-| `Unable to resolve module dependency: 'Capacitor'` in `AppDelegate.swift` | Run `npm run ios:prepare`, then open **`App.xcworkspace`** (not `.xcodeproj`) |
-| `Sandbox is not in sync with the Podfile.lock` | `cd ios/App && pod install` |
-| CocoaPods not installed | `brew install cocoapods` (recommended), or see Bundler section below |
-| `Gem::FilePermissionError` on `npx cap sync` | See **Bundler permission error** below |
-| Stale Xcode cache | Product → Clean Build Folder; delete Derived Data (Xcode → Settings → Locations) |
-
-### Troubleshooting: Bundler permission error (`Gem::FilePermissionError`)
-
-Capacitor sees the project `Gemfile` and runs `bundle exec pod`. macOS system Ruby cannot write to `/Library/Ruby/Gems`.
-
-**Option A — Homebrew CocoaPods (simplest):**
+From the project root, with `.env` configured (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`):
 
 ```bash
 brew install cocoapods
-mv Gemfile Gemfile.bak    # optional: stops cap sync from using Bundler
-npx cap sync ios
-cd ios/App && pod install
+gem install xcodeproj    # once, for the Xcode wiring script
+npm install
+npm run ios:prepare    # build, cap sync, pods, icons, widget/watch targets
+open ios/App/App.xcworkspace
 ```
 
-**Option B — Bundler with local gems (keeps the Gemfile):**
+`ios:prepare` runs `scripts/fix-ios-build.sh`, which:
+
+- Builds the web app for native (`build:ios`, no service worker)
+- Syncs Capacitor and runs `pod install` in `ios/App`
+- Copies the app icon into the asset catalog
+- Runs `scripts/setup-xcode-targets.rb` (widget + watch targets, App Group entitlements files, embeds extensions)
+
+### Manual steps still required in Xcode
+
+For each target (**App**, **LayerWeatherWidgets**, **LayerWeatherWatch**, **LayerWeatherWatchComplications**):
+
+1. **Signing & Capabilities** → select your **Team**
+2. Confirm **App Groups** shows `group.com.layerweather.shared` (entitlements files are created by the script; enable the capability in the Apple Developer portal if Xcode prompts)
+
+Watch app icon (if missing):
 
 ```bash
-bundle config set --local path vendor/bundle
-bundle install
-npx cap sync ios
+npm run ios:watch-icon
 ```
-
-The repo includes `.bundle/config` so gems install under `vendor/bundle/` (no sudo).
-
-**Option C — Skip Bundler for one command:**
-
-```bash
-export CAPACITOR_COCOAPODS_PATH="$(which pod)"
-npx cap sync ios
-```
-
-The script (idempotent — safe to re-run) handles:
-- Adding `MainApp/` and `Shared/` files to the App target
-- Patching `Info.plist` with required usage description strings
-- Adding `PrivacyInfo.xcprivacy` to the App bundle
-- Patching `AppDelegate.swift` to activate WatchConnectivity
-- Creating the **LayerWeatherWidgets** (iOS widget extension) target
-- Creating the **LayerWeatherWatch** (standalone Watch App) target
-- Creating the **LayerWeatherWatchComplications** (watchOS complications) target
-
-After running the script, complete the manual Xcode steps below (capabilities
-require your Apple Developer account and cannot be scripted).
 
 ---
 
-## 1. App Group (required by ALL extensions)
+## Targets created
+
+| Target | Platform | Purpose |
+|--------|----------|---------|
+| **App** | iOS 13+ | Capacitor + `WidgetBridgePlugin` + `WatchConnectivityHandler` |
+| **LayerWeatherWidgets** | iOS 16+ | Home / Lock Screen widgets |
+| **LayerWeatherWatch** | watchOS 10+ | Standalone Watch app |
+| **LayerWeatherWatchComplications** | watchOS 10+ | Watch face complications |
+
+Shared App Group: `group.com.layerweather.shared`
+
+---
+
+## Troubleshooting
+
+### `supabaseUrl is required` / blank screen
+
+`.env` must exist **before** `npm run build:ios`. Then `npx cap sync ios` and rebuild in Xcode.
+
+### `Unable to resolve module dependency: Capacitor`
+
+Open **`ios/App/App.xcworkspace`**, not `App.xcodeproj`. Run `npm run ios:pods` from project root.
+
+### Widget / watch targets missing
+
+```bash
+ruby scripts/setup-xcode-targets.rb
+# or
+npm run ios:extensions
+```
+
+### `pod install` — No Podfile found
+
+Run from project root: `npm run ios:pods` (runs in `ios/App`).
+
+---
+
+## Detailed manual setup
+
+See sections below if you prefer to add targets by hand in Xcode instead of the Ruby script.
+
+### 1. App Group (required by ALL extensions)
 
 Every target that reads/writes shared UserDefaults needs the App Group entitlement.
 
 1. Select the **App** target → Signing & Capabilities → **+ Capability → App Groups**
 2. Add: `group.com.layerweather.shared`
-3. Repeat this for **LayerWeatherWidgets**, **LayerWeatherWatch**, and **LayerWeatherWatchComplications** targets (created in the steps below).
+3. Repeat for **LayerWeatherWidgets**, **LayerWeatherWatch**, and **LayerWeatherWatchComplications**.
 
 ---
 
@@ -213,12 +207,15 @@ Watch App target → **General → Complications** → set bundle to `LayerWeath
 
 ## 6. App Icons
 
-### Widget Extension
-No icon needed — it inherits the main app icon.
+### iOS App
+```bash
+npm run ios:icons
+```
 
 ### Watch App
-Add a **1024×1024** app icon to `LayerWeatherWatch/Assets.xcassets/AppIcon.appiconset/`.
-Xcode 15+ generates all watch face sizes automatically from the single 1024×1024 image.
+```bash
+npm run ios:watch-icon
+```
 
 ---
 
