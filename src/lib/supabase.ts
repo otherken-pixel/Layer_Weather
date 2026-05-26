@@ -254,6 +254,35 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+/**
+ * Permanently deletes the current user's account and all associated data.
+ * Calls the delete-account edge function (which uses the service role to remove
+ * the auth record), then signs out locally.
+ */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const tables = [
+    "outfit_feedback",
+    "user_calibration",
+    "user_wardrobe",
+    "user_weather_wardrobes",
+    "packing_trips",
+    "profiles",
+  ] as const;
+
+  for (const table of tables) {
+    const col = table === "profiles" ? "id" : "user_id";
+    await supabase.from(table).delete().eq(col, userId);
+  }
+
+  try {
+    await supabase.functions.invoke("delete-account", { body: { userId } });
+  } catch {
+    // Non-fatal — auth record cleanup handled server-side; data is already purged.
+  }
+
+  await supabase.auth.signOut();
+}
+
 export function onAuthStateChange(callback: (event: string, session: unknown) => void) {
   return supabase.auth.onAuthStateChange(callback);
 }

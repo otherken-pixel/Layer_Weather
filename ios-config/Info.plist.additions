@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  INSTRUCTIONS: After running `npx cap add ios`, merge these keys into
+  ios/App/App/Info.plist (inside the root <dict>).
+
+  These entries are required by Apple and will cause rejection if missing.
+-->
+<plist version="1.0">
+<dict>
+
+  <!-- Location — used for local weather fetch and outfit recommendations -->
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>Layer Weather uses your location to fetch accurate local weather and generate outfit recommendations for your area.</string>
+
+  <!-- Push Notifications -->
+  <key>NSUserNotificationUsageDescription</key>
+  <string>Layer Weather can alert you when weather changes significantly during your commute or when outdoor conditions warrant a wardrobe update.</string>
+
+  <!-- WeatherKit entitlement — add to App.entitlements as well -->
+  <!-- <key>com.apple.developer.weatherkit</key> -->
+  <!-- <true/> -->
+
+  <!-- APS environment (also goes in App.entitlements, not Info.plist) -->
+  <!-- App.entitlements:
+    <key>aps-environment</key>
+    <string>production</string>
+  -->
+
+  <!-- Minimum deployment target is set in Xcode build settings: IPHONEOS_DEPLOYMENT_TARGET = 13.0 -->
+
+</dict>
+</plist>

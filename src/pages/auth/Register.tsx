@@ -176,7 +176,34 @@ export default function Register() {
           )}
 
           <p className="text-xs text-center" style={{ color: "rgba(255,255,255,0.4)" }}>
-            By creating an account you agree to our Terms of Service and Privacy Policy.
+            By creating an account you agree to our{" "}
+            <a
+              href="https://www.layerweather.app/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
+            >
+              Terms of Service
+            </a>
+            ,{" "}
+            <a
+              href="https://www.layerweather.app/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
+            >
+              Privacy Policy
+            </a>
+            , and{" "}
+            <a
+              href="https://www.layerweather.app/eula"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
+            >
+              EULA
+            </a>
+            .
           </p>
 
           <Button

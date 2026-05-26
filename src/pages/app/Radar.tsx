@@ -545,15 +545,14 @@ export default function Radar() {
       <div
         style={{
           position: "absolute", bottom: 100, right: 8, zIndex: 1000,
-          fontSize: 9, color: attributionColor,
+          fontSize: 9, color: attributionColor, textAlign: "right", lineHeight: 1.6,
         }}
       >
-        © <a
-          href="https://carto.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: attributionColor }}
-        >CARTO</a> · RainViewer
+        ©{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>OpenStreetMap</a>
+        {" "}contributors ·{" "}
+        <a href="https://carto.com" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>CARTO</a>
+        {" "}· RainViewer
       </div>
     </div>
   );

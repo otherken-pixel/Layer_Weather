@@ -34,12 +34,12 @@ function attachListeners(): void {
     tokenSavedForUser = null;
   });
 
-  PushNotifications.addListener("pushNotificationReceived", (notification) => {
-    console.log("Push received (foreground):", notification.title);
+  PushNotifications.addListener("pushNotificationReceived", (_notification) => {
+    // Foreground notification received — app UI already reflects current weather.
   });
 
-  PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-    console.log("Push action:", action.actionId);
+  PushNotifications.addListener("pushNotificationActionPerformed", (_action) => {
+    // Deep-link handling can be wired here in a future release.
   });
 }
 
