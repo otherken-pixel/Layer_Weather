@@ -549,11 +549,11 @@ export default function Home() {
               />
             )}
 
-            {import.meta.env.DEV && weather._source && (
-              <p style={{ textAlign: "center", fontSize: 11, color: isDark ? "rgba(255,255,255,0.25)" : "#9CA3AF", paddingBottom: 4 }}>
-                source: {weather._source}
-              </p>
-            )}
+            <p style={{ textAlign: "center", fontSize: 11, color: isDark ? "rgba(255,255,255,0.25)" : "#9CA3AF", paddingBottom: 4 }}>
+              {weather._source === "weatherkit"
+                ? "Weather data provided by Apple Weather™"
+                : "Weather data provided by Open-Meteo.com"}
+            </p>
 
           </div>
         </motion.div>

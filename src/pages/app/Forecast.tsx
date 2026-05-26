@@ -322,6 +322,12 @@ export default function Forecast() {
           />
         </div>
       )}
+
+      <p style={{ textAlign: "center", fontSize: 11, color: textMuted, padding: "12px 16px 4px" }}>
+        {weather._source === "weatherkit"
+          ? "Weather data provided by Apple Weather™"
+          : "Weather data provided by Open-Meteo.com"}
+      </p>
     </div>
   );
 }
