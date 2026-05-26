@@ -179,8 +179,6 @@ export default function Register() {
             By creating an account you agree to our{" "}
             <a
               href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Terms of Service
@@ -188,8 +186,6 @@ export default function Register() {
             ,{" "}
             <a
               href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               Privacy Policy
@@ -197,8 +193,6 @@ export default function Register() {
             , and{" "}
             <a
               href="/eula"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{ color: "rgba(255,255,255,0.75)", textDecoration: "underline" }}
             >
               EULA
