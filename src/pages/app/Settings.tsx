@@ -734,8 +734,6 @@ export default function Settings() {
             <Divider dividerColor={dividerColor} />
             <a
               href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
@@ -757,8 +755,6 @@ export default function Settings() {
             <Divider dividerColor={dividerColor} />
             <a
               href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
@@ -780,8 +776,6 @@ export default function Settings() {
             <Divider dividerColor={dividerColor} />
             <a
               href="/eula"
-              target="_blank"
-              rel="noopener noreferrer"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 textDecoration: "none", marginTop: 14, marginBottom: 14,
