@@ -307,7 +307,8 @@ struct WidgetData {
         var hourly: [HourlyWidgetEntry] = existing?.hourly ?? []
         var daily: [DailyWidgetEntry] = existing?.daily ?? []
         var timeline: [TimelineWidgetEntry] = existing?.timeline ?? []
-        var commuteAlert: CommuteWidgetAlert? = existing?.commuteAlert
+        // Phone `buildPayload()` omits this key when no alert exists; treat absence as cleared.
+        var commuteAlert: CommuteWidgetAlert?
         var accentColor = existing?.accentColor ?? "#4F8EF7"
         var thermalSensitivity = existing?.thermalSensitivity ?? 0
 
@@ -324,7 +325,7 @@ struct WidgetData {
             timeline = (try? decoder.decode([TimelineWidgetEntry].self, from: data)) ?? timeline
         }
         if let data = payload["commuteAlert"] as? Data {
-            commuteAlert = (try? decoder.decode(CommuteWidgetAlert.self, from: data)) ?? commuteAlert
+            commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
         }
         if let color = payload["accentColor"] as? String {
             accentColor = color

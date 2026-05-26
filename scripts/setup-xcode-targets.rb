@@ -3,13 +3,8 @@
 #
 # Wire all native Swift extensions into the Xcode project.
 #
-# Run once from the project root AFTER:
-#   npx cap add ios
-#   cd ios && pod install
-#   cd ..        ← back to project root
-#
-# Then:
-#   ruby scripts/setup-xcode-targets.rb
+# Run from project root (or use: npm run ios:prepare)
+#   npm run ios:prepare   # build, pods, this script
 #
 # Idempotent — safe to re-run.
 
@@ -27,16 +22,15 @@ PROJ_PATH = ROOT / 'ios/App/App.xcodeproj'
 APP_SRC   = ROOT / 'ios/App/App'
 NATIVE    = ROOT / 'native/ios'
 BUNDLE_ID = 'com.layerweather.app'
+APP_GROUP = 'group.com.layerweather.shared'
+ENTITLEMENTS_TEMPLATE = ROOT / 'ios-config/AppGroup.entitlements'
 
 unless PROJ_PATH.exist?
   abort <<~MSG
     ERROR: #{PROJ_PATH} not found.
 
     Run first:
-      npx cap add ios
-      cd ios && pod install
-      cd ..
-      ruby scripts/setup-xcode-targets.rb
+      npm run ios:prepare
   MSG
 end
 
@@ -84,13 +78,20 @@ end
 
 # Embed an app extension product into a host (iOS App or watchOS App). xcodeproj does not do this automatically.
 def embed_app_extension(host_target, extension_target)
-  host_target.add_dependency(extension_target)
+  ref = extension_target.product_reference
+
+  unless host_target.dependencies.any? { |dep| dep.target == extension_target }
+    host_target.add_dependency(extension_target)
+  end
+
   phase_name = 'Embed App Extensions'
   phase = host_target.copy_files_build_phases.find { |p| p.name == phase_name } ||
           host_target.new_copy_files_build_phase(phase_name).tap do |p|
             p.symbol_dst_subfolder_spec = :plug_ins
           end
-  phase.add_file_reference(extension_target.product_reference, true)
+  return if phase.files.any? { |bf| bf.file_ref == ref }
+
+  phase.add_file_reference(ref, true)
 end
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -125,7 +126,9 @@ if info_plist_path.exist?
       \t<key>NSUserNotificationUsageDescription</key>
       \t<string>Layer Weather can alert you when weather changes significantly during your commute or when outdoor conditions warrant a wardrobe update.</string>
     XML
-    File.write(info_plist_path, content.sub('</dict>', "#{patch}</dict>"))
+    insert_at = content.rindex('</dict>')
+    abort "ERROR: could not find closing </dict> in #{info_plist_path}" unless insert_at
+    File.write(info_plist_path, content[0, insert_at] + patch + content[insert_at..])
     puts "  +  Info.plist patched (location + notification usage strings)"
   end
 else
@@ -306,6 +309,11 @@ else
   puts "  ✓  LayerWeatherWidgets target created (12 source files)"
 end
 
+if (wt = project.targets.find { |t| t.name == 'LayerWeatherWidgets' })
+  embed_app_extension(main_target, wt)
+  puts "  ✓  LayerWeatherWidgets embedded in App"
+end
+
 # ══════════════════════════════════════════════════════════════════════════
 # PHASE 3 — LayerWeatherWatch (standalone SwiftUI Watch App)
 # ══════════════════════════════════════════════════════════════════════════
@@ -378,7 +386,36 @@ else
   add_source(ct, cg,   NATIVE / 'LayerWeatherWatchComplications/ComplicationProvider.swift')
   add_source(ct, cg_sh, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
 
+  watch_host = project.targets.find { |t| t.name == 'LayerWeatherWatch' }
+  abort "ERROR: 'LayerWeatherWatch' target not found." unless watch_host
+  embed_app_extension(watch_host, ct)
+
   puts "  ✓  LayerWeatherWatchComplications target created (2 source files)"
+end
+
+wwatch = project.targets.find { |t| t.name == 'LayerWeatherWatch' }
+ct = project.targets.find { |t| t.name == 'LayerWeatherWatchComplications' }
+if wwatch && ct
+  embed_app_extension(wwatch, ct)
+  puts "  ✓  LayerWeatherWatchComplications embedded in LayerWeatherWatch"
+end
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# PHASE 5 — App Group entitlements (all targets)
+# ══════════════════════════════════════════════════════════════════════════
+puts "\n── Phase 5: App Group entitlements ──────────────────────────────────"
+
+attach_app_group_entitlements(main_target, 'App/App.entitlements', APP_SRC / 'App.entitlements')
+
+%w[LayerWeatherWidgets LayerWeatherWatch LayerWeatherWatchComplications].each do |name|
+  target = project.targets.find { |t| t.name == name }
+  next unless target
+  attach_app_group_entitlements(
+    target,
+    "App/#{name}/#{name}.entitlements",
+    APP_SRC / name / "#{name}.entitlements"
+  )
 end
 
 # ══════════════════════════════════════════════════════════════════════════
