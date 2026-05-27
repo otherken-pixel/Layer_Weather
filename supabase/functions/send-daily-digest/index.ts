@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { Resend } from "npm:resend@4";
-import { renderAsync } from "npm:@react-email/render@1";
+import { Resend } from "npm:resend@6.12.4";
+import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
 
 // Import the template. In a Deno edge function, reference the compiled
@@ -65,9 +65,7 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   // Render the React Email template to an HTML string
-  const html = await renderAsync(
-    React.createElement(DailyDigestEmail, props)
-  );
+  const html = await render(React.createElement(DailyDigestEmail, props));
 
   const { data, error } = await resend.emails.send({
     from: "Layer Weather <digest@mail.layerweather.app>",
