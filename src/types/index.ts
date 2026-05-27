@@ -127,6 +127,18 @@ export interface HourlyForecast {
 
 export type ForecastConfidence = "high" | "medium" | "low" | null;
 
+export interface NWSAlert {
+  id: string;
+  event: string;
+  headline: string;
+  severity: "Extreme" | "Severe" | "Moderate" | "Minor" | "Unknown";
+  urgency: "Immediate" | "Expected" | "Future" | "Past" | "Unknown";
+  effective: Date;
+  expires: Date;
+}
+
+export type LightningActivity = "none" | "low" | "moderate" | "high";
+
 export interface DailyForecast {
   date: Date;
   tempMin: number;
@@ -150,7 +162,7 @@ export interface WeatherData {
   hourly: HourlyForecast[];
   daily: DailyForecast[];
   nextHourPrecip: NextHourPrecip | null;
-  _source?: "weatherkit" | "open-meteo";
+  _source?: "weatherkit" | "open-meteo" | "nws";
 }
 
 // ── Outfits ───────────────────────────────────────────────────────────────────

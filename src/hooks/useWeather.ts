@@ -3,7 +3,8 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
-import { fetchWeatherData, reverseGeocodePlace, fetchAQIIndex, fetchNOAAConfidence } from "@/lib/weather";
+import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence } from "@/lib/weather";
+import { fetchLightningActivity } from "@/lib/swdiService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
 import { upsertProfile } from "@/lib/supabase";
@@ -187,7 +188,7 @@ export function useWeather() {
     cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
-    setForecastConfidence,
+    setForecastConfidence, setNWSAlerts, setLightningActivity,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -262,7 +263,7 @@ export function useWeather() {
               WEATHER_TIMEOUT_MS,
               "Weather fetch",
             ),
-            fetchAQIIndex(latitude, longitude),
+            fetchAQIBestSource(latitude, longitude, countryCode),
           ]);
           if (generation !== refreshGeneration) return;
 
@@ -337,14 +338,24 @@ export function useWeather() {
             saveCityWeatherCache(resolvedKey, entry).catch(() => {});
           }
 
-          // Fetch NOAA confidence in parallel (US only, non-blocking)
+          // Non-blocking US-only supplementary data (NOAA confidence, alerts, lightning)
           if ((countryCode ?? "").toUpperCase() === "US") {
             const next12Pops = data.hourly.slice(0, 12).map((h) => h.precipProb);
             fetchNOAAConfidence(latitude, longitude, next12Pops)
               .then((conf) => { if (generation === refreshGeneration) setForecastConfidence(conf); })
               .catch(() => {});
+
+            fetchNWSAlerts(latitude, longitude)
+              .then((alerts) => { if (generation === refreshGeneration.current) setNWSAlerts(alerts); })
+              .catch(() => {});
+
+            fetchLightningActivity(latitude, longitude)
+              .then((activity) => { if (generation === refreshGeneration.current) setLightningActivity(activity); })
+              .catch(() => {});
           } else {
             setForecastConfidence(null);
+            setNWSAlerts([]);
+            setLightningActivity(null);
           }
 
           saveWidgetSnapshot(
