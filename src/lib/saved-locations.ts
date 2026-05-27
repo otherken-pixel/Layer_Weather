@@ -39,9 +39,11 @@ export async function addSavedLocation(loc: LocationData): Promise<LocationData[
   return updated;
 }
 
-export async function removeSavedLocation(city: string): Promise<LocationData[]> {
+/** Remove one saved place (matched by city + coordinates, not city name alone). */
+export async function removeSavedLocation(loc: LocationData): Promise<LocationData[]> {
   const existing = await getSavedLocations();
-  const updated = existing.filter((l) => l.city.toLowerCase() !== city.toLowerCase()); // remove by display name
+  const key = buildLocationCacheKey(loc);
+  const updated = existing.filter((l) => buildLocationCacheKey(l) !== key);
   await writeRaw(JSON.stringify(updated));
   return updated;
 }

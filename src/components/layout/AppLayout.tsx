@@ -16,6 +16,7 @@ export default function AppLayout() {
   usePushNotifications();
   const accentColor = useAppStore((s) => s.profile?.accent_color);
   const userId = useAppStore((s) => s.userId);
+  const calibration = useAppStore((s) => s.calibration);
   const activeLocationIsDevice = useAppStore((s) => s.activeLocationIsDevice);
   const { refresh } = useWeather();
   useAccentTheme(accentColor);
@@ -37,7 +38,7 @@ export default function AppLayout() {
   }, [userId, activeLocationIsDevice, refresh]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !calibration) return;
     void syncWidgetFeedback();
     if (!Capacitor.isNativePlatform()) return;
     const handle = App.addListener("appStateChange", ({ isActive }) => {
@@ -46,7 +47,7 @@ export default function AppLayout() {
     return () => {
       void handle.then((h) => h.remove());
     };
-  }, [userId, syncWidgetFeedback]);
+  }, [userId, calibration, syncWidgetFeedback]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

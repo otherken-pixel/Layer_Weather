@@ -194,10 +194,8 @@ export async function saveCityWeatherCache(
   await registerCityCacheKey(cacheKey);
 }
 
-export async function loadCityWeatherCache(
-  cacheKey: string,
-): Promise<CachedCityWeather | null> {
-  const raw = await storageGet(cityCacheStorageKey(cacheKey));
+async function readCityCacheEntry(storageKey: string): Promise<CachedCityWeather | null> {
+  const raw = await storageGet(storageKey);
   if (!raw) return null;
 
   try {
@@ -217,6 +215,20 @@ export async function loadCityWeatherCache(
   } catch {
     return null;
   }
+}
+
+export async function loadCityWeatherCache(
+  cacheKey: string,
+): Promise<CachedCityWeather | null> {
+  const primary = await readCityCacheEntry(cityCacheStorageKey(cacheKey));
+  if (primary) return primary;
+
+  // Legacy entries keyed by city name only (pre composite-key migration).
+  const legacyCity = cacheKey.includes("|") ? cacheKey.split("|")[0] : null;
+  if (legacyCity && legacyCity !== cacheKey) {
+    return readCityCacheEntry(cityCacheStorageKey(legacyCity));
+  }
+  return null;
 }
 
 export async function clearWeatherCache(): Promise<void> {

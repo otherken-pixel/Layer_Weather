@@ -966,9 +966,13 @@ function buildCommuteAlert(
             : outfitChanged && layerChange === "layer down"
               ? " You can dress lighter when you leave."
               : "";
+        const tempPart =
+          Math.abs(delta) >= 2
+            ? `${morningData.feelsLike}°F feels-like. ${delta < 0 ? "Dress warmer for your commute." : "It'll feel warmer when you leave."}`
+            : `Around ${morningData.feelsLike}°F at departure.`;
         return {
           type: "morning",
-          message: `Departure at ${formatTime(commuteStart)}: ${morningData.feelsLike}°F feels-like. ${delta < 0 ? "Dress warmer for your commute." : delta > 0 ? "It'll feel warmer when you leave." : "Conditions change for your commute."}${layerNote}`,
+          message: `Departure at ${formatTime(commuteStart)}: ${tempPart}${layerNote}`,
           urgency: Math.abs(delta) >= 18 || (outfitChanged && layerChange === "layer up") ? "warning" : "info",
         };
       }
@@ -1072,7 +1076,7 @@ export function getDayOutfitTimeline(
       stylePreference,
       formality,
       isDay: blockIsDay,
-      hourly: todayHourly,
+      hourly: block,
       previousRainy,
     });
 

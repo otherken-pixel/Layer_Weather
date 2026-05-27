@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
@@ -22,6 +22,9 @@ const STALE_AFTER_MS = 15 * 60 * 1000;
 const GEOCODE_TIMEOUT_MS = 8_000;
 const WEATHER_TIMEOUT_MS = 20_000;
 const REFRESH_TIMEOUT_MS = 30_000;
+
+/** Shared across all `useWeather()` callers so concurrent refreshes cancel correctly. */
+let refreshGeneration = 0;
 
 export const WEATHER_FETCH_ERROR_MESSAGE = "Unable to fetch weather data";
 
@@ -53,19 +56,19 @@ async function resolveCoordinates(
       const coords = await resolveDeviceCoordinates();
       if (coords) return coords;
     } catch {
-      /* fall through */
+      /* fall through to error below */
     }
-  } else {
-    const { location } = useAppStore.getState();
-    if (location?.latitude != null && location?.longitude != null) {
-      return { latitude: location.latitude, longitude: location.longitude };
-    }
+    throw new Error(
+      "Location permission denied or GPS unavailable. Enable location in Settings or pick a saved city.",
+    );
   }
 
-  const { location, profile } = useAppStore.getState();
+  const { location } = useAppStore.getState();
   if (location?.latitude != null && location?.longitude != null) {
     return { latitude: location.latitude, longitude: location.longitude };
   }
+
+  const { profile } = useAppStore.getState();
   if (profile?.last_latitude != null && profile?.last_longitude != null) {
     return { latitude: profile.last_latitude, longitude: profile.last_longitude };
   }
@@ -130,7 +133,11 @@ async function tryLoadStaleWeatherCache(
   const { cityWeatherCache } = useAppStore.getState();
 
   if (cacheKey) {
-    const mem = cityWeatherCache[cacheKey];
+    let mem = cityWeatherCache[cacheKey];
+    if (!mem && cacheKey.includes("|")) {
+      const legacyKey = cacheKey.split("|")[0];
+      mem = cityWeatherCache[legacyKey];
+    }
     if (mem && isWeatherCacheFresh(mem.fetchedAt)) {
       applyCachedEntry(mem, cacheKey, useDeviceLocation);
       return true;
@@ -174,7 +181,6 @@ export type RefreshOptions = {
 };
 
 export function useWeather() {
-  const refreshGeneration = useRef(0);
   const {
     weather, outfit, location, weatherLastFetched, isLoadingWeather, weatherError,
     profile, calibration, userId, formality,
@@ -190,7 +196,7 @@ export function useWeather() {
     const { useDeviceLocation = false, cacheKey } = options;
     if (!force && !cacheKey && !isStale && weather) return;
 
-    const generation = ++refreshGeneration.current;
+    const generation = ++refreshGeneration;
 
     if (!force && cacheKey) {
       const cached = cityWeatherCache[cacheKey];
@@ -212,7 +218,7 @@ export function useWeather() {
       await withTimeout(
         (async () => {
           const { latitude, longitude } = await resolveCoordinates(useDeviceLocation);
-          if (generation !== refreshGeneration.current) return;
+          if (generation !== refreshGeneration) return;
 
           const storeLocation = useAppStore.getState().location;
           const storeProfile = useAppStore.getState().profile;
@@ -231,7 +237,7 @@ export function useWeather() {
               countryCode = place.countryCode;
             }
           }
-          if (generation !== refreshGeneration.current) return;
+          if (generation !== refreshGeneration) return;
 
           setLocation({
             latitude,
@@ -258,7 +264,7 @@ export function useWeather() {
             ),
             fetchAQIIndex(latitude, longitude),
           ]);
-          if (generation !== refreshGeneration.current) return;
+          if (generation !== refreshGeneration) return;
 
           data.current.location = city;
           data.current.aqiIndex = aqiIndex;
@@ -335,7 +341,7 @@ export function useWeather() {
           if ((countryCode ?? "").toUpperCase() === "US") {
             const next12Pops = data.hourly.slice(0, 12).map((h) => h.precipProb);
             fetchNOAAConfidence(latitude, longitude, next12Pops)
-              .then((conf) => { if (generation === refreshGeneration.current) setForecastConfidence(conf); })
+              .then((conf) => { if (generation === refreshGeneration) setForecastConfidence(conf); })
               .catch(() => {});
           } else {
             setForecastConfidence(null);
@@ -359,7 +365,7 @@ export function useWeather() {
         "Refresh",
       );
     } catch (err) {
-      if (generation !== refreshGeneration.current) return;
+      if (generation !== refreshGeneration) return;
 
       const staleLoc = useAppStore.getState().location;
       const resolvedKey =
@@ -382,7 +388,7 @@ export function useWeather() {
         );
       }
     } finally {
-      if (generation === refreshGeneration.current) {
+      if (generation === refreshGeneration) {
         setIsLoadingWeather(false);
       }
     }
