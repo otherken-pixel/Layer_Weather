@@ -10,25 +10,12 @@ struct SmallWidgetView: View {
         entry.widgetData.snapshot ?? .placeholder
     }
 
-    private var gradient: LinearGradient {
-        let hour = Calendar.current.component(.hour, from: entry.date)
-        return SkyGradient.gradient(
-            condition: snapshot.condition,
-            isDay: snapshot.isDay,
-            hour: hour
-        )
-    }
-
     private var tierColor: Color {
         SkyGradient.tierColor(warmthTier: snapshot.warmthTier)
     }
 
     var body: some View {
         ZStack {
-            // Background gradient
-            gradient
-                .ignoresSafeArea()
-
             VStack(alignment: .leading, spacing: 0) {
                 // Location name
                 HStack {

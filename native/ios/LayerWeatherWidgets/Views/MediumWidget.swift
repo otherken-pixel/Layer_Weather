@@ -14,24 +14,12 @@ struct MediumWidgetView: View {
         entry.widgetData.hourly
     }
 
-    private var gradient: LinearGradient {
-        let hour = Calendar.current.component(.hour, from: entry.date)
-        return SkyGradient.gradient(
-            condition: snapshot.condition,
-            isDay: snapshot.isDay,
-            hour: hour
-        )
-    }
-
     private var tierColor: Color {
         SkyGradient.tierColor(warmthTier: snapshot.warmthTier)
     }
 
     var body: some View {
         ZStack {
-            // Full background gradient
-            gradient.ignoresSafeArea()
-
             VStack(spacing: 0) {
                 // Main content row
                 HStack(spacing: 10) {
