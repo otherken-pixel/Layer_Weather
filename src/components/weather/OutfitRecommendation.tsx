@@ -376,7 +376,7 @@ export function OutfitRecommendationCard({
 
           {/* Outfit display */}
           {(() => {
-            return preferTextFlatLay && !presetOverride ? (
+            return textOnly || (preferTextFlatLay && !presetOverride) ? (
               <OutfitTextView
                 outfit={outfit}
                 umbrella={umbrella}
