@@ -58,7 +58,7 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
       style={{
         position: "relative",
         zIndex: 1,
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 44px)",
+        paddingTop: 44,
         paddingBottom: 16,
         paddingLeft: 24,
         paddingRight: 24,
@@ -77,7 +77,7 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
         aria-busy={isRefreshing}
         style={{
           position: "absolute",
-          top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+          top: 8,
           right: 16,
           width: 44,
           height: 44,
