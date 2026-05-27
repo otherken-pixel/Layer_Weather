@@ -20,10 +20,7 @@ import {
   getDayOutfitTimeline,
   DEFAULT_CALIBRATION,
 } from "@/lib/outfit-logic";
-import {
-  isWeatherCacheFresh,
-  loadCityWeatherCache,
-} from "@/lib/cache";
+import { loadCityWeatherCache } from "@/lib/cache";
 import { saveWidgetSnapshot } from "@/lib/widget";
 
 export type { WidgetLocationMode, WidgetLocationPreference };
@@ -104,7 +101,6 @@ export async function saveWidgetLocationPreference(
   try {
     const { WidgetBridge } = await import("@/lib/widget-bridge");
     await WidgetBridge.saveWidgetData({ key: APP_GROUP_KEY, value: json });
-    await WidgetBridge.reloadTimelines();
   } catch {
     // WidgetBridge unavailable (web or native plugin not loaded)
   }
@@ -272,23 +268,6 @@ export async function syncWidgetFromAppState(options?: {
   }
 
   const entry = await loadCachedEntry(target.cacheKey);
-  if (
-    entry &&
-    isWeatherCacheFresh(entry.fetchedAt) &&
-    !options?.forceFetch
-  ) {
-    const data = { ...entry.weather };
-    data.current = { ...data.current, location: target.city };
-    await saveWidgetSnapshot(
-      data,
-      entry.outfit,
-      entry.outfitTimeline ?? undefined,
-      profileBits,
-      coords,
-    );
-    return;
-  }
-
   if (!options?.forceFetch && entry) {
     const data = { ...entry.weather };
     data.current = { ...data.current, location: target.city };
