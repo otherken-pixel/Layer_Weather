@@ -149,7 +149,7 @@ export function OutfitRecommendationCard({
   const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
 
   useEffect(() => {
-    setVoted(readPersistedVote(currentPeriodLabel()));
+    setVoted(readPersistedVote(activeTab));
   }, [activeTab]);
 
   async function handleVote(value: OutfitFeedbackValue) {
@@ -158,7 +158,7 @@ export function OutfitRecommendationCard({
       if (value === "thumbs_up") hapticSuccess();
       else hapticLight();
       await onFeedback?.(value);
-      persistVote(currentPeriodLabel(), value);
+      persistVote(activeTab, value);
       setVoted(value);
     } catch (e) {
       console.error(e);
