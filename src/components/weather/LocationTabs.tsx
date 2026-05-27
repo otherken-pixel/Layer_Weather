@@ -61,6 +61,8 @@ export function LocationTabs({
     background: "transparent",
     border: "1.5px solid transparent",
     color: "rgba(255,255,255,0.75)",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
   };
 
   return (
@@ -149,6 +151,9 @@ export function LocationTabs({
               ...inactivePill,
               padding: "6px 12px",
               background: editMode ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.14)",
+              border: editMode
+                ? "1.5px solid rgba(255,255,255,0.9)"
+                : "1.5px solid rgba(255,255,255,0.25)",
               color: editMode ? "#111827" : "rgba(255,255,255,0.75)",
               fontWeight: editMode ? 700 : 500,
             }}
