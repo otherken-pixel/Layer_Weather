@@ -679,7 +679,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={async () => {
-                        const updated = await removeSavedLocation(loc).catch(() => localSavedLocations);
+                        const updated = await removeSavedLocation(loc, userId ?? undefined).catch(() => localSavedLocations);
                         setLocalSavedLocations(updated);
                         setSavedLocations(updated);
                       }}

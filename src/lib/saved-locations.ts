@@ -23,27 +23,64 @@ async function writeRaw(json: string): Promise<void> {
   }
 }
 
+function sortAlpha(locs: LocationData[]): LocationData[] {
+  return [...locs].sort((a, b) =>
+    a.city.localeCompare(b.city, undefined, { sensitivity: "base" })
+  );
+}
+
+async function syncToCloud(userId: string, locations: LocationData[]): Promise<void> {
+  try {
+    const { upsertProfile } = await import("@/lib/supabase");
+    await upsertProfile(userId, { saved_locations: locations });
+  } catch { /* non-fatal */ }
+}
+
 export async function getSavedLocations(): Promise<LocationData[]> {
   const raw = await readRaw();
   if (!raw) return [];
-  try { return JSON.parse(raw) as LocationData[]; } catch { return []; }
+  try {
+    return sortAlpha(JSON.parse(raw) as LocationData[]);
+  } catch { return []; }
 }
 
-export async function addSavedLocation(loc: LocationData): Promise<LocationData[]> {
+export async function addSavedLocation(loc: LocationData, userId?: string): Promise<LocationData[]> {
   const existing = await getSavedLocations();
-  // Deduplicate by city name (case-insensitive)
   const key = buildLocationCacheKey(loc);
   const filtered = existing.filter((l) => buildLocationCacheKey(l) !== key);
-  const updated = [loc, ...filtered].slice(0, MAX_LOCATIONS);
+  const updated = sortAlpha([loc, ...filtered].slice(0, MAX_LOCATIONS));
   await writeRaw(JSON.stringify(updated));
+  if (userId) void syncToCloud(userId, updated);
   return updated;
 }
 
 /** Remove one saved place (matched by city + coordinates, not city name alone). */
-export async function removeSavedLocation(loc: LocationData): Promise<LocationData[]> {
+export async function removeSavedLocation(loc: LocationData, userId?: string): Promise<LocationData[]> {
   const existing = await getSavedLocations();
   const key = buildLocationCacheKey(loc);
   const updated = existing.filter((l) => buildLocationCacheKey(l) !== key);
   await writeRaw(JSON.stringify(updated));
+  if (userId) void syncToCloud(userId, updated);
   return updated;
+}
+
+/**
+ * Merges a cloud-sourced list into local storage and returns the sorted result.
+ * Cloud locations take precedence for deduplication order; local-only additions
+ * are appended so offline-added cities survive a cross-device login.
+ */
+export async function mergeFromCloud(cloudLocations: LocationData[]): Promise<LocationData[]> {
+  const local = await getSavedLocations();
+  const seen = new Set<string>();
+  const merged: LocationData[] = [];
+  for (const loc of [...cloudLocations, ...local]) {
+    const key = buildLocationCacheKey(loc);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(loc);
+    }
+  }
+  const sorted = sortAlpha(merged.slice(0, MAX_LOCATIONS));
+  await writeRaw(JSON.stringify(sorted));
+  return sorted;
 }

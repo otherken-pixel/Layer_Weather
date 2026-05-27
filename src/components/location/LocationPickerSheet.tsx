@@ -25,6 +25,7 @@ export function LocationPickerSheet({
 }: LocationPickerSheetProps) {
   const location = useAppStore((s) => s.location);
   const profile = useAppStore((s) => s.profile);
+  const userId = useAppStore((s) => s.userId);
   const setSavedLocations = useAppStore((s) => s.setSavedLocations);
   const [cityQuery, setCityQuery] = useState("");
   const { saveFromCity, saveFromDevice, saving, error, setError } = useSaveLocation();
@@ -42,7 +43,7 @@ export function LocationPickerSheet({
   async function persistToSavedList() {
     const loc = useAppStore.getState().location;
     if (loc?.city) {
-      const updated = await addSavedLocation(loc).catch(() => null);
+      const updated = await addSavedLocation(loc, userId ?? undefined).catch(() => null);
       if (updated) setSavedLocations(updated);
     }
   }
