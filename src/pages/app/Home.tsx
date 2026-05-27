@@ -194,7 +194,10 @@ export default function Home() {
             (l) => buildLocationCacheKey(l) === locKey,
           );
           if (!alreadySaved) {
-            const updated = await addSavedLocation(loc, userId ?? undefined).catch(() => null);
+            const updated = await addSavedLocation(
+              loc,
+              useAppStore.getState().userId ?? undefined,
+            ).catch(() => null);
             if (updated) setSavedLocations(updated);
           }
         }

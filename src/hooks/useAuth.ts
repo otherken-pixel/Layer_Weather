@@ -253,11 +253,12 @@ export function useAuth() {
         });
       }
 
-      if (prof?.saved_locations?.length) {
-        const merged = await mergeFromCloud(prof.saved_locations);
+      if (prof) {
+        const cloud = prof.saved_locations ?? [];
+        const merged = await mergeFromCloud(cloud);
         setSavedLocations(merged);
         // Sync back if local had additions the cloud didn't know about
-        if (merged.length > (prof.saved_locations.length)) {
+        if (merged.length > cloud.length) {
           upsertProfile(id, { saved_locations: merged }).catch(() => {});
         }
       }
