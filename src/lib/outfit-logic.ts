@@ -801,8 +801,8 @@ export function getOutfitRecommendation(opts: {
       // Casual: umbrella when gear is on or precip is high
       umbrella =
         outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy" ||
-        (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high") ||
-        (calibration.rain_tolerance === "high" && effectivePrecipProb > 50);
+        (effectivePrecipProb > 50 && calibration.rain_tolerance !== "high") ||
+        (calibration.rain_tolerance === "high" && effectivePrecipProb > 60);
     }
   }
 
