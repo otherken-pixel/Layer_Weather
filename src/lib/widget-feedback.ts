@@ -84,6 +84,12 @@ export async function applyPendingWidgetFeedback(userId: string): Promise<boolea
     return false;
   }
 
+  const thermalPending =
+    thermalRaw !== null && clampThermal(thermalRaw) !== calibration.thermal_sensitivity;
+
+  // No feedback action and thermal already matches profile — snapshot sync, not a pending change.
+  if ((!action || action.length === 0) && !thermalPending) return false;
+
   const updates: Partial<Omit<UserCalibration, "user_id">> = {};
 
   if (action && action !== "just_right") {
@@ -91,8 +97,8 @@ export async function applyPendingWidgetFeedback(userId: string): Promise<boolea
   }
 
   // Watch thermal slider wins over nudge for sensitivity when both are present.
-  if (thermalRaw !== null) {
-    updates.thermal_sensitivity = clampThermal(thermalRaw);
+  if (thermalPending) {
+    updates.thermal_sensitivity = clampThermal(thermalRaw!);
   }
 
   if (Object.keys(updates).length === 0) {

@@ -48,4 +48,14 @@ describe("applyPendingWidgetFeedback", () => {
     expect(result).toBe(false);
     expect(clearFeedbackAction).not.toHaveBeenCalled();
   });
+
+  it("ignores thermal value that already matches calibration (snapshot sync)", async () => {
+    vi.mocked(readFeedbackAction).mockResolvedValue(null);
+    vi.mocked(readWidgetThermalSensitivity).mockResolvedValue(0);
+
+    const result = await applyPendingWidgetFeedback("u1");
+
+    expect(result).toBe(false);
+    expect(upsertCalibration).not.toHaveBeenCalled();
+  });
 });

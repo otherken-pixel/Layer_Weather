@@ -217,6 +217,25 @@ async function readCityCacheEntry(storageKey: string): Promise<CachedCityWeather
   }
 }
 
+/** Drops one city from persisted cache (e.g. when user removes a saved tab). */
+export async function removeCityWeatherCache(cacheKey: string): Promise<void> {
+  await storageRemove(cityCacheStorageKey(cacheKey));
+
+  const legacyCity = cacheKey.includes("|") ? cacheKey.split("|")[0] : null;
+  if (legacyCity && legacyCity !== cacheKey) {
+    await storageRemove(cityCacheStorageKey(legacyCity));
+  }
+
+  const keys = await loadCityCacheManifest();
+  let next = keys.filter((k) => k !== cacheKey);
+  if (legacyCity && legacyCity !== cacheKey) {
+    next = next.filter((k) => k !== legacyCity);
+  }
+  if (next.length !== keys.length) {
+    await storageSet(CITY_CACHE_MANIFEST_KEY, JSON.stringify(next));
+  }
+}
+
 export async function loadCityWeatherCache(
   cacheKey: string,
 ): Promise<CachedCityWeather | null> {

@@ -934,6 +934,14 @@ function buildCommuteAlert(
     );
     if (!closest) return null;
 
+    // Near-term precip for commute outfit should anchor on departure time, not "now".
+    const commuteWindow = hourly.filter((h) => {
+      const diffHours = (h.time.getTime() - target.getTime()) / (1000 * 60 * 60);
+      return diffHours > -1 && diffHours <= 2;
+    });
+    const hourlyForCommute =
+      commuteWindow.length > 0 ? commuteWindow : [closest];
+
     const outfitAtCommute = recalc
       ? getOutfitRecommendation({
           feelsLike: closest.feelsLike,
@@ -945,7 +953,7 @@ function buildCommuteAlert(
           calibration: recalc.calibration,
           stylePreference: recalc.stylePreference,
           formality: recalc.formality,
-          hourly,
+          hourly: hourlyForCommute,
           previousRainy: recalc.previousRainy,
         }).outfit
       : currentOutfit;

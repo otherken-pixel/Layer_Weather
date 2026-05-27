@@ -5,10 +5,9 @@ import { Capacitor } from "@capacitor/core";
 import { TabBar } from "./TabBar";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAccentTheme } from "@/hooks/useAccentTheme";
-import { useWeather } from "@/hooks/useWeather";
-import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
+import { useAppStore } from "@/store";
 import { applyPendingWidgetFeedback } from "@/lib/widget-feedback";
-import { buildLocationCacheKey } from "@/lib/location-cache-key";
+import { recomputeOutfitFromCurrentWeather } from "@/lib/recompute-outfit";
 
 const TAB_BAR_HEIGHT = 56;
 
@@ -17,25 +16,14 @@ export default function AppLayout() {
   const accentColor = useAppStore((s) => s.profile?.accent_color);
   const userId = useAppStore((s) => s.userId);
   const calibration = useAppStore((s) => s.calibration);
-  const activeLocationIsDevice = useAppStore((s) => s.activeLocationIsDevice);
-  const { refresh } = useWeather();
   useAccentTheme(accentColor);
 
   const syncWidgetFeedback = useCallback(async () => {
     if (!userId) return;
     const changed = await applyPendingWidgetFeedback(userId);
     if (!changed) return;
-    if (activeLocationIsDevice) {
-      await refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
-      return;
-    }
-    const loc = useAppStore.getState().location;
-    if (loc) {
-      await refresh(true, { cacheKey: buildLocationCacheKey(loc) });
-    } else {
-      await refresh(true);
-    }
-  }, [userId, activeLocationIsDevice, refresh]);
+    recomputeOutfitFromCurrentWeather();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId || !calibration) return;
