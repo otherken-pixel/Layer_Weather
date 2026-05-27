@@ -616,7 +616,10 @@ export default function Wardrobe() {
         style={{
           background: surface,
           borderBottom: `1px solid ${isDark ? "#3A3A3C" : "#E5E7EB"}`,
-          padding: "20px 20px 20px",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 20px)",
+          paddingRight: 20,
+          paddingBottom: 20,
+          paddingLeft: 20,
         }}
       >
         <h1 style={{ fontSize: 28, fontWeight: 800, color: textPrimary, lineHeight: 1.2, marginBottom: 4 }}>

@@ -43,7 +43,6 @@ export default function AppLayout() {
         data-scroll-container
         className="flex-1 overflow-y-auto overscroll-none"
         style={{
-          paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: `calc(${TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
           WebkitOverflowScrolling: "touch",
         }}

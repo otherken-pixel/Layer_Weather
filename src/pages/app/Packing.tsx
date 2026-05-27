@@ -433,7 +433,7 @@ export default function Packing() {
       {/* ── Header ── */}
       <div style={{
         background: pageBg,
-        paddingTop: 36,
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)",
         paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
       }}>
         <h1 style={{ fontSize: 30, fontWeight: 800, color: textPrimary, letterSpacing: "-0.03em", margin: 0 }}>

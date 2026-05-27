@@ -139,7 +139,7 @@ export default function Forecast() {
   return (
     <div style={{ background: bg, minHeight: "100%", paddingBottom: 32 }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 16px 8px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)", paddingRight: 16, paddingBottom: 8, paddingLeft: 16 }}>
         <button
           type="button"
           onClick={() => navigate(-1)}
