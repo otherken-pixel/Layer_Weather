@@ -60,8 +60,8 @@ function nwsTextToCondition(text: string): WeatherCondition {
   if (/drizzle/.test(t)) return "drizzle";
   if (/fog|haze|mist/.test(t)) return "foggy";
   if (/overcast|mostly cloudy|considerable cloudiness/.test(t)) return "cloudy";
-  if (/cloudy/.test(t)) return "cloudy";
   if (/partly|mostly clear|mostly sunny|partly sunny/.test(t)) return "partly_cloudy";
+  if (/cloudy/.test(t)) return "cloudy";
   if (/clear|sunny|fair/.test(t)) return "clear";
   return "partly_cloudy";
 }
@@ -237,10 +237,10 @@ Deno.serve(async (req) => {
     const hourlyJson = await hourlyRes.json();
     const periods: NWSHourlyPeriod[] = hourlyJson?.properties?.periods ?? [];
 
-    const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
     const hourly = periods
       .map(mapPeriod)
-      .filter((h) => h.time >= nowIso)
+      .filter((h) => new Date(h.time).getTime() >= nowMs)
       .slice(0, 48);
 
     if (hourly.length === 0) {
@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
     }
 
     // Build current conditions from first hourly period
-    const firstPeriod = periods.find((p) => p.startTime >= nowIso) ?? periods[0];
+    const firstPeriod = periods.find((p) => new Date(p.startTime).getTime() >= nowMs) ?? periods[0];
     const current = {
       temp: hourly[0].temp,
       feelsLike: hourly[0].feelsLike,
