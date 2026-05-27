@@ -237,15 +237,17 @@ Watch App target → **General → Complications** → set bundle to `LayerWeath
 
 ## 6. App Icons
 
-### iOS App
+App Store uploads reject 1024×1024 icons with an alpha channel (errors **90717** / **90396**). Icons must be opaque RGB PNGs.
+
+From the project root (after `npx cap add ios`):
+
 ```bash
-npm run ios:icons
+python3 scripts/generate_icons.py   # regenerates public/icons/icon.png without alpha
+npm run ios:icons                   # main iOS AppIcon (512@2x = 1024px)
+npm run ios:watch-icon              # LayerWeatherWatch AppIcon-1024.png
 ```
 
-### Watch App
-```bash
-npm run ios:watch-icon
-```
+Then clean the build folder in Xcode (**Product → Clean Build Folder**) and archive again.
 
 ---
 
@@ -274,7 +276,7 @@ To verify UserDefaults are shared: add a temporary breakpoint in `WidgetBridgePl
 - [ ] Watch Complications profile includes WidgetKit  
 - [ ] Main App profile includes App Groups + WatchConnectivity
 - [ ] Widget privacy manifest updated if widgets surface personal data
-- [ ] Watch app icon is 1024×1024 (Xcode auto-generates all sizes)
+- [ ] Watch app icon is 1024×1024, **opaque RGB** (no alpha — run `npm run ios:icons` and `npm run ios:watch-icon`)
 - [ ] Tested on physical device (WidgetKit requires real hardware, not Simulator)
 - [ ] All targets compile with no warnings in release mode
 
