@@ -58,6 +58,7 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func reloadTimelines(_ call: CAPPluginCall) {
         WidgetCenter.shared.reloadAllTimelines()
+        WatchConnectivityHandler.shared.syncWidgetPayloadToWatch()
         call.resolve()
     }
 }

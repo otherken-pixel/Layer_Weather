@@ -12,9 +12,13 @@ struct ContentView: View {
         connectivity.widgetData ?? .load()
     }
 
+    private var hasWeatherToShow: Bool {
+        widgetData.hasDisplayableWeather
+    }
+
     var body: some View {
         Group {
-            if connectivity.widgetData == nil && !hasLocalData {
+            if !hasWeatherToShow {
                 noDataView
             } else {
                 mainTabView
@@ -104,7 +108,7 @@ struct ContentView: View {
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
 
-            Text("Open Layer Weather on your iPhone to sync data")
+            Text(syncHint)
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
@@ -131,10 +135,14 @@ struct ContentView: View {
 
     // MARK: - Helpers
 
-    private var hasLocalData: Bool {
-        let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName)
-        // Values are stored as strings by WidgetBridgePlugin
-        return defaults?.string(forKey: AppGroupKeys.snapshot) != nil
+    private var syncHint: String {
+        if !connectivity.isSessionActivated {
+            return "Connecting to iPhone… Open Layer Weather on your phone, then tap Refresh."
+        }
+        if connectivity.isReachable {
+            return "Requesting latest weather from your iPhone…"
+        }
+        return "Open Layer Weather on your iPhone, wait for Today to load, then tap Refresh."
     }
 
     private func refreshFromWatch() {
@@ -142,17 +150,32 @@ struct ContentView: View {
         refreshError = nil
         HapticManager.shared.playClick()
 
-        // Try WCSession first
         connectivity.requestUpdate()
 
-        // Fallback to direct weather fetch after a short delay
         Task {
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            await MainActor.run {
+                if widgetData.hasDisplayableWeather {
+                    isRefreshing = false
+                    HapticManager.shared.playSuccess()
+                    return
+                }
+            }
+
             do {
                 let data = try await WatchWeatherService.shared.fetchWeather()
                 await MainActor.run {
+                    if data.hasDisplayableWeather {
+                        data.persistToAppGroup()
+                    }
                     connectivity.widgetData = data
                     isRefreshing = false
-                    HapticManager.shared.playSuccess()
+                    if data.hasDisplayableWeather {
+                        HapticManager.shared.playSuccess()
+                    } else {
+                        refreshError = "Could not load weather. Open the iPhone app first."
+                        HapticManager.shared.playWarning()
+                    }
                 }
             } catch {
                 await MainActor.run {

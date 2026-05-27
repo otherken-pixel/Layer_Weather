@@ -285,7 +285,11 @@ struct WidgetData {
         }
 
         let accentColor = defaults?.string(forKey: AppGroupKeys.accentColor) ?? "#4F8EF7"
-        let thermalSensitivity = defaults?.integer(forKey: AppGroupKeys.thermalSensitivity) ?? 0
+        let thermalStr = defaults?.string(forKey: AppGroupKeys.thermalSensitivity)
+        let thermalSensitivity = thermalStr.flatMap { Int($0) }
+            ?? (defaults?.object(forKey: AppGroupKeys.thermalSensitivity) != nil
+                ? defaults?.integer(forKey: AppGroupKeys.thermalSensitivity) : nil)
+            ?? 0
 
         return WidgetData(
             snapshot: snapshot,
@@ -364,6 +368,37 @@ struct WidgetData {
 
     var isEmpty: Bool {
         snapshot == nil
+    }
+
+    /// True when we have a real synced snapshot (not the placeholder prompt).
+    var hasDisplayableWeather: Bool {
+        guard let snapshot = snapshot else { return false }
+        let loc = snapshot.location.trimmingCharacters(in: .whitespacesAndNewlines)
+        if loc.isEmpty { return false }
+        if loc == "Open app to sync" { return false }
+        return true
+    }
+
+    /// Writes this payload into the watch's App Group cache for offline display.
+    func persistToAppGroup() {
+        guard let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName) else { return }
+        let encoder = JSONEncoder()
+
+        func store<T: Encodable>(_ value: T?, forKey key: String) {
+            guard let value = value,
+                  let data = try? encoder.encode(value),
+                  let json = String(data: data, encoding: .utf8) else { return }
+            defaults.set(json, forKey: key)
+        }
+
+        store(snapshot, forKey: AppGroupKeys.snapshot)
+        if !hourly.isEmpty { store(hourly, forKey: AppGroupKeys.hourly) }
+        if !daily.isEmpty { store(daily, forKey: AppGroupKeys.daily) }
+        if !timeline.isEmpty { store(timeline, forKey: AppGroupKeys.timeline) }
+        store(commuteAlert, forKey: AppGroupKeys.commuteAlert)
+        defaults.set(accentColor, forKey: AppGroupKeys.accentColor)
+        defaults.set(String(thermalSensitivity), forKey: AppGroupKeys.thermalSensitivity)
+        defaults.synchronize()
     }
 }
 
