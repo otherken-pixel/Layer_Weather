@@ -57,8 +57,8 @@ export function LocationTabs({
   const inactivePill: React.CSSProperties = {
     ...pillBase,
     padding: "6px 14px",
-    background: "rgba(255,255,255,0.14)",
-    border: "1.5px solid rgba(255,255,255,0.25)",
+    background: "transparent",
+    border: "1.5px solid transparent",
     color: "rgba(255,255,255,0.75)",
   };
 
