@@ -144,6 +144,9 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, lightningActivi
         />
       </div>
 
+      {/* Secondary stats chip row */}
+      <SecondaryStats weather={weather} isDark={isDark} />
+
       {/* Lightning activity row (US only, when active) */}
       {showLightning && (
         <div
@@ -174,6 +177,61 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, lightningActivi
           <div style={{ height: 28, width: 4, borderRadius: 2, background: lightningColor(lightningActivity) }} />
         </div>
       )}
+    </div>
+  );
+}
+
+function pressureTrendIcon(trend?: "rising" | "falling" | "steady" | null): string {
+  if (trend === "rising") return "↑";
+  if (trend === "falling") return "↓";
+  return "→";
+}
+
+function SecondaryStats({ weather, isDark }: { weather: CurrentWeather; isDark: boolean }) {
+  const chipBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const labelColor = isDark ? "#9BA4B4" : "#6B7280";
+  const valueColor = isDark ? "#F4F4F5" : "#111827";
+
+  const chips: { label: string; value: string }[] = [];
+
+  if (weather.windGust != null && weather.windGust > weather.windSpeed + 2) {
+    chips.push({ label: "Gusts", value: `${weather.windGust} mph` });
+  }
+  if (weather.visibility != null) {
+    chips.push({ label: "Visibility", value: `${weather.visibility} mi` });
+  }
+  if (weather.dewPoint != null) {
+    chips.push({ label: "Dew Point", value: `${weather.dewPoint}°` });
+  }
+  if (weather.pressure != null) {
+    const trendIcon = pressureTrendIcon(weather.pressureTrend);
+    chips.push({ label: "Pressure", value: `${weather.pressure} hPa ${trendIcon}` });
+  }
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+      {chips.map((c) => (
+        <div
+          key={c.label}
+          style={{
+            background: chipBg,
+            borderRadius: 20,
+            padding: "6px 12px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 10, fontWeight: 600, color: labelColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {c.label}
+          </span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: valueColor, marginTop: 1 }}>
+            {c.value}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

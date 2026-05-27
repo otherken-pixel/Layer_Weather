@@ -36,9 +36,11 @@ interface NWSHourlyPeriod {
   temperatureUnit: "F" | "C";
   windSpeed: string;
   windDirection: string;
+  windGust?: string;
   shortForecast: string;
   probabilityOfPrecipitation: NWSQuantityValue;
   relativeHumidity: NWSQuantityValue;
+  dewpoint?: NWSQuantityValue;  // Celsius
   isDaytime: boolean;
 }
 
@@ -163,9 +165,11 @@ function getSunTimes(latDeg: number, lonDeg: number, date: Date): { sunrise: str
 function mapPeriod(p: NWSHourlyPeriod) {
   const tempF = p.temperatureUnit === "C" ? p.temperature * 9 / 5 + 32 : p.temperature;
   const wind = parseWindMph(p.windSpeed);
+  const gustMph = p.windGust ? parseWindMph(p.windGust) : null;
   const rh = p.relativeHumidity?.value ?? 50;
+  const dewPointC = p.dewpoint?.value;
   const cond = nwsTextToCondition(p.shortForecast);
-  return {
+  const result: Record<string, unknown> = {
     time: p.startTime,
     temp: Math.round(tempF),
     feelsLike: apparentTemp(tempF, wind, rh),
@@ -175,7 +179,13 @@ function mapPeriod(p: NWSHourlyPeriod) {
     windSpeed: wind,
     windDirection: parseWindDir(p.windDirection),
     isDay: p.isDaytime,
+    windGust: gustMph && gustMph > wind ? gustMph : null,
+    dewPoint: dewPointC != null ? Math.round(dewPointC * 9 / 5 + 32) : null,
+    pressure: null,
+    visibility: null,
   };
+  if (cond === "thunderstorm") result.thunderstormProb = 75;
+  return result;
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -252,6 +262,8 @@ Deno.serve(async (req) => {
 
     // Build current conditions from first hourly period
     const firstPeriod = periods.find((p) => new Date(p.startTime).getTime() >= nowMs) ?? periods[0];
+    const firstDewPointC = firstPeriod?.dewpoint?.value;
+    const firstGustMph = firstPeriod?.windGust ? parseWindMph(firstPeriod.windGust) : null;
     const current = {
       temp: hourly[0].temp,
       feelsLike: hourly[0].feelsLike,
@@ -263,6 +275,10 @@ Deno.serve(async (req) => {
       condition: hourly[0].condition,
       weatherCode: hourly[0].weatherCode,
       isDay: hourly[0].isDay,
+      windGust: firstGustMph && firstGustMph > (hourly[0].windSpeed as number) ? firstGustMph : null,
+      dewPoint: firstDewPointC != null ? Math.round(firstDewPointC * 9 / 5 + 32) : null,
+      pressure: null,
+      visibility: null,
       location: "",
       updatedAt: new Date().toISOString(),
     };

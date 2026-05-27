@@ -27,9 +27,21 @@ export interface Profile {
   updated_at: string;
 }
 
+// ── Pollen ────────────────────────────────────────────────────────────────────
+
+export type PollenLevel = "low" | "moderate" | "high" | "very_high";
+
+export interface PollenData {
+  tree: number | null;    // max of alder, birch, olive pollen (grains/m³)
+  grass: number | null;
+  weed: number | null;    // max of mugwort, ragweed pollen
+  dominant: "tree" | "grass" | "weed" | null;
+  level: PollenLevel | null;  // overall worst level
+}
+
 // ── Nerd Mode ─────────────────────────────────────────────────────────────────
 
-export type NerdModeCardId = "rain_accumulation" | "moon_phases" | "seasonal_produce";
+export type NerdModeCardId = "rain_accumulation" | "moon_phases" | "seasonal_produce" | "pollen";
 
 export interface NerdModeCardMeta {
   id: NerdModeCardId;
@@ -56,6 +68,12 @@ export const NERD_MODE_CARDS: NerdModeCardMeta[] = [
     label: "Seasonal Produce",
     emoji: "🥦",
     description: "Fruits and vegetables in season for your region this month.",
+  },
+  {
+    id: "pollen",
+    label: "Pollen",
+    emoji: "🌿",
+    description: "Tree, grass, and weed pollen levels for your area.",
   },
 ];
 
@@ -121,6 +139,16 @@ export interface CurrentWeather {
   isDay: boolean;
   location: string;
   updatedAt: Date;
+  /** Wind gust speed in mph. Null when not provided by the source. */
+  windGust: number | null;
+  /** Barometric pressure (mean sea level) in hPa. */
+  pressure: number | null;
+  /** Visibility in miles. */
+  visibility: number | null;
+  /** Dew point temperature in °F. */
+  dewPoint: number | null;
+  /** Pressure trend computed from 3-hour change. Null when data is unavailable. */
+  pressureTrend?: "rising" | "falling" | "steady" | null;
 }
 
 export interface HourlyForecast {
@@ -133,6 +161,8 @@ export interface HourlyForecast {
   windSpeed: number;
   windDirection?: number;
   isDay: boolean;
+  /** Thunderstorm probability 0–100. Only available from Open-Meteo ICON model and WeatherKit derived codes. */
+  thunderstormProb?: number;
 }
 
 export type ForecastConfidence = "high" | "medium" | "low" | null;

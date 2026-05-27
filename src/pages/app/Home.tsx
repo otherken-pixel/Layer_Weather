@@ -38,6 +38,7 @@ import type { LocationData, OutfitFeedbackValue, NerdModeCardId, RainHistoryData
 import { RainAccumulationCard } from "@/components/weather/RainAccumulationCard";
 import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
 import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
+import { PollenCard } from "@/components/weather/PollenCard";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -65,6 +66,7 @@ export default function Home() {
     forecastConfidence,
     lightningActivity,
     aqiBreakdown,
+    pollenData,
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -813,6 +815,7 @@ export default function Home() {
                         rainHistoryLoading={rainHistoryLoading}
                         tempUnit={tempUnit}
                         latitude={location?.latitude ?? profile?.last_latitude ?? 40}
+                        pollenData={pollenData}
                         isDark={isDark}
                       />
                     ))}
@@ -866,13 +869,14 @@ export default function Home() {
 // ── Nerd Card Renderer ────────────────────────────────────────────────────────
 
 function NerdCardRenderer({
-  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, isDark,
+  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, pollenData, isDark,
 }: {
   cardId: NerdModeCardId;
   rainHistory: RainHistoryData | null;
   rainHistoryLoading: boolean;
   tempUnit: "F" | "C";
   latitude: number;
+  pollenData: import("@/types").PollenData | null;
   isDark: boolean;
 }) {
   if (cardId === "rain_accumulation") {
@@ -891,6 +895,10 @@ function NerdCardRenderer({
   if (cardId === "seasonal_produce") {
     return <SeasonalProduceCard latitude={latitude} isDark={isDark} />;
   }
+  if (cardId === "pollen") {
+    if (!pollenData) return null;
+    return <PollenCard data={pollenData} isDark={isDark} />;
+  }
   return null;
 }
 
@@ -898,6 +906,7 @@ const NERD_CARD_LABELS: Record<NerdModeCardId, { emoji: string; label: string }>
   rain_accumulation: { emoji: "🌧️", label: "Rain Accumulation" },
   moon_phases: { emoji: "🌕", label: "Moon Phases" },
   seasonal_produce: { emoji: "🥦", label: "In Season" },
+  pollen: { emoji: "🌿", label: "Pollen" },
 };
 
 function NerdCardEditRow({ cardId, isDark }: { cardId: NerdModeCardId; isDark: boolean }) {
@@ -928,7 +937,7 @@ function HourlyStrip({
   cardSurface,
   onFullForecast,
 }: {
-  hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
+  hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number; thunderstormProb?: number }[];
   tempUnit: "F" | "C";
   isDark: boolean;
   cardSurface: string;
@@ -991,6 +1000,11 @@ function HourlyStrip({
               <span style={{ fontSize: 12, fontWeight: 600, color: precipColor }}>
                 {h.precipProb}%
               </span>
+              {(h.thunderstormProb ?? 0) >= 30 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.9)" : "#F97316" }}>
+                  ⚡{h.thunderstormProb}%
+                </span>
+              )}
             </div>
           );
         })}

@@ -94,6 +94,12 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
   const updatedAt = updatedAtRaw ? new Date(updatedAtRaw) : new Date();
   if (Number.isNaN(updatedAt.getTime())) throw new Error("Invalid weather response: updatedAt");
 
+  function optionalNumber(v: unknown): number | null {
+    if (v == null) return null;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
+
   const current: CurrentWeather = {
     temp: requireFiniteNumber(cur.temp, "current.temp"),
     feelsLike: requireFiniteNumber(cur.feelsLike, "current.feelsLike"),
@@ -108,22 +114,30 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
     isDay: Boolean(cur.isDay),
     location: String(cur.location ?? ""),
     updatedAt,
+    windGust: optionalNumber(cur.windGust),
+    pressure: optionalNumber(cur.pressure),
+    visibility: optionalNumber(cur.visibility),
+    dewPoint: optionalNumber(cur.dewPoint),
   };
 
   const hourly: HourlyForecast[] = filterHourlyFromNow(
-    (hourlyRaw ?? []).map((h) => ({
-      time: new Date(h.time as string),
-      temp: requireFiniteNumber(h.temp, "hourly.temp"),
-      feelsLike: requireFiniteNumber(h.feelsLike, "hourly.feelsLike"),
-      precipProb: requireFiniteNumber(h.precipProb, "hourly.precipProb"),
-      condition: requireCondition(h.condition),
-      weatherCode: requireFiniteNumber(h.weatherCode, "hourly.weatherCode"),
-      windSpeed: requireFiniteNumber(h.windSpeed, "hourly.windSpeed"),
-      windDirection: h.windDirection != null
-        ? requireFiniteNumber(h.windDirection, "hourly.windDirection")
-        : undefined,
-      isDay: Boolean(h.isDay),
-    })).filter((h) => !Number.isNaN(h.time.getTime())),
+    (hourlyRaw ?? []).map((h) => {
+      const tProb = optionalNumber(h.thunderstormProb);
+      return {
+        time: new Date(h.time as string),
+        temp: requireFiniteNumber(h.temp, "hourly.temp"),
+        feelsLike: requireFiniteNumber(h.feelsLike, "hourly.feelsLike"),
+        precipProb: requireFiniteNumber(h.precipProb, "hourly.precipProb"),
+        condition: requireCondition(h.condition),
+        weatherCode: requireFiniteNumber(h.weatherCode, "hourly.weatherCode"),
+        windSpeed: requireFiniteNumber(h.windSpeed, "hourly.windSpeed"),
+        windDirection: h.windDirection != null
+          ? requireFiniteNumber(h.windDirection, "hourly.windDirection")
+          : undefined,
+        isDay: Boolean(h.isDay),
+        ...(tProb != null ? { thunderstormProb: tProb } : {}),
+      };
+    }).filter((h) => !Number.isNaN(h.time.getTime())),
   );
 
   const daily: DailyForecast[] = (dailyRaw ?? []).map((d) => ({
@@ -213,10 +227,12 @@ async function fetchFromOpenMeteo(
       "temperature_2m", "apparent_temperature", "relative_humidity_2m",
       "wind_speed_10m", "wind_direction_10m", "precipitation_probability",
       "weather_code", "is_day",
+      "wind_gusts_10m", "pressure_msl", "visibility", "dew_point_2m",
     ].join(","),
     hourly: [
       "temperature_2m", "apparent_temperature", "precipitation_probability",
       "weather_code", "wind_speed_10m", "wind_direction_10m", "is_day",
+      "thunderstorm_probability", "pressure_msl",
     ].join(","),
     daily: [
       "temperature_2m_max", "temperature_2m_min",
@@ -228,6 +244,7 @@ async function fetchFromOpenMeteo(
     precipitation_unit: "inch",
     timezone: "auto",
     forecast_days: forecastDays.toString(),
+    past_hours: "3",
   });
 
   const res = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?${params}`);
@@ -238,11 +255,39 @@ async function fetchFromOpenMeteo(
   const hourly = json.hourly as Record<string, unknown[]>;
   const daily = json.daily as Record<string, unknown[]>;
 
+  // Compute pressure trend from first 4 hourly entries (past_hours=3 gives us 3h history)
+  function computePressureTrend(times: string[], pressures: (number | null)[]): "rising" | "falling" | "steady" | null {
+    const nowMs = Date.now();
+    let curIdx = -1;
+    for (let i = 0; i < times.length; i++) {
+      if (new Date(times[i]).getTime() <= nowMs) curIdx = i;
+    }
+    if (curIdx < 3) return null;
+    const pNow = pressures[curIdx];
+    const p3hAgo = pressures[curIdx - 3];
+    if (pNow == null || p3hAgo == null) return null;
+    const diff = pNow - p3hAgo;
+    if (diff >= 1) return "rising";
+    if (diff <= -1) return "falling";
+    return "steady";
+  }
+
+  const pressureTrend = computePressureTrend(
+    hourly.time as string[],
+    (hourly.pressure_msl as (number | null)[] | undefined) ?? [],
+  );
+
+  const rawGust = cur.wind_gusts_10m as number | undefined;
+  const rawWind = cur.wind_speed_10m as number;
+  const rawVisibility = cur.visibility as number | undefined;
+  const rawDewPoint = cur.dew_point_2m as number | undefined;
+  const rawPressure = cur.pressure_msl as number | undefined;
+
   const current: CurrentWeather = {
     temp: Math.round(cur.temperature_2m as number),
     feelsLike: Math.round(cur.apparent_temperature as number),
     humidity: Math.round(cur.relative_humidity_2m as number),
-    windSpeed: Math.round(cur.wind_speed_10m as number),
+    windSpeed: Math.round(rawWind),
     windDirection: Math.round(cur.wind_direction_10m as number),
     precipProb: Math.round(cur.precipitation_probability as number),
     uvIndex: 0,
@@ -252,21 +297,31 @@ async function fetchFromOpenMeteo(
     isDay: (cur.is_day as number) === 1,
     location: "",
     updatedAt: new Date(),
+    windGust: rawGust != null && rawGust > rawWind + 2 ? Math.round(rawGust) : null,
+    pressure: rawPressure != null ? Math.round(rawPressure) : null,
+    pressureTrend,
+    visibility: rawVisibility != null ? Math.round((rawVisibility / 1609.34) * 10) / 10 : null,
+    dewPoint: rawDewPoint != null ? Math.round(rawDewPoint) : null,
   };
 
   const hourlyTimes = hourly.time as string[];
+  const thunderstormProbArr = hourly.thunderstorm_probability as (number | null)[] | undefined;
   const hourlyData: HourlyForecast[] = hourlyTimes
-    .map((t, i) => ({
-      time: new Date(t),
-      temp: Math.round((hourly.temperature_2m as number[])[i]),
-      feelsLike: Math.round((hourly.apparent_temperature as number[])[i]),
-      precipProb: Math.round((hourly.precipitation_probability as number[])[i]),
-      condition: wmoToCondition((hourly.weather_code as number[])[i]),
-      weatherCode: (hourly.weather_code as number[])[i],
-      windSpeed: Math.round((hourly.wind_speed_10m as number[])[i]),
-      windDirection: Math.round((hourly.wind_direction_10m as number[])[i]),
-      isDay: (hourly.is_day as number[])[i] === 1,
-    }))
+    .map((t, i) => {
+      const tProb = thunderstormProbArr?.[i];
+      return {
+        time: new Date(t),
+        temp: Math.round((hourly.temperature_2m as number[])[i]),
+        feelsLike: Math.round((hourly.apparent_temperature as number[])[i]),
+        precipProb: Math.round((hourly.precipitation_probability as number[])[i]),
+        condition: wmoToCondition((hourly.weather_code as number[])[i]),
+        weatherCode: (hourly.weather_code as number[])[i],
+        windSpeed: Math.round((hourly.wind_speed_10m as number[])[i]),
+        windDirection: Math.round((hourly.wind_direction_10m as number[])[i]),
+        isDay: (hourly.is_day as number[])[i] === 1,
+        ...(tProb != null ? { thunderstormProb: Math.round(tProb) } : {}),
+      };
+    })
     .filter((h) => !Number.isNaN(h.time.getTime()));
 
   const hourlyFiltered = filterHourlyFromNow(hourlyData);
@@ -285,6 +340,85 @@ async function fetchFromOpenMeteo(
   }));
 
   return { current, hourly: hourlyFiltered, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
+}
+
+// ── Pollen Data (Open-Meteo Air Quality API) ──────────────────────────────────
+export async function fetchPollenData(
+  latitude: number,
+  longitude: number,
+): Promise<import("@/types").PollenData | null> {
+  try {
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+      hourly: [
+        "alder_pollen", "birch_pollen", "grass_pollen",
+        "mugwort_pollen", "ragweed_pollen", "olive_pollen",
+      ].join(","),
+      timezone: "auto",
+      forecast_days: "1",
+    });
+    const res = await fetchWithTimeout(
+      `https://air-quality-api.open-meteo.com/v1/air-quality?${params}`,
+      {},
+      8_000,
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const h = json?.hourly as Record<string, (number | null)[]> | undefined;
+    if (!h) return null;
+
+    // Find the current hour index
+    const times = h.time as string[] | undefined;
+    if (!times || times.length === 0) return null;
+    const nowMs = Date.now();
+    let curIdx = 0;
+    for (let i = 0; i < times.length; i++) {
+      if (new Date(times[i]).getTime() <= nowMs) curIdx = i;
+    }
+
+    function curVal(key: string): number | null {
+      const arr = h![key];
+      return arr && arr[curIdx] != null ? arr[curIdx] : null;
+    }
+
+    function pollenLevel(grains: number | null): import("@/types").PollenLevel | null {
+      if (grains == null) return null;
+      if (grains < 10) return "low";
+      if (grains < 50) return "moderate";
+      if (grains < 150) return "high";
+      return "very_high";
+    }
+
+    const alder = curVal("alder_pollen");
+    const birch = curVal("birch_pollen");
+    const olive = curVal("olive_pollen");
+    const grass = curVal("grass_pollen");
+    const mugwort = curVal("mugwort_pollen");
+    const ragweed = curVal("ragweed_pollen");
+
+    const treeMax = Math.max(alder ?? 0, birch ?? 0, olive ?? 0);
+    const weedMax = Math.max(mugwort ?? 0, ragweed ?? 0);
+    const tree = treeMax > 0 ? treeMax : null;
+    const weed = weedMax > 0 ? weedMax : null;
+
+    const candidates: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
+    if (tree != null) candidates.push({ type: "tree", val: tree });
+    if (grass != null) candidates.push({ type: "grass", val: grass });
+    if (weed != null) candidates.push({ type: "weed", val: weed });
+
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => b.val - a.val);
+    const dominant = candidates[0].type;
+
+    const levels = candidates.map((c) => pollenLevel(c.val));
+    const ORDER: Array<import("@/types").PollenLevel> = ["very_high", "high", "moderate", "low"];
+    const level = ORDER.find((l) => levels.includes(l)) ?? null;
+
+    return { tree, grass, weed, dominant, level };
+  } catch {
+    return null;
+  }
 }
 
 // ── Air Quality Index (Open-Meteo Air Quality API, free) ─────────────────────
