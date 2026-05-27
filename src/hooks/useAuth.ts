@@ -130,6 +130,7 @@ export function useAuth() {
         localStorage.removeItem(PROFILE_CACHE_KEY);
         localStorage.removeItem(CALIBRATION_CACHE_KEY);
         localStorage.removeItem("wt_last_outfit_alert");
+        localStorage.removeItem("wt_card_layout");
         localStorage.removeItem("wt_today_event_type");
         localStorage.removeItem("wt_today_event_date");
         await resetPushNotificationSession();
