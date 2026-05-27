@@ -55,9 +55,8 @@ Deno.serve(async (req) => {
       mm: daily.precipitation_sum[i] ?? 0,
     })).sort((a, b) => b.date.getTime() - a.date.getTime());
 
-    function sumDays(n: number): number {
-      return pairs.slice(0, n).reduce((acc, p) => acc + p.mm, 0);
-    }
+    const sumDays = (n: number): number =>
+      pairs.slice(0, n).reduce((acc, p) => acc + p.mm, 0);
 
     const result = {
       last24h: Math.round(sumDays(1) * 10) / 10,
