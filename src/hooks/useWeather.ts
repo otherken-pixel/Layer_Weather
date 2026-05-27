@@ -346,11 +346,11 @@ export function useWeather() {
               .catch(() => {});
 
             fetchNWSAlerts(latitude, longitude)
-              .then((alerts) => { if (generation === refreshGeneration.current) setNWSAlerts(alerts); })
+              .then((alerts) => { if (generation === refreshGeneration) setNWSAlerts(alerts); })
               .catch(() => {});
 
             fetchLightningActivity(latitude, longitude)
-              .then((activity) => { if (generation === refreshGeneration.current) setLightningActivity(activity); })
+              .then((activity) => { if (generation === refreshGeneration) setLightningActivity(activity); })
               .catch(() => {});
           } else {
             setForecastConfidence(null);
