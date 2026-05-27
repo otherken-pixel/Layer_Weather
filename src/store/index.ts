@@ -74,6 +74,7 @@ interface AppState {
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
   setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
+  removeCityWeatherCache: (key: string) => void;
   reset: () => void;
 }
 
@@ -133,5 +134,10 @@ export const useAppStore = create<AppState>((set) => ({
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>
     set((state) => ({ cityWeatherCache: { ...state.cityWeatherCache, [key]: entry } })),
+  removeCityWeatherCache: (key) =>
+    set((state) => {
+      const { [key]: _removed, ...cityWeatherCache } = state.cityWeatherCache;
+      return { cityWeatherCache };
+    }),
   reset: () => set(initialState),
 }));

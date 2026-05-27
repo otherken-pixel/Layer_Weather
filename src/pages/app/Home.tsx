@@ -25,6 +25,7 @@ import { sanitizeWardrobeOverrideForRain } from "@/lib/outfitRainDisplay";
 import { getWeatherScenario } from "@/lib/wardrobeScenario";
 import { addSavedLocation, getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
 import { buildLocationCacheKey } from "@/lib/location-cache-key";
+import { removeCityWeatherCache } from "@/lib/cache";
 import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
 import { DEVICE_LOCATION_KEY } from "@/store";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
@@ -51,6 +52,7 @@ export default function Home() {
     profile, userId, calibration, outfitTimeline, location,
     savedLocations, setSavedLocations,
     activeLocationIsDevice, setActiveLocationIsDevice,
+    removeCityWeatherCache: evictCityCache,
     setProfile, setCalibration, setLocation, weatherLastFetched,
     weatherWardrobes, setWeatherWardrobes,
     wardrobeItems, setWardrobeItems,
@@ -211,6 +213,9 @@ export default function Home() {
   }
 
   async function handleDeleteCity(loc: LocationData) {
+    const cacheKey = buildLocationCacheKey(loc);
+    await removeCityWeatherCache(cacheKey).catch(() => {});
+    evictCityCache(cacheKey);
     const updated = await removeSavedLocation(loc).catch(() => null);
     if (updated) {
       setSavedLocations(updated);
@@ -365,7 +370,7 @@ export default function Home() {
           </p>
           <button
             type="button"
-            onClick={() => refresh(true)}
+            onClick={handleRefresh}
             className="min-h-[44px] px-6 rounded-full bg-white/20 border-0 text-white font-semibold cursor-pointer"
           >
             Try again
@@ -395,7 +400,7 @@ export default function Home() {
           </span>
           <button
             type="button"
-            onClick={() => refresh(true)}
+            onClick={handleRefresh}
             style={{ fontSize: 12, fontWeight: 700, color: "#92400E", background: "none", border: "none", cursor: "pointer" }}
           >
             Retry
