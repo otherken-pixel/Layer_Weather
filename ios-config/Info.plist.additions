@@ -28,5 +28,10 @@
 
   <!-- Minimum deployment target is set in Xcode build settings: IPHONEOS_DEPLOYMENT_TARGET = 13.0 -->
 
+  <!-- Export compliance — app uses only standard HTTPS/TLS (exempt encryption). -->
+  <!-- Prevents the TestFlight "App Encryption Documentation" prompt on every build. -->
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+
 </dict>
 </plist>

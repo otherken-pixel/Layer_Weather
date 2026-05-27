@@ -180,7 +180,7 @@ info_plist_path = APP_SRC / 'Info.plist'
 if info_plist_path.exist?
   content = File.read(info_plist_path)
   if content.include?('NSLocationWhenInUseUsageDescription')
-    puts "  ↩  Info.plist already patched"
+    puts "  ↩  Info.plist already patched (usage strings)"
   else
     patch = <<~XML
       \t<key>NSLocationWhenInUseUsageDescription</key>
@@ -190,8 +190,24 @@ if info_plist_path.exist?
     XML
     insert_at = content.rindex('</dict>')
     abort "ERROR: could not find closing </dict> in #{info_plist_path}" unless insert_at
-    File.write(info_plist_path, content[0, insert_at] + patch + content[insert_at..])
+    content = content[0, insert_at] + patch + content[insert_at..]
+    File.write(info_plist_path, content)
     puts "  +  Info.plist patched (location + notification usage strings)"
+  end
+
+  # Suppress the TestFlight encryption documentation prompt on every build.
+  # The app only uses standard HTTPS/TLS (exempt encryption), so this is false.
+  if content.include?('ITSAppUsesNonExemptEncryption')
+    puts "  ↩  Info.plist already has ITSAppUsesNonExemptEncryption"
+  else
+    encryption_patch = <<~XML
+      \t<key>ITSAppUsesNonExemptEncryption</key>
+      \t<false/>
+    XML
+    insert_at = content.rindex('</dict>')
+    abort "ERROR: could not find closing </dict> in #{info_plist_path}" unless insert_at
+    File.write(info_plist_path, content[0, insert_at] + encryption_patch + content[insert_at..])
+    puts "  +  Info.plist patched (ITSAppUsesNonExemptEncryption = false)"
   end
 else
   puts "  ⚠  Info.plist not found at #{info_plist_path} — skipped"
