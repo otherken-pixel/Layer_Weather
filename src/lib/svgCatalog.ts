@@ -49,8 +49,8 @@ export function catalogForPreference(
     if (preferences.includes("all")) return true;
     if (e.style === "feminine") return preferences.includes("feminine");
     if (e.style === "masculine") return preferences.includes("masculine");
-    // neutral items appear alongside any selected style
-    return preferences.includes("neutral") || preferences.includes("feminine") || preferences.includes("masculine");
+    if (e.style === "neutral") return preferences.includes("neutral");
+    return false;
   });
 }
 
