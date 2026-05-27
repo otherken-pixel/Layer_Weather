@@ -11,11 +11,13 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     @Published var widgetData: WidgetData?
     @Published var isReachable: Bool = false
+    @Published var isSessionActivated: Bool = false
     @Published var lastError: String?
 
     // MARK: Private
 
     private var session: WCSession?
+    private var pendingPhoneRequest = false
 
     // MARK: Init
 
@@ -28,7 +30,6 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     private func activateSession() {
         guard WCSession.isSupported() else {
-            // WCSession not supported on this device
             loadFromAppGroup()
             return
         }
@@ -41,26 +42,41 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
     // MARK: - Request Update from Phone
 
     func requestUpdate() {
-        guard let session = session, session.isReachable else {
-            // Fallback: load from App Group UserDefaults
-            loadFromAppGroup()
+        loadFromAppGroup()
+
+        guard let session = session else { return }
+
+        guard session.activationState == .activated else {
+            pendingPhoneRequest = true
+            lastError = nil
             return
         }
 
-        session.sendMessage(["request": "weatherUpdate"], replyHandler: { [weak self] reply in
-            DispatchQueue.main.async {
-                self?.handleMessageReply(reply)
+        pendingPhoneRequest = false
+        applyApplicationContextIfNeeded(from: session)
+
+        guard session.isReachable else {
+            lastError = nil
+            return
+        }
+
+        session.sendMessage(
+            ["request": "weatherUpdate"],
+            replyHandler: { [weak self] reply in
+                DispatchQueue.main.async {
+                    self?.handleMessageReply(reply)
+                }
+            },
+            errorHandler: { [weak self] error in
+                DispatchQueue.main.async {
+                    self?.lastError = error.localizedDescription
+                    self?.loadFromAppGroup()
+                }
             }
-        }, errorHandler: { [weak self] error in
-            DispatchQueue.main.async {
-                self?.lastError = error.localizedDescription
-                // Fallback to App Group data
-                self?.loadFromAppGroup()
-            }
-        })
+        )
     }
 
-    // MARK: - App Group Fallback
+    // MARK: - App Group (watch-local cache after WCSession delivery)
 
     func loadFromAppGroup() {
         let data = WidgetData.load()
@@ -79,17 +95,23 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
         applyConnectivityPayload(reply)
     }
 
+    private func applyApplicationContextIfNeeded(from session: WCSession) {
+        let context = session.receivedApplicationContext
+        guard !context.isEmpty else { return }
+        applyConnectivityPayload(context)
+    }
+
     // MARK: - Send Feedback to Phone
 
     func sendFeedback(_ action: String) {
-        // Write to App Group
         let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName)
         defaults?.set(action, forKey: AppGroupKeys.feedbackAction)
         defaults?.set(Date().timeIntervalSince1970, forKey: AppGroupKeys.feedbackTimestamp)
         defaults?.synchronize()
 
-        // Also send via WCSession if reachable
-        guard let session = session, session.isReachable else { return }
+        guard let session = session,
+              session.activationState == .activated,
+              session.isReachable else { return }
         session.sendMessage(
             ["feedbackAction": action, "timestamp": Date().timeIntervalSince1970],
             replyHandler: nil,
@@ -101,10 +123,12 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     func sendThermalSensitivity(_ value: Int) {
         let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName)
-        defaults?.set(value, forKey: AppGroupKeys.thermalSensitivity)
+        defaults?.set(String(value), forKey: AppGroupKeys.thermalSensitivity)
         defaults?.synchronize()
 
-        guard let session = session, session.isReachable else { return }
+        guard let session = session,
+              session.activationState == .activated,
+              session.isReachable else { return }
         session.sendMessage(
             ["thermalSensitivity": value],
             replyHandler: nil,
@@ -119,13 +143,20 @@ extension WatchConnectivityManager: WCSessionDelegate {
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         DispatchQueue.main.async { [weak self] in
-            self?.isReachable = session.isReachable
+            guard let self else { return }
+            self.isSessionActivated = activationState == .activated
+            self.isReachable = session.isReachable
+
             if activationState == .activated {
-                // Load from App Group on activation
-                self?.loadFromAppGroup()
+                self.applyApplicationContextIfNeeded(from: session)
+                self.loadFromAppGroup()
+                if self.pendingPhoneRequest {
+                    self.requestUpdate()
+                }
             }
+
             if let error = error {
-                self?.lastError = error.localizedDescription
+                self.lastError = error.localizedDescription
             }
         }
     }
@@ -133,7 +164,14 @@ extension WatchConnectivityManager: WCSessionDelegate {
     func sessionReachabilityDidChange(_ session: WCSession) {
         DispatchQueue.main.async { [weak self] in
             self?.isReachable = session.isReachable
+            if session.isReachable, self?.pendingPhoneRequest == true {
+                self?.requestUpdate()
+            }
         }
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        applyConnectivityPayload(applicationContext, playSuccessHaptic: true)
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
@@ -144,7 +182,11 @@ extension WatchConnectivityManager: WCSessionDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let newData = WidgetData.mergingPhonePayload(payload, into: self.widgetData)
+            if newData.hasDisplayableWeather {
+                newData.persistToAppGroup()
+            }
             self.widgetData = newData
+            self.lastError = nil
             if playSuccessHaptic {
                 HapticManager.shared.playSuccess()
             }
@@ -152,7 +194,6 @@ extension WatchConnectivityManager: WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        // Handle direct messages from phone
         if message["type"] as? String == "weatherUpdate" {
             loadFromAppGroup()
         }

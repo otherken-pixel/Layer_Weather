@@ -13,6 +13,7 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
     static let shared = WatchConnectivityHandler()
 
     private var didActivate = false
+    private var pendingWatchSync = false
     private let suiteName = "group.com.layerweather.shared"
 
     private var sharedDefaults: UserDefaults? {
@@ -31,13 +32,35 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
         WCSession.default.activate()
     }
 
+    /// Pushes the latest widget snapshot from the iPhone App Group to the paired watch.
+    /// Watch and iPhone App Group containers are separate — weather must travel over WCSession.
+    func syncWidgetPayloadToWatch() {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else {
+            pendingWatchSync = true
+            if !didActivate {
+                activate()
+            }
+            return
+        }
+        pendingWatchSync = false
+        guard session.isWatchAppInstalled else { return }
+        pushPayloadToWatch(session: session)
+    }
+
     // MARK: - WCSessionDelegate
 
     func session(
         _ session: WCSession,
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
-    ) {}
+    ) {
+        guard activationState == .activated else { return }
+        if pendingWatchSync {
+            syncWidgetPayloadToWatch()
+        }
+    }
 
     func sessionDidBecomeInactive(_ session: WCSession) {}
     func sessionDidDeactivate(_ session: WCSession) {
@@ -83,8 +106,20 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
     // MARK: - Private
 
     private func pushDataToWatch(session: WCSession) {
+        pushPayloadToWatch(session: session)
+    }
+
+    private func pushPayloadToWatch(session: WCSession) {
         guard session.activationState == .activated, session.isWatchAppInstalled else { return }
         let payload = buildPayload()
+        guard !payload.isEmpty else { return }
+
+        do {
+            try session.updateApplicationContext(payload)
+        } catch {
+            // Context has size limits; queued transfer still delivers the payload.
+            session.transferUserInfo(payload)
+        }
         session.transferUserInfo(payload)
     }
 

@@ -62,6 +62,14 @@ Shared App Group: `group.com.layerweather.shared`
 Open **`ios/App/App.xcworkspace`**, not `App.xcodeproj`. Run `npm run ios:pods` from project root.
 
 
+### Apple Watch still shows “Open app to sync” while the iPhone widget works
+
+The iPhone **widget extension** shares an App Group with the main app on the **phone**. The **watch app runs on a separate device** with its own App Group container — it does **not** read the phone’s UserDefaults directly. Weather reaches the watch via **WatchConnectivity** (`updateApplicationContext` + `transferUserInfo`) when the phone saves widget data (`reloadTimelines` → `syncWidgetPayloadToWatch`).
+
+1. Open the **iPhone app** and load Today (so widget data is saved).
+2. Open the **watch app** and tap **Refresh**, or keep the phone app in the foreground briefly.
+3. Confirm the phone target has **Watch Connectivity** and the watch app is installed on a paired Watch.
+
 ### Widget / watch show placeholder weather or “Open app to sync”
 
 Capacitor 6 does **not** auto-register local plugins. The setup script patches `Main.storyboard` to use `LayerWeatherBridgeViewController`, which registers `WidgetBridgePlugin` and writes to the App Group.
