@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
+import { upsertProfile } from "@/lib/supabase";
 
 const DEVICE_LOCATION_PREF_KEY = "device_location_mode";
 
@@ -84,6 +85,7 @@ interface AppState {
   cardLayout: CardConfig[];
   setCardLayout: (layout: CardConfig[]) => void;
   toggleCardMinimized: (id: CardId) => void;
+  hydrateCardLayout: (layout: CardConfig[]) => void;
 
   // Actions
   setUserId: (id: string | null) => void;
@@ -136,7 +138,7 @@ const initialState = {
   cardLayout: loadCardLayout(),
 };
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   ...initialState,
 
   setUserId: (id) => set({ userId: id }),
@@ -180,14 +182,21 @@ export const useAppStore = create<AppState>((set) => ({
   setCardLayout: (layout) => {
     saveCardLayout(layout);
     set({ cardLayout: layout });
+    const { userId } = get();
+    if (userId) upsertProfile(userId, { card_layout: layout }).catch(() => {});
   },
-  toggleCardMinimized: (id) =>
-    set((state) => {
-      const next = state.cardLayout.map((c) =>
-        c.id === id ? { ...c, minimized: !c.minimized } : c,
-      );
-      saveCardLayout(next);
-      return { cardLayout: next };
-    }),
+  toggleCardMinimized: (id) => {
+    const state = get();
+    const next = state.cardLayout.map((c) =>
+      c.id === id ? { ...c, minimized: !c.minimized } : c,
+    );
+    saveCardLayout(next);
+    set({ cardLayout: next });
+    if (state.userId) upsertProfile(state.userId, { card_layout: next }).catch(() => {});
+  },
+  hydrateCardLayout: (layout) => {
+    saveCardLayout(layout);
+    set({ cardLayout: layout });
+  },
   reset: () => set({ ...initialState, cardLayout: loadCardLayout() }),
 }));

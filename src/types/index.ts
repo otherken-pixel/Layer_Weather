@@ -23,6 +23,7 @@ export interface Profile {
   saved_locations: LocationData[] | null;
   nerd_mode_enabled: boolean;
   nerd_mode_cards: NerdModeCardId[];
+  card_layout: Array<{ id: string; minimized: boolean }> | null;
   updated_at: string;
 }
 
