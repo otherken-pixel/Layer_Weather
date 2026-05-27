@@ -103,8 +103,10 @@ function applyCachedEntry(
     setWeatherLastFetched,
     setActiveLocationIsDevice,
     setCityWeatherCache,
+    setAqiBreakdown,
   } = useAppStore.getState();
 
+  setAqiBreakdown(null);
   setWeatherError(
     `Offline — showing weather from ${formatCacheAge(entry.fetchedAt)}`,
   );
@@ -188,7 +190,7 @@ export function useWeather() {
     cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
-    setForecastConfidence, setNWSAlerts, setLightningActivity,
+    setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -206,6 +208,7 @@ export function useWeather() {
         setOutfitTimeline(cached.outfitTimeline);
         setWeatherLastFetched(cached.fetchedAt);
         setActiveLocationIsDevice(cacheKey === DEVICE_LOCATION_KEY);
+        setAqiBreakdown(null);
         return;
       }
     }
@@ -257,7 +260,7 @@ export function useWeather() {
             }).catch(console.error);
           }
 
-          const [data, aqiIndex] = await Promise.all([
+          const [data, aqiResult] = await Promise.all([
             withTimeout(
               fetchWeatherData(latitude, longitude, { countryCode }),
               WEATHER_TIMEOUT_MS,
@@ -268,7 +271,8 @@ export function useWeather() {
           if (generation !== refreshGeneration) return;
 
           data.current.location = city;
-          data.current.aqiIndex = aqiIndex;
+          data.current.aqiIndex = aqiResult.aqi;
+          setAqiBreakdown(aqiResult.breakdown.length > 0 ? aqiResult.breakdown : null);
           setWeather(data);
           const fetchedAt = new Date();
           setWeatherLastFetched(fetchedAt);

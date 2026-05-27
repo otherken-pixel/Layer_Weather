@@ -63,6 +63,8 @@ export default function Home() {
     wardrobeItems, setWardrobeItems,
     svgCatalogById,
     forecastConfidence,
+    lightningActivity,
+    aqiBreakdown,
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -652,16 +654,25 @@ export default function Home() {
                         weather={weather.current}
                         tempUnit={tempUnit}
                         onUnitChange={handleUnitChange}
+                        lightningActivity={lightningActivity}
                         isDark={isDark}
                       />
                     );
                   case "aqi":
                     return weather.current.aqiIndex != null ? (
-                      <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
+                      <AQICard
+                        aqiIndex={weather.current.aqiIndex}
+                        breakdown={aqiBreakdown}
+                        isDark={isDark}
+                      />
                     ) : null;
                   case "nowcast":
                     return weather.nextHourPrecip ? (
-                      <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
+                      <NowcastCard
+                        data={weather.nextHourPrecip}
+                        lightningActivity={lightningActivity}
+                        isDark={isDark}
+                      />
                     ) : null;
                   case "hourly":
                     return (
@@ -997,6 +1008,7 @@ function wmoToCondition(code: number): string {
   if (code <= 67) return "rain";
   if (code <= 77) return "snow";
   if (code <= 82) return "rain";
+  if (code <= 86) return "heavy_rain";
   return "thunderstorm";
 }
 

@@ -84,6 +84,15 @@ export interface UserCalibration {
 
 export type ThermalSensitivity = -2 | -1 | 0 | 1 | 2;
 
+// ── Air Quality ───────────────────────────────────────────────────────────────
+
+export interface EPAObservation {
+  parameter: string;
+  aqi: number;
+  category: string;
+  reportingArea: string;
+}
+
 // ── Weather ───────────────────────────────────────────────────────────────────
 
 export type WeatherCondition =

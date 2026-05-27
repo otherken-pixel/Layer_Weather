@@ -9,6 +9,7 @@ import type {
   DailyForecast,
   WeatherCondition,
   ForecastConfidence,
+  EPAObservation,
 } from "@/types";
 
 export { fetchNWSAlerts } from "./nwsService";
@@ -335,21 +336,28 @@ export async function fetchWeatherData(
   }
 }
 
+/** Converts a wind direction in degrees (0–360) to a 16-point cardinal string. */
+export function degreesToCardinal(deg: number): string {
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+}
+
 /**
  * AQI with source preference: EPA AirNow (US primary) → Open-Meteo AQ fallback.
- * Always resolves — returns null when no data is available.
+ * Always resolves — returns null aqi when no data is available.
  */
 export async function fetchAQIBestSource(
   latitude: number,
   longitude: number,
   countryCode?: string,
-): Promise<number | null> {
+): Promise<{ aqi: number | null; breakdown: EPAObservation[] }> {
   const cc = (countryCode ?? "").toUpperCase();
   if (cc === "US" || cc === "") {
-    const { aqi } = await fetchEPAAQI(latitude, longitude);
-    if (aqi !== null) return aqi;
+    const result = await fetchEPAAQI(latitude, longitude);
+    if (result.aqi !== null) return result;
   }
-  return fetchAQIIndex(latitude, longitude);
+  const aqi = await fetchAQIIndex(latitude, longitude);
+  return { aqi, breakdown: [] };
 }
 
 function toLocalDayKey(d: Date): string {

@@ -1,31 +1,58 @@
 import React from "react";
-import type { CurrentWeather } from "@/types";
+import type { CurrentWeather, LightningActivity } from "@/types";
 import { getHairForecast } from "@/lib/hair-forecast";
+import { degreesToCardinal } from "@/lib/weather";
 
-function uvLabel(uv: number): string {
-  if (uv <= 2) return "lo";
-  if (uv <= 5) return "mod";
-  if (uv <= 7) return "hi";
-  if (uv <= 10) return "v.hi";
-  return "ext";
+// UV index helpers
+function uvCategory(uv: number): string {
+  if (uv <= 2) return "Low";
+  if (uv <= 5) return "Mod";
+  if (uv <= 7) return "High";
+  if (uv <= 10) return "V. High";
+  return "Extreme";
+}
+
+function uvFillColor(uv: number): string {
+  if (uv <= 2) return "#22C55E";
+  if (uv <= 5) return "#EAB308";
+  if (uv <= 7) return "#F97316";
+  if (uv <= 10) return "#EF4444";
+  return "#8B5CF6";
+}
+
+// Lightning activity helpers
+function lightningLabel(activity: LightningActivity): string {
+  if (activity === "low") return "Low Activity";
+  if (activity === "moderate") return "Moderate Activity";
+  return "High Activity";
+}
+
+function lightningColor(activity: LightningActivity): string {
+  if (activity === "low") return "#EAB308";
+  if (activity === "moderate") return "#F97316";
+  return "#EF4444";
 }
 
 interface Props {
   weather: CurrentWeather;
   tempUnit: "F" | "C";
   onUnitChange: (unit: "F" | "C") => void;
+  lightningActivity?: LightningActivity | null;
   isDark?: boolean;
 }
 
-export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false }: Props) {
+export function WeatherWidget({ weather, tempUnit, onUnitChange, lightningActivity, isDark = false }: Props) {
   const hairForecast = getHairForecast(weather, { tempUnit });
 
-  // Opacity-based text replaced with explicit hex for reliable contrast (AA ✓)
   const labelColor = isDark ? "#9BA4B4" : "#4B5563";
   const primaryTextColor = isDark ? "#F4F4F5" : "#111827";
   const secondaryTextColor = isDark ? "#9BA4B4" : "#4B5563";
   const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
   const pillInactiveText = isDark ? "#D1D5DB" : "#4B5563";
+  const cellBg = isDark ? "#3A3A3C" : "#F9FAFB";
+
+  const windCardinal = degreesToCardinal(weather.windDirection);
+  const showLightning = lightningActivity && lightningActivity !== "none";
 
   return (
     <div
@@ -83,11 +110,70 @@ export function WeatherWidget({ weather, tempUnit, onUnitChange, isDark = false 
 
       {/* 2×2 stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <StatCell isDark={isDark} label="Humidity" value={`${weather.humidity}`} unit="%" fill={weather.humidity / 100} fillColor="#3B82F6" />
-        <StatCell isDark={isDark} label="Wind" value={`${weather.windSpeed}`} unit="mph" fill={Math.min(weather.windSpeed / 40, 1)} fillColor="#10B981" />
-        <StatCell isDark={isDark} label="Rain Chance" value={`${weather.precipProb}`} unit="%" fill={weather.precipProb / 100} fillColor="#6366F1" />
-        <StatCell isDark={isDark} label="UV Index" value={`${weather.uvIndex}`} unit={uvLabel(weather.uvIndex)} fill={Math.min(weather.uvIndex / 11, 1)} fillColor="#F59E0B" />
+        <StatCell
+          isDark={isDark}
+          label="Humidity"
+          value={`${weather.humidity}`}
+          unit="%"
+          fill={weather.humidity / 100}
+          fillColor="#3B82F6"
+        />
+        <StatCell
+          isDark={isDark}
+          label="Wind"
+          value={`${weather.windSpeed}`}
+          unit={`mph ${windCardinal}`}
+          fill={Math.min(weather.windSpeed / 40, 1)}
+          fillColor="#10B981"
+        />
+        <StatCell
+          isDark={isDark}
+          label="Rain Chance"
+          value={`${weather.precipProb}`}
+          unit="%"
+          fill={weather.precipProb / 100}
+          fillColor="#6366F1"
+        />
+        <StatCell
+          isDark={isDark}
+          label="UV Index"
+          value={`${weather.uvIndex}`}
+          unit={uvCategory(weather.uvIndex)}
+          fill={Math.min(weather.uvIndex / 11, 1)}
+          fillColor={uvFillColor(weather.uvIndex)}
+        />
       </div>
+
+      {/* Lightning activity row (US only, when active) */}
+      {showLightning && (
+        <div
+          style={{
+            marginTop: 10,
+            background: cellBg,
+            borderRadius: 16,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 20, flexShrink: 0 }}>⚡</span>
+          <div style={{ flex: 1 }}>
+            <p style={{
+              fontSize: 13, fontWeight: 600,
+              color: labelColor,
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              marginBottom: 1,
+            }}>
+              Lightning Activity
+            </p>
+            <p style={{ fontSize: 16, fontWeight: 700, color: lightningColor(lightningActivity) }}>
+              {lightningLabel(lightningActivity)}
+            </p>
+          </div>
+          <div style={{ height: 28, width: 4, borderRadius: 2, background: lightningColor(lightningActivity) }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -97,7 +183,6 @@ function StatCell({
 }: {
   label: string; value: string; unit: string; fill: number; fillColor: string; isDark: boolean;
 }) {
-  // Opacity-based colors replaced with explicit hex (AA ✓)
   const cellBg = isDark ? "#3A3A3C" : "#F9FAFB";
   const cellLabelColor = isDark ? "#9BA4B4" : "#4B5563";
   const cellValueColor = isDark ? "#F4F4F5" : "#111827";
@@ -117,7 +202,7 @@ function StatCell({
       </p>
       <p style={{ fontSize: 22, fontWeight: 700, color: cellValueColor, lineHeight: 1 }}>
         {value}
-        <span style={{ fontSize: 14, fontWeight: 500, color: cellUnitColor, marginLeft: 2 }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: cellUnitColor, marginLeft: 3 }}>
           {unit}
         </span>
       </p>

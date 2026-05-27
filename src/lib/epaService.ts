@@ -1,12 +1,7 @@
 import { supabase } from "./supabase";
+import type { EPAObservation } from "@/types";
 
-// Raw shape returned by AirNow API and preserved in edge function response
-export interface EPAObservation {
-  parameter: string;
-  aqi: number;
-  category: string;
-  reportingArea: string;
-}
+export type { EPAObservation };
 
 export interface EPAAQIResult {
   aqi: number | null;
