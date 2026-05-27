@@ -134,7 +134,7 @@ interface EditorSheetProps {
   scenario: WeatherScenario;
   preset: WeatherWardrobePreset | undefined;
   userId: string;
-  stylePreference: StylePreference;
+  stylePreference: StylePreference[];
   isDark: boolean;
   onClose: () => void;
   onSaved: (preset: WeatherWardrobePreset) => void;
@@ -562,7 +562,7 @@ export default function Wardrobe() {
   const textPrimary   = isDark ? "#FFFFFF"  : "#111827";
   const textSecondary = isDark ? "#9CA3AF"  : "#6B7280";
 
-  const stylePreference = profile?.style_preference ?? "all";
+  const stylePreference = profile?.style_preference ?? ["feminine", "masculine", "neutral"];
 
   const loadPresets = useCallback(async () => {
     if (!userId) return;

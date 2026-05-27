@@ -269,10 +269,13 @@ const OUTFIT_MAPPING: MappingTable = {
 
 // ── Helper: normalize style preference ────────────────────────────────────────
 
-function normalizeStyle(style: StylePreference | undefined): NormalizedStyle {
-  if (style === "feminine") return "feminine";
-  if (style === "masculine") return "masculine";
-  return "neutral"; // "neutral" and legacy "all" both map to neutral
+function normalizeStyle(style: StylePreference[] | undefined): NormalizedStyle {
+  if (!style || style.length === 0) return "neutral";
+  const hasFem = style.includes("feminine");
+  const hasMasc = style.includes("masculine");
+  if (hasFem && !hasMasc) return "feminine";
+  if (hasMasc && !hasFem) return "masculine";
+  return "neutral";
 }
 
 export interface AdjustedThresholds {
@@ -691,7 +694,7 @@ export function getOutfitRecommendation(opts: {
   humidity: number;
   calibration: UserCalibration;
   hourly: HourlyForecast[];
-  stylePreference?: StylePreference;
+  stylePreference?: StylePreference[];
   formality?: FormalityPreference;
   isDay?: boolean;
   commuteStart?: string | null;
@@ -906,7 +909,7 @@ interface CommuteRecalcOpts {
   precipProb: number;
   humidity: number;
   calibration: UserCalibration;
-  stylePreference?: StylePreference;
+  stylePreference?: StylePreference[];
   formality?: FormalityPreference;
   previousRainy?: boolean | null;
 }
@@ -1026,7 +1029,7 @@ const PERIOD_RANGES: { label: DayPeriodLabel; startHour: number; endHour: number
 export function getDayOutfitTimeline(
   todayHourly: HourlyForecast[],
   calibration: UserCalibration,
-  stylePreference?: StylePreference,
+  stylePreference?: StylePreference[],
   formality?: FormalityPreference,
   /** Current humidity (%) — hourly rows lack humidity; use live reading for heat-index alignment. */
   humidityForPeriods = 50,

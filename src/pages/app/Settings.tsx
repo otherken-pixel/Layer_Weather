@@ -49,7 +49,9 @@ export default function Settings() {
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
-  const [stylePreference, setStylePreference] = useState<StylePreference>(profile?.style_preference ?? "all");
+  const [stylePreference, setStylePreference] = useState<StylePreference[]>(
+    profile?.style_preference ?? ["feminine", "masculine", "neutral"]
+  );
   const [formality, setFormality] = useState<FormalityPreference>(profile?.formality_preference ?? "casual");
   const [commuteStart, setCommuteStart] = useState(profile?.commute_start ?? "07:30");
   const [commuteEnd, setCommuteEnd] = useState(profile?.commute_end ?? "18:00");
@@ -317,27 +319,35 @@ export default function Settings() {
           <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
             <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, marginBottom: 4 }}>Style Preference</p>
             <p style={{ fontSize: 12, color: hintColor, marginBottom: 12 }}>
-              Filters the clothing drawings shown when you set up your wardrobes.
+              Filters the clothing drawings shown when you set up your wardrobes. Select one or more.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {(
                 [
                   { key: "feminine",  label: "Feminine",  desc: "Dresses, women's cuts, and shared styles" },
                   { key: "masculine", label: "Masculine",  desc: "Men's cuts and shared styles" },
-                  { key: "all",       label: "Show All",   desc: "Every clothing option available" },
+                  { key: "neutral",   label: "Neutral",    desc: "Gender-neutral and shared styles only" },
                 ] as const
               ).map(({ key, label, desc }) => {
-                const active = stylePreference === key;
+                const active = stylePreference.includes(key);
                 return (
                   <button
                     key={key}
                     type="button"
                     onClick={() => {
-                      setStylePreference(key);
-                      if (profile) setProfile({ ...profile, style_preference: key });
+                      let next: StylePreference[];
+                      if (active) {
+                        // deselect — keep at least one selected
+                        const without = stylePreference.filter((k) => k !== key);
+                        next = without.length > 0 ? without : stylePreference;
+                      } else {
+                        next = [...stylePreference, key];
+                      }
+                      setStylePreference(next);
+                      if (profile) setProfile({ ...profile, style_preference: next });
                       if (userId) {
                         const seq = ++stylePreferenceUpsertSeqRef.current;
-                        upsertProfile(userId, { style_preference: key })
+                        upsertProfile(userId, { style_preference: next })
                           .then((updated) => {
                             if (updated && seq === stylePreferenceUpsertSeqRef.current) setProfile(updated);
                           })
@@ -369,6 +379,52 @@ export default function Settings() {
                   </button>
                 );
               })}
+              {/* Show All shortcut */}
+              {(() => {
+                const allSelected = ["feminine", "masculine", "neutral"].every((k) =>
+                  stylePreference.includes(k as StylePreference)
+                );
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next: StylePreference[] = ["feminine", "masculine", "neutral"];
+                      setStylePreference(next);
+                      if (profile) setProfile({ ...profile, style_preference: next });
+                      if (userId) {
+                        const seq = ++stylePreferenceUpsertSeqRef.current;
+                        upsertProfile(userId, { style_preference: next })
+                          .then((updated) => {
+                            if (updated && seq === stylePreferenceUpsertSeqRef.current) setProfile(updated);
+                          })
+                          .catch(() => {});
+                      }
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      textAlign: "left",
+                      background: allSelected
+                        ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                        : isDark ? "#3A3A3C" : "#F9FAFB",
+                      border: `1.5px solid ${allSelected ? "var(--accent-primary)" : isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+                      cursor: "pointer",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: allSelected ? isDark ? "var(--accent-light)" : "var(--accent-primary)" : rowTextColor, margin: 0 }}>
+                        Show All
+                      </p>
+                      <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>Every clothing option available</p>
+                    </div>
+                    {allSelected && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16 }}>✓</span>}
+                  </button>
+                );
+              })()}
             </div>
           </ThemedCard>
         </Section>
