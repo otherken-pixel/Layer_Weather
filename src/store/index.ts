@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
+import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
 
 export interface CachedCityWeather {
   weather: WeatherData;
@@ -57,6 +58,11 @@ interface AppState {
   isLoadingWeather: boolean;
   weatherError: string | null;
 
+  // Card layout
+  cardLayout: CardConfig[];
+  setCardLayout: (layout: CardConfig[]) => void;
+  toggleCardMinimized: (id: CardId) => void;
+
   // Actions
   setUserId: (id: string | null) => void;
   setFormality: (f: FormalityPreference) => void;
@@ -101,6 +107,7 @@ const initialState = {
   isLoadingWeather: false,
   weatherError: null,
   cityWeatherCache: {} as Record<string, CachedCityWeather>,
+  cardLayout: loadCardLayout(),
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -138,6 +145,18 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => {
       const { [key]: _removed, ...cityWeatherCache } = state.cityWeatherCache;
       return { cityWeatherCache };
+    }),
+  setCardLayout: (layout) => {
+    saveCardLayout(layout);
+    set({ cardLayout: layout });
+  },
+  toggleCardMinimized: (id) =>
+    set((state) => {
+      const next = state.cardLayout.map((c) =>
+        c.id === id ? { ...c, minimized: !c.minimized } : c,
+      );
+      saveCardLayout(next);
+      return { cardLayout: next };
     }),
   reset: () => set(initialState),
 }));
