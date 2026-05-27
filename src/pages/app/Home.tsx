@@ -197,15 +197,13 @@ export default function Home() {
 
   const handleRefresh = useCallback(function handleRefresh() {
     if (activeLocationIsDevice) {
-      refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
-      return;
+      return refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
     }
     const loc = useAppStore.getState().location;
     if (loc) {
-      refresh(true, { cacheKey: buildLocationCacheKey(loc) });
-    } else {
-      refresh(true);
+      return refresh(true, { cacheKey: buildLocationCacheKey(loc) });
     }
+    return refresh(true);
   }, [activeLocationIsDevice, refresh]);
 
   const { pullDistance, isRefreshing: isPullRefreshing, triggered } = usePullToRefresh(handleRefresh);
