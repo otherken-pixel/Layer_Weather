@@ -704,7 +704,7 @@ export default function Help() {
           alignItems: "center",
           gap: 12,
           position: "sticky",
-          top: "env(safe-area-inset-top, 0px)",
+          top: 0,
           zIndex: 10,
         }}
       >
