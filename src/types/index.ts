@@ -21,7 +21,48 @@ export interface Profile {
   last_longitude: number | null;
   last_city: string | null;
   saved_locations: LocationData[] | null;
+  nerd_mode_enabled: boolean;
+  nerd_mode_cards: NerdModeCardId[];
   updated_at: string;
+}
+
+// ── Nerd Mode ─────────────────────────────────────────────────────────────────
+
+export type NerdModeCardId = "rain_accumulation" | "moon_phases" | "seasonal_produce";
+
+export interface NerdModeCardMeta {
+  id: NerdModeCardId;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+export const NERD_MODE_CARDS: NerdModeCardMeta[] = [
+  {
+    id: "rain_accumulation",
+    label: "Rain Accumulation",
+    emoji: "🌧️",
+    description: "Total rainfall over the last 24 h, 3 days, 7 days, and 30 days.",
+  },
+  {
+    id: "moon_phases",
+    label: "Moon Phases",
+    emoji: "🌕",
+    description: "Current moon phase, illumination, and upcoming phase dates.",
+  },
+  {
+    id: "seasonal_produce",
+    label: "Seasonal Produce",
+    emoji: "🥦",
+    description: "Fruits and vegetables in season for your region this month.",
+  },
+];
+
+export interface RainHistoryData {
+  last24h: number;  // mm
+  last3d: number;
+  last7d: number;
+  last30d: number;
 }
 
 export type RainTolerance = "low" | "moderate" | "high";

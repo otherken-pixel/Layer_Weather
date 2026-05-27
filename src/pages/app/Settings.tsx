@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { signOut, deleteUserAccount, upsertProfile } from "@/lib/supabase";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useAppStore } from "@/store";
-import type { FormalityPreference, StylePreference } from "@/types";
+import type { FormalityPreference, StylePreference, NerdModeCardId } from "@/types";
+import { NERD_MODE_CARDS } from "@/types";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { useIsDark } from "@/hooks/useDarkMode";
 import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
@@ -66,6 +67,8 @@ export default function Settings() {
   const [saved, setSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
+  const [nerdModeEnabled, setNerdModeEnabled] = useState(profile?.nerd_mode_enabled ?? false);
+  const [nerdModeCards, setNerdModeCards] = useState<NerdModeCardId[]>(profile?.nerd_mode_cards ?? []);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
@@ -112,6 +115,8 @@ export default function Settings() {
         commute_end: commuteEnd,
         theme_preference: themePreference === "system" ? null : themePreference,
         accent_color: accentColor,
+        nerd_mode_enabled: nerdModeEnabled,
+        nerd_mode_cards: nerdModeCards,
       });
       setStoreFormality(formality);
       if (updated) setProfile(updated);
@@ -776,6 +781,103 @@ export default function Settings() {
             </p>
           </Section>
         )}
+
+        {/* Nerd Mode */}
+        <Section title="Nerd Mode" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ flex: 1, paddingRight: 12 }}>
+                <p style={{ fontSize: 15, fontWeight: 600, color: rowTextColor, margin: 0 }}>Enable Nerd Mode</p>
+                <p style={{ fontSize: 12, color: hintColor, marginTop: 2 }}>
+                  Unlock extra data cards for weather enthusiasts.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={nerdModeEnabled}
+                onClick={() => {
+                  const next = !nerdModeEnabled;
+                  setNerdModeEnabled(next);
+                  setIsDirty(true);
+                  if (profile) setProfile({ ...profile, nerd_mode_enabled: next });
+                }}
+                style={{
+                  width: 51, height: 31, borderRadius: 999, border: "none",
+                  background: nerdModeEnabled ? "var(--accent-primary)" : isDark ? "#636366" : "#D1D5DB",
+                  cursor: "pointer", position: "relative", flexShrink: 0,
+                  transition: "background 0.2s",
+                }}
+              >
+                <div style={{
+                  position: "absolute",
+                  top: 3, left: nerdModeEnabled ? 23 : 3,
+                  width: 25, height: 25, borderRadius: "50%",
+                  background: "white",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                  transition: "left 0.2s",
+                }} />
+              </button>
+            </div>
+
+            {nerdModeEnabled && (
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                <p style={{ fontSize: 12, color: hintColor, marginBottom: 4 }}>
+                  Choose which cards to show on your Today screen:
+                </p>
+                {NERD_MODE_CARDS.map((card) => {
+                  const active = nerdModeCards.includes(card.id);
+                  return (
+                    <button
+                      key={card.id}
+                      type="button"
+                      onClick={() => {
+                        const next: NerdModeCardId[] = active
+                          ? nerdModeCards.filter((id) => id !== card.id)
+                          : [...nerdModeCards, card.id];
+                        setNerdModeCards(next);
+                        setIsDirty(true);
+                        if (profile) setProfile({ ...profile, nerd_mode_cards: next });
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 12,
+                        padding: "10px 12px", borderRadius: 14, textAlign: "left",
+                        background: active
+                          ? isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)"
+                          : isDark ? "#3A3A3C" : "#F9FAFB",
+                        border: `1.5px solid ${active ? "var(--accent-primary)" : isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6"}`,
+                        cursor: "pointer", width: "100%",
+                      }}
+                    >
+                      <span style={{ fontSize: 22, flexShrink: 0 }}>{card.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{
+                          fontSize: 14, fontWeight: 600, margin: 0,
+                          color: active ? isDark ? "var(--accent-light)" : "var(--accent-primary)" : rowTextColor,
+                        }}>
+                          {card.label}
+                        </p>
+                        <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", margin: 0 }}>
+                          {card.description}
+                        </p>
+                      </div>
+                      {active && (
+                        <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)", fontSize: 16, flexShrink: 0 }}>
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </ThemedCard>
+          {nerdModeEnabled && nerdModeCards.length >= 2 && (
+            <p style={{ fontSize: 12, color: footnoteColor, marginTop: 6, paddingLeft: 4 }}>
+              Drag cards to reorder them directly on the Today screen.
+            </p>
+          )}
+        </Section>
 
         {/* App info */}
         <Section title="App" labelColor={sectionLabelColor}>

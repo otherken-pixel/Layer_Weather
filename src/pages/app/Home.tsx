@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
@@ -16,7 +16,7 @@ import { useAppStore } from "@/store";
 import { getSkyColor, Colors } from "@/constants/colors";
 import { useCalendarContext } from "@/hooks/useCalendarContext";
 import { EVENT_TYPE_LABELS } from "@/lib/calendar";
-import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWeatherWardrobes, getWardrobeItems } from "@/lib/supabase";
+import { upsertProfile, saveOutfitFeedback, getRecentFeedback, upsertCalibration, getWeatherWardrobes, getWardrobeItems, getRainHistory } from "@/lib/supabase";
 import { computeCalibrationFromFeedback } from "@/lib/outfit-feedback";
 import { groupHourlyByDay, detectSignificantChanges } from "@/lib/weather";
 import { getOutfitReason, getFeelsLikeExplanation, getLayeringTip } from "@/lib/outfit-logic";
@@ -33,7 +33,10 @@ import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import type { LocationData, OutfitFeedbackValue } from "@/types";
+import type { LocationData, OutfitFeedbackValue, NerdModeCardId, RainHistoryData } from "@/types";
+import { RainAccumulationCard } from "@/components/weather/RainAccumulationCard";
+import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
+import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -67,6 +70,13 @@ export default function Home() {
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [locationPickerMode, setLocationPickerMode] = useState<"add" | "update">("update");
 
+  // Nerd mode
+  const [nerdCardOrder, setNerdCardOrder] = useState<NerdModeCardId[]>(profile?.nerd_mode_cards ?? []);
+  const [nerdEditMode, setNerdEditMode] = useState(false);
+  const [rainHistory, setRainHistory] = useState<RainHistoryData | null>(null);
+  const [rainHistoryLoading, setRainHistoryLoading] = useState(false);
+  const nerdSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const cardsBg = isDark ? Colors.dark.pageBg : "#F2F2F7";
   const cardSurface = isDark ? Colors.dark.cardBg : "#FFFFFF";
 
@@ -82,6 +92,38 @@ export default function Home() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // Keep card order in sync when profile loads/changes
+  useEffect(() => {
+    if (profile?.nerd_mode_cards) setNerdCardOrder(profile.nerd_mode_cards);
+  }, [profile?.nerd_mode_cards]);
+
+  // Fetch rain history whenever nerd mode + rain card enabled and location is known
+  useEffect(() => {
+    const lat = location?.latitude ?? profile?.last_latitude;
+    const lng = location?.longitude ?? profile?.last_longitude;
+    if (!profile?.nerd_mode_enabled) return;
+    if (!profile.nerd_mode_cards.includes("rain_accumulation")) return;
+    if (lat == null || lng == null) return;
+    let cancelled = false;
+    setRainHistoryLoading(true);
+    getRainHistory(lat, lng)
+      .then((data) => { if (!cancelled) { setRainHistory(data); setRainHistoryLoading(false); } })
+      .catch(() => { if (!cancelled) setRainHistoryLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.nerd_mode_enabled, profile?.nerd_mode_cards?.join(","), location?.latitude, location?.longitude]);
+
+  function handleNerdReorder(newOrder: NerdModeCardId[]) {
+    setNerdCardOrder(newOrder);
+    if (!userId) return;
+    if (nerdSaveTimerRef.current) clearTimeout(nerdSaveTimerRef.current);
+    nerdSaveTimerRef.current = setTimeout(() => {
+      upsertProfile(userId, { nerd_mode_cards: newOrder })
+        .then((updated) => { if (updated) setProfile(updated); })
+        .catch(() => {});
+    }, 500);
+  }
 
   const activePreset = useMemo(() => {
     if (!weather || weatherWardrobes.length === 0) return null;
@@ -637,6 +679,65 @@ export default function Home() {
               />
             )}
 
+            {/* Nerd Mode Cards */}
+            {profile?.nerd_mode_enabled && nerdCardOrder.length > 0 && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <p style={{
+                    fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                    color: isDark ? "#9BA4B4" : "#6B7280", margin: 0,
+                  }}>
+                    Nerd Mode
+                  </p>
+                  {nerdCardOrder.length >= 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setNerdEditMode((v) => !v)}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        fontSize: 13, fontWeight: 600, color: "var(--accent-primary)", padding: 0,
+                      }}
+                    >
+                      {nerdEditMode ? "Done" : "Edit Order"}
+                    </button>
+                  )}
+                </div>
+
+                {nerdEditMode ? (
+                  <Reorder.Group
+                    axis="y"
+                    values={nerdCardOrder}
+                    onReorder={handleNerdReorder}
+                    style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none", padding: 0, margin: 0 }}
+                  >
+                    {nerdCardOrder.map((cardId) => (
+                      <Reorder.Item
+                        key={cardId}
+                        value={cardId}
+                        style={{ cursor: "grab" }}
+                      >
+                        <NerdCardEditRow cardId={cardId} isDark={isDark} />
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {nerdCardOrder.map((cardId) => (
+                      <NerdCardRenderer
+                        key={cardId}
+                        cardId={cardId}
+                        rainHistory={rainHistory}
+                        rainHistoryLoading={rainHistoryLoading}
+                        tempUnit={tempUnit}
+                        latitude={location?.latitude ?? profile?.last_latitude ?? 40}
+                        isDark={isDark}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <p style={{ textAlign: "center", fontSize: 11, color: isDark ? "rgba(255,255,255,0.25)" : "#9CA3AF", paddingBottom: 4 }}>
               {weather._source === "weatherkit"
                 ? "Weather data provided by Apple Weather™"
@@ -646,6 +747,62 @@ export default function Home() {
           </div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+// ── Nerd Card Renderer ────────────────────────────────────────────────────────
+
+function NerdCardRenderer({
+  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, isDark,
+}: {
+  cardId: NerdModeCardId;
+  rainHistory: RainHistoryData | null;
+  rainHistoryLoading: boolean;
+  tempUnit: "F" | "C";
+  latitude: number;
+  isDark: boolean;
+}) {
+  if (cardId === "rain_accumulation") {
+    return (
+      <RainAccumulationCard
+        data={rainHistory}
+        loading={rainHistoryLoading}
+        tempUnit={tempUnit}
+        isDark={isDark}
+      />
+    );
+  }
+  if (cardId === "moon_phases") {
+    return <MoonPhasesCard isDark={isDark} />;
+  }
+  if (cardId === "seasonal_produce") {
+    return <SeasonalProduceCard latitude={latitude} isDark={isDark} />;
+  }
+  return null;
+}
+
+const NERD_CARD_LABELS: Record<NerdModeCardId, { emoji: string; label: string }> = {
+  rain_accumulation: { emoji: "🌧️", label: "Rain Accumulation" },
+  moon_phases: { emoji: "🌕", label: "Moon Phases" },
+  seasonal_produce: { emoji: "🥦", label: "In Season" },
+};
+
+function NerdCardEditRow({ cardId, isDark }: { cardId: NerdModeCardId; isDark: boolean }) {
+  const meta = NERD_CARD_LABELS[cardId];
+  const bg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const border = isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #E5E7EB";
+  const textColor = isDark ? "#F4F4F5" : "#111827";
+  const handleColor = isDark ? "#9BA4B4" : "#9CA3AF";
+  return (
+    <div style={{
+      background: bg, border, borderRadius: 20, padding: "14px 16px",
+      display: "flex", alignItems: "center", gap: 12,
+      boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)",
+    }}>
+      <span style={{ fontSize: 20, color: handleColor, userSelect: "none", flexShrink: 0 }}>≡</span>
+      <span style={{ fontSize: 20, flexShrink: 0 }}>{meta.emoji}</span>
+      <span style={{ fontSize: 15, fontWeight: 600, color: textColor, flex: 1 }}>{meta.label}</span>
     </div>
   );
 }
