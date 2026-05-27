@@ -3,7 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
-import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence } from "@/lib/weather";
+import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence, reverseGeocodePlace } from "@/lib/weather";
 import { fetchLightningActivity } from "@/lib/swdiService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
@@ -346,11 +346,11 @@ export function useWeather() {
               .catch(() => {});
 
             fetchNWSAlerts(latitude, longitude)
-              .then((alerts) => { if (generation === refreshGeneration.current) setNWSAlerts(alerts); })
+              .then((alerts) => { if (generation === refreshGeneration) setNWSAlerts(alerts); })
               .catch(() => {});
 
             fetchLightningActivity(latitude, longitude)
-              .then((activity) => { if (generation === refreshGeneration.current) setLightningActivity(activity); })
+              .then((activity) => { if (generation === refreshGeneration) setLightningActivity(activity); })
               .catch(() => {});
           } else {
             setForecastConfidence(null);
