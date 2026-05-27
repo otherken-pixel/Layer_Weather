@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
 
@@ -30,6 +30,10 @@ interface AppState {
   outfitTimeline: DayOutfitTimeline | null;
   weatherLastFetched: Date | null;
   forecastConfidence: ForecastConfidence;
+  /** Active NWS severe weather alerts (US only). Empty array outside the US. */
+  nwsAlerts: NWSAlert[];
+  /** NOAA SWDI lightning strike activity level for the current location (US only). */
+  lightningActivity: LightningActivity | null;
   /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
   cityWeatherCache: Record<string, CachedCityWeather>;
 
@@ -77,6 +81,8 @@ interface AppState {
   setOutfitTimeline: (timeline: DayOutfitTimeline | null) => void;
   setWeatherLastFetched: (d: Date | null) => void;
   setForecastConfidence: (c: ForecastConfidence) => void;
+  setNWSAlerts: (alerts: NWSAlert[]) => void;
+  setLightningActivity: (activity: LightningActivity | null) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
   setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
@@ -104,6 +110,8 @@ const initialState = {
   outfitTimeline: null,
   weatherLastFetched: null,
   forecastConfidence: null,
+  nwsAlerts: [] as NWSAlert[],
+  lightningActivity: null as LightningActivity | null,
   isLoadingWeather: false,
   weatherError: null,
   cityWeatherCache: {} as Record<string, CachedCityWeather>,
@@ -137,6 +145,8 @@ export const useAppStore = create<AppState>((set) => ({
   setOutfitTimeline: (outfitTimeline) => set({ outfitTimeline }),
   setWeatherLastFetched: (weatherLastFetched) => set({ weatherLastFetched }),
   setForecastConfidence: (forecastConfidence) => set({ forecastConfidence }),
+  setNWSAlerts: (nwsAlerts) => set({ nwsAlerts }),
+  setLightningActivity: (lightningActivity) => set({ lightningActivity }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>

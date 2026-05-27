@@ -1,5 +1,7 @@
 import { supabase } from "./supabase";
 import { NOMINATIM_HEADERS } from "@/lib/nominatim";
+import { invokeNWSWeather } from "./nwsService";
+import { fetchEPAAQI } from "./epaService";
 import type {
   WeatherData,
   CurrentWeather,
@@ -8,6 +10,8 @@ import type {
   WeatherCondition,
   ForecastConfidence,
 } from "@/types";
+
+export { fetchNWSAlerts } from "./nwsService";
 
 const WEATHER_FETCH_TIMEOUT_MS = 12_000;
 const WEATHER_MAX_RETRIES = 2;
@@ -151,6 +155,14 @@ export interface ReverseGeocodePlace {
   city: string;
   /** ISO 3166-1 alpha-2, upper-case (e.g. US, GB). */
   countryCode: string;
+}
+
+// ── Secondary: NWS via Supabase Edge Function (US only) ──────────────────────
+async function fetchFromNWS(latitude: number, longitude: number): Promise<WeatherData> {
+  const record = await invokeNWSWeather(latitude, longitude);
+  const parsed = parseEdgeResponse(record);
+  parsed._source = "nws";
+  return parsed;
 }
 
 // ── Primary: WeatherKit via Supabase Edge Function ────────────────────────────
@@ -300,6 +312,8 @@ export async function fetchAQIIndex(
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
+/** Three-tier weather fetch: WeatherKit → NWS (US only) → Open-Meteo. */
 export async function fetchWeatherData(
   latitude: number,
   longitude: number,
@@ -308,9 +322,34 @@ export async function fetchWeatherData(
   try {
     return await fetchFromEdgeFunction(latitude, longitude, opts?.countryCode);
   } catch (err) {
-    console.warn("WeatherKit edge function unavailable, using Open-Meteo fallback:", err);
+    console.warn("WeatherKit unavailable:", err);
+    const cc = (opts?.countryCode ?? "").toUpperCase();
+    if (cc === "US" || cc === "") {
+      try {
+        return await fetchFromNWS(latitude, longitude);
+      } catch (nwsErr) {
+        console.warn("NWS unavailable, using Open-Meteo fallback:", nwsErr);
+      }
+    }
     return fetchFromOpenMeteo(latitude, longitude);
   }
+}
+
+/**
+ * AQI with source preference: EPA AirNow (US primary) → Open-Meteo AQ fallback.
+ * Always resolves — returns null when no data is available.
+ */
+export async function fetchAQIBestSource(
+  latitude: number,
+  longitude: number,
+  countryCode?: string,
+): Promise<number | null> {
+  const cc = (countryCode ?? "").toUpperCase();
+  if (cc === "US" || cc === "") {
+    const { aqi } = await fetchEPAAQI(latitude, longitude);
+    if (aqi !== null) return aqi;
+  }
+  return fetchAQIIndex(latitude, longitude);
 }
 
 function toLocalDayKey(d: Date): string {

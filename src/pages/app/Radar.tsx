@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Circle, useMap, WMSTileLayer } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "@/store";
@@ -255,6 +255,7 @@ export default function Radar() {
   const [playing, setPlaying] = useState(true);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [radarSource, setRadarSource] = useState<"rainviewer" | "ncep">("rainviewer");
 
   useEffect(() => {
     fetch("https://api.rainviewer.com/public/weather-maps.json")
@@ -317,6 +318,12 @@ export default function Radar() {
 
   const lat = location?.latitude;
   const lng = location?.longitude;
+
+  // Show NCEP toggle only when location is within CONUS bounds
+  const isConus =
+    typeof lat === "number" && typeof lng === "number" &&
+    lat >= 24 && lat <= 50 && lng >= -125 && lng <= -66;
+
   const center = useMemo<[number, number]>(
     () =>
       typeof lat === "number" && typeof lng === "number"
@@ -390,7 +397,18 @@ export default function Radar() {
       >
         <TileLayer url={baseTileUrl} maxZoom={19} />
         <ZoomControls isDark={isDark} />
-        {tileUrl && <RadarOverlay url={tileUrl} />}
+        {radarSource === "rainviewer" && tileUrl && <RadarOverlay url={tileUrl} />}
+        {radarSource === "ncep" && (
+          <WMSTileLayer
+            url="https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows"
+            layers="conus_bref_qcd"
+            format="image/png"
+            transparent={true}
+            opacity={0.7}
+            version="1.3.0"
+            attribution="NOAA/NCEP"
+          />
+        )}
         <Circle
           center={center}
           radius={1500}
@@ -466,30 +484,50 @@ export default function Radar() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
-          <button
-            type="button"
-            onClick={() => setPlaying((p) => !p)}
-            className="min-h-[44px]"
-            style={{
-              background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
-              borderRadius: 999, padding: "8px 22px",
-              color: btnPrimaryColor, fontWeight: 600, fontSize: 13, cursor: "pointer",
-            }}
-          >
-            {playing ? "⏸ Pause" : "▶ Play"}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
-            className="min-h-[44px]"
-            style={{
-              background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
-              borderRadius: 999, padding: "8px 18px",
-              color: btnSecondaryColor, fontSize: 13, cursor: "pointer",
-            }}
-          >
-            Latest
-          </button>
+          {radarSource === "rainviewer" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setPlaying((p) => !p)}
+                className="min-h-[44px]"
+                style={{
+                  background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
+                  borderRadius: 999, padding: "8px 22px",
+                  color: btnPrimaryColor, fontWeight: 600, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                {playing ? "⏸ Pause" : "▶ Play"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
+                className="min-h-[44px]"
+                style={{
+                  background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
+                  borderRadius: 999, padding: "8px 18px",
+                  color: btnSecondaryColor, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                Latest
+              </button>
+            </>
+          )}
+          {isConus && (
+            <button
+              type="button"
+              onClick={() => setRadarSource((s) => s === "rainviewer" ? "ncep" : "rainviewer")}
+              className="min-h-[44px]"
+              style={{
+                background: radarSource === "ncep" ? btnPrimaryBg : btnSecondaryBg,
+                border: `1px solid ${radarSource === "ncep" ? btnPrimaryBorder : btnSecondaryBorder}`,
+                borderRadius: 999, padding: "8px 16px",
+                color: radarSource === "ncep" ? btnPrimaryColor : btnSecondaryColor,
+                fontSize: 12, cursor: "pointer",
+              }}
+            >
+              {radarSource === "ncep" ? "🛰 NOAA Official" : "NOAA"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -552,7 +590,7 @@ export default function Radar() {
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>OpenStreetMap</a>
         {" "}contributors ·{" "}
         <a href="https://carto.com" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>CARTO</a>
-        {" "}· RainViewer
+        {radarSource === "rainviewer" ? " · RainViewer" : " · NOAA/NCEP"}
       </div>
     </div>
   );
