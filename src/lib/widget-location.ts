@@ -106,6 +106,7 @@ export async function saveWidgetLocationPreference(
     await WidgetBridge.saveWidgetData({ key: APP_GROUP_KEY, value: json });
     await WidgetBridge.reloadTimelines();
   } catch {
+    // WidgetBridge unavailable (web or native plugin not loaded)
   }
 
   try {
@@ -270,7 +271,7 @@ export async function syncWidgetFromAppState(options?: {
     return;
   }
 
-  let entry = await loadCachedEntry(target.cacheKey);
+  const entry = await loadCachedEntry(target.cacheKey);
   if (
     entry &&
     isWeatherCacheFresh(entry.fetchedAt) &&
