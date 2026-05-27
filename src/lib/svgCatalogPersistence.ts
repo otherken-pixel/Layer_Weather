@@ -2,7 +2,7 @@ import { Preferences } from "@capacitor/preferences";
 import { Capacitor } from "@capacitor/core";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 
-const CACHE_KEY = "svg_clothes_catalog_v1";
+const CACHE_KEY = "svg_clothes_catalog_v2";
 
 interface CachedCatalog {
   version: 1;
