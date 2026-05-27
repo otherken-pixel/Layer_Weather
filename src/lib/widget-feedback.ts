@@ -3,8 +3,23 @@ import { upsertCalibration } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import type { ThermalSensitivity, UserCalibration } from "@/types";
 
+const CALIBRATION_CACHE_KEY = "wt_calibration_cache";
+
 function clampThermal(n: number): ThermalSensitivity {
   return Math.max(-2, Math.min(2, Math.round(n))) as ThermalSensitivity;
+}
+
+function loadCalibrationFromLocalCache(): UserCalibration | null {
+  try {
+    const raw = localStorage.getItem(CALIBRATION_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as UserCalibration) : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveCalibration(): UserCalibration | null {
+  return useAppStore.getState().calibration ?? loadCalibrationFromLocalCache();
 }
 
 function nudgeCalibrationForFeedback(
@@ -54,6 +69,8 @@ function nudgeCalibrationForFeedback(
 /**
  * Applies widget / Watch feedback written to the App Group (too_cold, too_warm, just_right)
  * and optional thermal slider value. Returns true when calibration changed.
+ *
+ * Does not clear pending feedback until a successful save (or benign just_right ack).
  */
 export async function applyPendingWidgetFeedback(userId: string): Promise<boolean> {
   const action = (await readFeedbackAction())?.trim();
@@ -61,36 +78,38 @@ export async function applyPendingWidgetFeedback(userId: string): Promise<boolea
 
   if ((!action || action.length === 0) && thermalRaw === null) return false;
 
-  const calibration = useAppStore.getState().calibration;
+  const calibration = resolveCalibration();
   if (!calibration) {
-    if (action) await clearFeedbackAction();
+    // Calibration not hydrated yet — leave App Group data for a later attempt.
     return false;
   }
 
   const updates: Partial<Omit<UserCalibration, "user_id">> = {};
 
-  if (thermalRaw !== null) {
-    updates.thermal_sensitivity = clampThermal(thermalRaw);
-  }
-
   if (action && action !== "just_right") {
     Object.assign(updates, nudgeCalibrationForFeedback(calibration, action));
   }
 
+  // Watch thermal slider wins over nudge for sensitivity when both are present.
+  if (thermalRaw !== null) {
+    updates.thermal_sensitivity = clampThermal(thermalRaw);
+  }
+
   if (Object.keys(updates).length === 0) {
-    if (action) await clearFeedbackAction();
+    if (action === "just_right") await clearFeedbackAction();
     return false;
   }
 
   const updated = await upsertCalibration(userId, updates);
-  if (updated) {
-    useAppStore.getState().setCalibration(updated);
-    try {
-      localStorage.setItem("wt_calibration_cache", JSON.stringify(updated));
-    } catch {
-      /* quota */
-    }
+  if (!updated) return false;
+
+  useAppStore.getState().setCalibration(updated);
+  try {
+    localStorage.setItem(CALIBRATION_CACHE_KEY, JSON.stringify(updated));
+  } catch {
+    /* quota */
   }
-  if (action) await clearFeedbackAction();
-  return Boolean(updated);
+
+  await clearFeedbackAction();
+  return true;
 }

@@ -92,44 +92,46 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Trigger weather refresh when location city changes (e.g. tab switch).
-  // prevCityRef is seeded from store so a persisted city does not look like a change.
-  // skipNextCityRefreshRef ignores the city update from the initial refresh() below.
-  const prevCityRef = useRef<string | null>(location?.city ?? null);
-  const skipNextCityRefreshRef = useRef(false);
+  // Tab switches update location in handleTabSelect (with refresh). This effect catches
+  // programmatic location changes (e.g. profile hydrate) using the composite cache key.
+  const prevLocationKeyRef = useRef<string | null>(
+    location ? buildLocationCacheKey(location) : null,
+  );
+  const skipNextLocationRefreshRef = useRef(false);
   useEffect(() => {
-    const city = location?.city ?? null;
-    if (city && city !== prevCityRef.current) {
-      prevCityRef.current = city;
-      if (skipNextCityRefreshRef.current) {
-        skipNextCityRefreshRef.current = false;
-        return;
-      }
-      // Pass city as cache key so switching between saved cities uses per-city cache.
-      const loc = useAppStore.getState().location;
-      const key = loc ? buildLocationCacheKey(loc) : city;
+    const loc = useAppStore.getState().location;
+    if (!loc?.city) return;
+    const key = buildLocationCacheKey(loc);
+    if (key === prevLocationKeyRef.current) return;
+    prevLocationKeyRef.current = key;
+    if (skipNextLocationRefreshRef.current) {
+      skipNextLocationRefreshRef.current = false;
+      return;
+    }
+    if (!activeLocationIsDevice) {
       refresh(false, { cacheKey: key });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location?.city, location?.latitude, location?.longitude]);
+  }, [location?.city, location?.latitude, location?.longitude, activeLocationIsDevice]);
 
   // Initial load (refresh may call setLocation — skip duplicate city-change fetch).
   // Always clear the skip flag when refresh finishes: returning users already have
   // location.city from the profile, so the city-change effect often never runs.
   useEffect(() => {
-    skipNextCityRefreshRef.current = true;
+    skipNextLocationRefreshRef.current = true;
     void (async () => {
       try {
         await refresh();
       } finally {
-        skipNextCityRefreshRef.current = false;
-        prevCityRef.current = useAppStore.getState().location?.city ?? null;
-        // Auto-seed the resolved location into saved list so tab bar appears immediately.
+        skipNextLocationRefreshRef.current = false;
         const loc = useAppStore.getState().location;
+        prevLocationKeyRef.current = loc ? buildLocationCacheKey(loc) : null;
+        // Auto-seed the resolved location into saved list so tab bar appears immediately.
         if (loc?.city) {
           const current = await getSavedLocations().catch(() => [] as typeof savedLocations);
+          const locKey = buildLocationCacheKey(loc);
           const alreadySaved = current.some(
-            (l) => l.city.toLowerCase() === loc.city.toLowerCase(),
+            (l) => buildLocationCacheKey(l) === locKey,
           );
           if (!alreadySaved) {
             const updated = await addSavedLocation(loc).catch(() => null);
@@ -167,14 +169,18 @@ export default function Home() {
 
   async function handleLocationSaved(ctx?: { fromCitySave?: boolean }) {
     setActiveLocationIsDevice(false);
-    await refresh(true);
+    const loc = useAppStore.getState().location;
+    await refresh(
+      true,
+      loc?.city ? { cacheKey: buildLocationCacheKey(loc) } : {},
+    );
     // City path: sheet already called addSavedLocation with forward-geocoded name; refresh may
     // rename via reverse geocode — skip addSavedLocation so dedup by city string is not bypassed.
     if (ctx?.fromCitySave) return;
     // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
-    const loc = useAppStore.getState().location;
-    if (loc?.city) {
-      const updated = await addSavedLocation(loc).catch(() => null);
+    const savedLoc = useAppStore.getState().location;
+    if (savedLoc?.city) {
+      const updated = await addSavedLocation(savedLoc).catch(() => null);
       if (updated) setSavedLocations(updated);
     }
   }
@@ -182,6 +188,8 @@ export default function Home() {
   function handleTabSelect(loc: LocationData) {
     setActiveLocationIsDevice(false);
     setLocation(loc);
+    prevLocationKeyRef.current = buildLocationCacheKey(loc);
+    refresh(false, { cacheKey: buildLocationCacheKey(loc) });
   }
 
   function handleRefresh() {
@@ -202,12 +210,13 @@ export default function Home() {
     refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
   }
 
-  async function handleDeleteCity(city: string) {
-    const updated = await removeSavedLocation(city).catch(() => null);
+  async function handleDeleteCity(loc: LocationData) {
+    const updated = await removeSavedLocation(loc).catch(() => null);
     if (updated) {
       setSavedLocations(updated);
-      // If the deleted city was active, switch to device GPS
-      if (location?.city?.toLowerCase() === city.toLowerCase()) {
+      const activeKey =
+        location && !activeLocationIsDevice ? buildLocationCacheKey(location) : null;
+      if (activeKey && activeKey === buildLocationCacheKey(loc)) {
         handleDeviceTabSelect();
       }
     }
@@ -439,7 +448,11 @@ export default function Home() {
             />
             <LocationTabs
               locations={savedLocations}
-              activeCity={location?.city ?? null}
+              activeLocationKey={
+                activeLocationIsDevice || !location
+                  ? null
+                  : buildLocationCacheKey(location)
+              }
               activeIsDevice={activeLocationIsDevice}
               onSelect={handleTabSelect}
               onSelectDevice={handleDeviceTabSelect}

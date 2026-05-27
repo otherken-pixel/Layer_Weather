@@ -5,17 +5,18 @@ import type { LocationData } from "@/types";
 
 interface Props {
   locations: LocationData[];
-  activeCity: string | null;
+  /** Composite cache key for the active saved city, or null when on device GPS. */
+  activeLocationKey: string | null;
   activeIsDevice: boolean;
   onSelect: (loc: LocationData) => void;
   onSelectDevice: () => void;
   onAdd: () => void;
-  onDelete: (city: string) => void;
+  onDelete: (loc: LocationData) => void;
 }
 
 export function LocationTabs({
   locations,
-  activeCity,
+  activeLocationKey,
   activeIsDevice,
   onSelect,
   onSelectDevice,
@@ -24,7 +25,6 @@ export function LocationTabs({
 }: Props) {
   const [editMode, setEditMode] = useState(false);
 
-  // Auto-exit edit mode when the last saved city is deleted.
   useEffect(() => {
     if (locations.length === 0) setEditMode(false);
   }, [locations.length]);
@@ -77,7 +77,6 @@ export function LocationTabs({
           paddingTop: 10,
         }}
       >
-        {/* Device GPS tab — always first, never deletable */}
         <button
           type="button"
           onClick={onSelectDevice}
@@ -90,7 +89,10 @@ export function LocationTabs({
         </button>
 
         {locations.map((loc) => {
-          const isActive = !activeIsDevice && loc.city === activeCity;
+          const isActive =
+            !activeIsDevice &&
+            activeLocationKey != null &&
+            locationTabKey(loc) === activeLocationKey;
           return (
             <div key={locationTabKey(loc)} style={{ position: "relative", flexShrink: 0 }}>
               <button
@@ -110,7 +112,7 @@ export function LocationTabs({
               {editMode && (
                 <button
                   type="button"
-                  onClick={() => onDelete(loc.city)}
+                  onClick={() => onDelete(loc)}
                   aria-label={`Remove ${loc.city}`}
                   style={{
                     position: "absolute",
@@ -138,7 +140,6 @@ export function LocationTabs({
           );
         })}
 
-        {/* Edit / Done toggle — only shown when there are saved cities */}
         {locations.length > 0 && (
           <button
             type="button"
@@ -156,7 +157,6 @@ export function LocationTabs({
           </button>
         )}
 
-        {/* Add city — hidden in edit mode */}
         {!editMode && locations.length < 5 && (
           <button
             type="button"
@@ -175,7 +175,6 @@ export function LocationTabs({
         )}
       </div>
 
-      {/* Right-edge fade — signals more pills scroll right */}
       <div
         aria-hidden
         style={{

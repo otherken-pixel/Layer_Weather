@@ -11,6 +11,8 @@ import { EVENT_TYPE_LABELS, type EventType } from "@/lib/calendar";
 import { useWeather } from "@/hooks/useWeather";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
+import { buildLocationCacheKey } from "@/lib/location-cache-key";
+import { recomputeOutfitFromCurrentWeather } from "@/lib/recompute-outfit";
 import type { LocationData } from "@/types";
 import { Colors } from "@/constants/colors";
 import { applyAccentPalette, saveAccentLocal, loadAccentLocal, ACCENT_DEFAULT } from "@/hooks/useAccentTheme";
@@ -37,7 +39,10 @@ const DELETE_ACCOUNT_CONFIRM_MESSAGE =
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { profile, calibration, userId, setProfile, setFormality: setStoreFormality, location, savedLocations, setSavedLocations } = useAppStore();
+  const {
+    profile, calibration, userId, setProfile, setFormality: setStoreFormality,
+    location, savedLocations, setSavedLocations, activeLocationIsDevice,
+  } = useAppStore();
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
@@ -105,14 +110,15 @@ export default function Settings() {
       });
       setStoreFormality(formality);
       if (updated) {
-        // Sync accent_color to DB if the column exists; ignore error if it doesn't
+        setProfile(updated);
         try {
           const withAccent = await upsertProfile(userId, { accent_color: accentColor });
           if (withAccent) setProfile(withAccent);
         } catch {
-          setProfile(updated);
+          /* accent column may be missing */
         }
       }
+      recomputeOutfitFromCurrentWeather();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -664,7 +670,9 @@ export default function Settings() {
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 16 }}>📍</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: rowTextColor }}>{loc.city}</span>
-                      {loc.city === location?.city && (
+                      {location &&
+                        !activeLocationIsDevice &&
+                        buildLocationCacheKey(loc) === buildLocationCacheKey(location) && (
                         <span style={{
                           fontSize: 10, fontWeight: 700,
                           color: isDark ? "var(--accent-light)" : "var(--accent-primary)",
@@ -678,7 +686,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={async () => {
-                        const updated = await removeSavedLocation(loc.city).catch(() => localSavedLocations);
+                        const updated = await removeSavedLocation(loc).catch(() => localSavedLocations);
                         setLocalSavedLocations(updated);
                         setSavedLocations(updated);
                       }}
