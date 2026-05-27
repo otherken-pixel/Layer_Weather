@@ -317,3 +317,20 @@ export async function deleteUserAccount(userId: string): Promise<void> {
 export function onAuthStateChange(callback: (event: string, session: unknown) => void) {
   return supabase.auth.onAuthStateChange(callback);
 }
+
+// ── Nerd Mode ─────────────────────────────────────────────────────────────────
+
+export async function getRainHistory(lat: number, lng: number): Promise<{ last24h: number; last3d: number; last7d: number; last30d: number } | null> {
+  const { data, error } = await supabase.functions.invoke("rain-history", {
+    body: { lat, lng },
+  });
+  if (error) return null;
+  const r = data as Record<string, unknown>;
+  if ("error" in r) return null;
+  return {
+    last24h: Number(r.last24h ?? 0),
+    last3d: Number(r.last3d ?? 0),
+    last7d: Number(r.last7d ?? 0),
+    last30d: Number(r.last30d ?? 0),
+  };
+}
