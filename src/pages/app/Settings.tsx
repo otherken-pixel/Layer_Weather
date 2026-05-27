@@ -793,7 +793,7 @@ export default function Settings() {
                   setNerdModeEnabled(next);
                   setIsDirty(true);
                   if (profile) setProfile({ ...profile, nerd_mode_enabled: next });
-                  if (userId) {
+                  if (profile && userId) {
                     upsertProfile(userId, { nerd_mode_enabled: next, nerd_mode_cards: nerdModeCards }).catch(() => {});
                   }
                 }}
@@ -833,7 +833,7 @@ export default function Settings() {
                         setNerdModeCards(next);
                         setIsDirty(true);
                         if (profile) setProfile({ ...profile, nerd_mode_cards: next });
-                        if (userId) {
+                        if (profile && userId) {
                           upsertProfile(userId, { nerd_mode_cards: next, nerd_mode_enabled: nerdModeEnabled }).catch(() => {});
                         }
                       }}
