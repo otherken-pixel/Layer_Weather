@@ -38,7 +38,7 @@ function phaseFromAge(age: number): MoonPhaseName {
   const p = age / LUNAR_CYCLE;
   if (p < 0.033 || p >= 0.967) return "New Moon";
   if (p < 0.192) return "Waxing Crescent";
-  if (p < 0.225) return "First Quarter";
+  if (p < 0.283) return "First Quarter";
   if (p < 0.467) return "Waxing Gibbous";
   if (p < 0.533) return "Full Moon";
   if (p < 0.742) return "Waning Gibbous";
