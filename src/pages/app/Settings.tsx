@@ -107,17 +107,10 @@ export default function Settings() {
         commute_start: commuteStart,
         commute_end: commuteEnd,
         theme_preference: themePreference === "system" ? null : themePreference,
+        accent_color: accentColor,
       });
       setStoreFormality(formality);
-      if (updated) {
-        setProfile(updated);
-        try {
-          const withAccent = await upsertProfile(userId, { accent_color: accentColor });
-          if (withAccent) setProfile(withAccent);
-        } catch {
-          /* accent column may be missing */
-        }
-      }
+      if (updated) setProfile(updated);
       recomputeOutfitFromCurrentWeather();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);

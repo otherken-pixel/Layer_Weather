@@ -40,6 +40,7 @@ export default function AppLayout() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <main
+        data-scroll-container
         className="flex-1 overflow-y-auto overscroll-none"
         style={{
           paddingBottom: `calc(${TAB_BAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,

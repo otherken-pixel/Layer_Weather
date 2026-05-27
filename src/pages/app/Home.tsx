@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
@@ -32,6 +32,7 @@ import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import type { LocationData, OutfitFeedbackValue } from "@/types";
 
 function toUnit(f: number, unit: "F" | "C") {
@@ -194,7 +195,7 @@ export default function Home() {
     refresh(false, { cacheKey: buildLocationCacheKey(loc) });
   }
 
-  function handleRefresh() {
+  const handleRefresh = useCallback(function handleRefresh() {
     if (activeLocationIsDevice) {
       refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
       return;
@@ -205,7 +206,9 @@ export default function Home() {
     } else {
       refresh(true);
     }
-  }
+  }, [activeLocationIsDevice, refresh]);
+
+  const { pullDistance, isRefreshing: isPullRefreshing, triggered } = usePullToRefresh(handleRefresh);
 
   async function handleDeviceTabSelect() {
     setActiveLocationIsDevice(true);
@@ -335,6 +338,50 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
+
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || isPullRefreshing) && (
+        <div
+          style={{
+            position: "fixed",
+            top: `calc(env(safe-area-inset-top, 0px) + ${isPullRefreshing ? 12 : Math.max(pullDistance - 48, 0)}px)`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 70,
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            background: "var(--accent-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+            transition: isPullRefreshing ? "top 0.2s ease" : undefined,
+            opacity: isPullRefreshing ? 1 : Math.min(pullDistance / 48, 1),
+          }}
+        >
+          {isPullRefreshing ? (
+            <svg
+              width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ animation: "ptr-spin 0.75s linear infinite" }}
+            >
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          ) : (
+            <svg
+              width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{
+                transform: triggered ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <path d="M12 5v14M5 12l7 7 7-7" />
+            </svg>
+          )}
+        </div>
+      )}
 
       {/* Loading skeleton */}
       {isLoadingWeather && !weather && (
