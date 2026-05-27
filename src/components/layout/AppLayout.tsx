@@ -1,13 +1,14 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 import { TabBar } from "./TabBar";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAccentTheme } from "@/hooks/useAccentTheme";
-import { useAppStore } from "@/store";
+import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import { applyPendingWidgetFeedback } from "@/lib/widget-feedback";
 import { recomputeOutfitFromCurrentWeather } from "@/lib/recompute-outfit";
+import { useWeather } from "@/hooks/useWeather";
 
 const TAB_BAR_HEIGHT = 56;
 
@@ -16,7 +17,14 @@ export default function AppLayout() {
   const accentColor = useAppStore((s) => s.profile?.accent_color);
   const userId = useAppStore((s) => s.userId);
   const calibration = useAppStore((s) => s.calibration);
+  const activeLocationIsDevice = useAppStore((s) => s.activeLocationIsDevice);
   useAccentTheme(accentColor);
+
+  const { refresh } = useWeather();
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  const activeLocationIsDeviceRef = useRef(activeLocationIsDevice);
+  activeLocationIsDeviceRef.current = activeLocationIsDevice;
 
   const syncWidgetFeedback = useCallback(async () => {
     if (!userId) return;
@@ -30,7 +38,12 @@ export default function AppLayout() {
     void syncWidgetFeedback();
     if (!Capacitor.isNativePlatform()) return;
     const handle = App.addListener("appStateChange", ({ isActive }) => {
-      if (isActive) void syncWidgetFeedback();
+      if (isActive) {
+        void syncWidgetFeedback();
+        if (activeLocationIsDeviceRef.current) {
+          void refreshRef.current(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+        }
+      }
     });
     return () => {
       void handle.then((h) => h.remove());

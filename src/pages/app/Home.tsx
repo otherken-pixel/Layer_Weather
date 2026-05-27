@@ -28,7 +28,7 @@ import { addSavedLocation, getSavedLocations, removeSavedLocation } from "@/lib/
 import { buildLocationCacheKey } from "@/lib/location-cache-key";
 import { removeCityWeatherCache } from "@/lib/cache";
 import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
-import { DEVICE_LOCATION_KEY } from "@/store";
+import { DEVICE_LOCATION_KEY, loadDeviceLocationPref } from "@/store";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
@@ -169,7 +169,13 @@ export default function Home() {
     skipNextLocationRefreshRef.current = true;
     void (async () => {
       try {
-        await refresh();
+        const useDeviceLocation = await loadDeviceLocationPref();
+        if (useDeviceLocation) {
+          setActiveLocationIsDevice(true);
+          await refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+        } else {
+          await refresh();
+        }
       } finally {
         skipNextLocationRefreshRef.current = false;
         const loc = useAppStore.getState().location;
