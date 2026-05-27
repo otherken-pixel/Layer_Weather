@@ -167,6 +167,7 @@ native_group = find_or_add_group(app_group, 'NativeExtensions')
 main_grp     = find_or_add_group(native_group, 'MainApp')
 shared_grp   = find_or_add_group(native_group, 'Shared')
 
+add_source(main_target, main_grp, NATIVE / 'MainApp/LayerWeatherBridgeViewController.swift')
 add_source(main_target, main_grp, NATIVE / 'MainApp/WidgetBridgePlugin.swift')
 add_source(main_target, main_grp, NATIVE / 'MainApp/WatchConnectivityHandler.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/AppGroupKeys.swift')
@@ -226,30 +227,40 @@ else
   puts "  ↩  PrivacyInfo.xcprivacy (already present)"
 end
 
-# ── Patch AppDelegate.swift ────────────────────────────────────────────────
+# ── Patch Main.storyboard (Capacitor 6 custom bridge VC) ─────────────────
+storyboard_path = APP_SRC / 'Base.lproj/Main.storyboard'
+if storyboard_path.exist?
+  sb = File.read(storyboard_path)
+  if sb.include?('LayerWeatherBridgeViewController')
+    puts "  ↩  Main.storyboard already uses LayerWeatherBridgeViewController"
+  elsif sb.include?('CAPBridgeViewController')
+    sb = sb.sub(
+      'customClass="CAPBridgeViewController" customModule="Capacitor"',
+      'customClass="LayerWeatherBridgeViewController" customModule="App"'
+    )
+    File.write(storyboard_path, sb)
+    puts "  +  Main.storyboard → LayerWeatherBridgeViewController (registers WidgetBridge)"
+  else
+    puts "  ⚠  Main.storyboard: expected CAPBridgeViewController — patch manually"
+  end
+else
+  puts "  ⚠  Main.storyboard not found — skipped bridge VC storyboard patch"
+end
+
+# ── AppDelegate: WatchConnectivity now starts in LayerWeatherBridgeViewController ─
 delegate_path = APP_SRC / 'AppDelegate.swift'
 if delegate_path.exist?
   src = File.read(delegate_path)
-  if src.include?('WatchConnectivityHandler')
-    if file_in_compile_phase?(main_target, 'WatchConnectivityHandler.swift')
-      puts "  ↩  AppDelegate.swift already patched"
-    else
-      puts "  ⚠  AppDelegate references WatchConnectivityHandler but Swift file is not in App compile sources"
-      puts "     (fixed above — rebuild in Xcode)"
-    end
-  else
-    # Add import after the last import line
-    src = src.sub(/(import \S+\n)(?!import)/, "\\1import WatchConnectivity\n")
-    # Insert activation before the final `return true` in didFinishLaunchingWithOptions
-    src = src.sub(
-      /(didFinishLaunchingWithOptions[^}]+?)(return true)/m,
-      "\\1WatchConnectivityHandler.shared.activate()\n        \\2"
-    )
+  if src.include?('WatchConnectivityHandler.shared.activate')
+    src = src.gsub(/^\s*WatchConnectivityHandler\.shared\.activate\(\)\n/, '')
+    src = src.gsub(/import WatchConnectivity\n/, '')
     File.write(delegate_path, src)
-    puts "  +  AppDelegate.swift patched (WatchConnectivityHandler.shared.activate)"
+    puts "  +  AppDelegate.swift: removed WatchConnectivity (handled in bridge VC)"
+  else
+    puts "  ↩  AppDelegate.swift (WatchConnectivity via LayerWeatherBridgeViewController)"
   end
 else
-  puts "  ⚠  AppDelegate.swift not found at #{delegate_path} — skipped"
+  puts "  ⚠  AppDelegate.swift not found — skipped"
 end
 
 # ══════════════════════════════════════════════════════════════════════════

@@ -21,6 +21,12 @@ import {
   parseWidgetLocationPreference,
   syncWidgetFromAppState,
 } from "@/lib/widget-location";
+import {
+  checkWidgetBridgeHealth,
+  forceSyncWidgetAndWatch,
+  type WidgetBridgeHealth,
+} from "@/lib/widget-sync";
+import { Capacitor } from "@capacitor/core";
 import { Colors } from "@/constants/colors";
 import { applyAccentPalette, saveAccentLocal, loadAccentLocal, ACCENT_DEFAULT } from "@/hooks/useAccentTheme";
 
@@ -82,6 +88,8 @@ export default function Settings() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [widgetLocPref, setWidgetLocPref] = useState<WidgetLocationPreference>({ mode: "today" });
   const [widgetLocSaving, setWidgetLocSaving] = useState(false);
+  const [widgetSyncStatus, setWidgetSyncStatus] = useState<WidgetBridgeHealth | null>(null);
+  const [widgetSyncing, setWidgetSyncing] = useState(false);
 
   useEffect(() => {
     const fromProfile = profile?.widget_location_preference;
@@ -409,6 +417,54 @@ export default function Settings() {
             </div>
             {widgetLocSaving && (
               <p style={{ fontSize: 12, color: hintColor, marginTop: 8 }}>Updating widgets…</p>
+            )}
+            {Capacitor.isNativePlatform() && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${dividerColor}` }}>
+                <button
+                  type="button"
+                  disabled={widgetSyncing}
+                  onClick={async () => {
+                    setWidgetSyncing(true);
+                    setWidgetSyncStatus(null);
+                    try {
+                      const health = await checkWidgetBridgeHealth();
+                      if (!health.ok) {
+                        setWidgetSyncStatus(health);
+                        return;
+                      }
+                      const result = await forceSyncWidgetAndWatch();
+                      setWidgetSyncStatus(result);
+                    } finally {
+                      setWidgetSyncing(false);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "10px 0",
+                    borderRadius: 12,
+                    border: `1.5px solid ${inputBorder}`,
+                    background: inputBg,
+                    color: inputText,
+                    fontWeight: 700,
+                    fontSize: 14,
+                    cursor: widgetSyncing ? "not-allowed" : "pointer",
+                    opacity: widgetSyncing ? 0.6 : 1,
+                  }}
+                >
+                  {widgetSyncing ? "Syncing…" : "Sync widget & watch now"}
+                </button>
+                {widgetSyncStatus && (
+                  <p
+                    style={{
+                      fontSize: 12,
+                      marginTop: 8,
+                      color: widgetSyncStatus.ok ? (isDark ? "#86EFAC" : "#15803D") : "#EF4444",
+                    }}
+                  >
+                    {widgetSyncStatus.detail}
+                  </p>
+                )}
+              </div>
             )}
           </ThemedCard>
         </Section>
