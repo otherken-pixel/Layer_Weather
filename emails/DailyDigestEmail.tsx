@@ -134,12 +134,12 @@ export default function DailyDigestEmail({
             <Text style={styles.periodIcon}>{period.icon}</Text>
             <Text style={styles.periodCondition}>{period.condition}</Text>
             <Text style={styles.periodTemps}>
-              <Text style={styles.tempHigh}>
+              <span style={styles.tempHigh}>
                 {period.high}°{unit}
-              </Text>{" "}
-              <Text style={styles.tempLow}>
+              </span>{" "}
+              <span style={styles.tempLow}>
                 {period.low}°{unit}
-              </Text>
+              </span>
             </Text>
             <Text style={styles.precip}>💧 {period.precipChance}%</Text>
           </Section>
