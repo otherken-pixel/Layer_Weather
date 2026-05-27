@@ -332,7 +332,11 @@ export default function Settings() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setStylePreference(key)}
+                    onClick={() => {
+                      setStylePreference(key);
+                      if (profile) setProfile({ ...profile, style_preference: key });
+                      if (userId) upsertProfile(userId, { style_preference: key }).then((updated) => { if (updated) setProfile(updated); }).catch(() => {});
+                    }}
                     style={{
                       display: "flex",
                       alignItems: "center",
