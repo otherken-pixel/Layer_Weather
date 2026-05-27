@@ -180,7 +180,7 @@ export default function Settings() {
         animate={{ opacity: 1, y: 0 }}
         style={{
           background: pageBg,
-          paddingTop: 36,
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)",
           paddingBottom: 24,
           display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
         }}
