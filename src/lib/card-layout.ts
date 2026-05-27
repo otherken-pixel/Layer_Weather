@@ -52,3 +52,8 @@ export function saveCardLayout(layout: CardConfig[]): void {
     // ignore quota errors
   }
 }
+
+/** Clears persisted card order/minimize preferences (e.g. on sign-out). */
+export function clearCardLayout(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}

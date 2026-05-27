@@ -4,6 +4,7 @@ import { useAppStore } from "@/store";
 import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
 import { mergeFromCloud } from "@/lib/saved-locations";
+import { clearCardLayout } from "@/lib/card-layout";
 import type { Profile, UserCalibration } from "@/types";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
@@ -133,6 +134,7 @@ export function useAuth() {
         localStorage.removeItem("wt_card_layout");
         localStorage.removeItem("wt_today_event_type");
         localStorage.removeItem("wt_today_event_date");
+        clearCardLayout();
         await resetPushNotificationSession();
         reset();
         await clearWeatherCache();
