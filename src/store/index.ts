@@ -211,7 +211,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   hydrateCardLayout: (layout) => {
     saveCardLayout(layout);
-    set({ cardLayout: layout });
+    set({ cardLayout: loadCardLayout() });
   },
   reset: () => set({ ...initialState, cardLayout: loadCardLayout() }),
 }));
