@@ -42,7 +42,7 @@ function phaseFromAge(age: number): MoonPhaseName {
   if (p < 0.467) return "Waxing Gibbous";
   if (p < 0.533) return "Full Moon";
   if (p < 0.742) return "Waning Gibbous";
-  if (p < 0.775) return "Last Quarter";
+  if (p < 0.783) return "Last Quarter";
   return "Waning Crescent";
 }
 
