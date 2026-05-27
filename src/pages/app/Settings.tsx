@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, deleteUserAccount, upsertProfile } from "@/lib/supabase";
@@ -71,7 +71,6 @@ export default function Settings() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const stylePreferenceUpsertSeqRef = useRef(0);
 
   useEffect(() => {
     const label = location?.city || profile?.last_city;
@@ -351,14 +350,7 @@ export default function Settings() {
                       }
                       setStylePreference(next);
                       if (profile) setProfile({ ...profile, style_preference: next });
-                      if (userId) {
-                        const seq = ++stylePreferenceUpsertSeqRef.current;
-                        upsertProfile(userId, { style_preference: next })
-                          .then((updated) => {
-                            if (updated && seq === stylePreferenceUpsertSeqRef.current) setProfile(updated);
-                          })
-                          .catch(() => {});
-                      }
+                      setIsDirty(true);
                     }}
                     style={{
                       display: "flex",
@@ -397,14 +389,7 @@ export default function Settings() {
                       const next: StylePreference[] = ["feminine", "masculine", "neutral"];
                       setStylePreference(next);
                       if (profile) setProfile({ ...profile, style_preference: next });
-                      if (userId) {
-                        const seq = ++stylePreferenceUpsertSeqRef.current;
-                        upsertProfile(userId, { style_preference: next })
-                          .then((updated) => {
-                            if (updated && seq === stylePreferenceUpsertSeqRef.current) setProfile(updated);
-                          })
-                          .catch(() => {});
-                      }
+                      setIsDirty(true);
                     }}
                     style={{
                       display: "flex",
