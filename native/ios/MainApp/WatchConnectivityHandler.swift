@@ -108,6 +108,10 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
            let thermal = Int(thermalStr) {
             payload["thermalSensitivity"] = thermal
         }
+        if let coordStr = defaults?.string(forKey: AppGroupKeys.lastCoordinates),
+           let coordData = coordStr.data(using: .utf8) {
+            payload["lastCoordinates"] = coordData
+        }
         return payload
     }
 }

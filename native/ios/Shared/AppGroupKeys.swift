@@ -12,4 +12,5 @@ enum AppGroupKeys {
     static let feedbackAction = "widget_feedback_action"
     static let feedbackTimestamp = "widget_feedback_timestamp"
     static let lastCoordinates = "widget_last_coordinates"
+    static let locationPreference = "widget_location_preference"
 }

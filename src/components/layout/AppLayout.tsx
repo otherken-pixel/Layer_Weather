@@ -9,6 +9,7 @@ import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import { applyPendingWidgetFeedback } from "@/lib/widget-feedback";
 import { recomputeOutfitFromCurrentWeather } from "@/lib/recompute-outfit";
 import { useWeather } from "@/hooks/useWeather";
+import { syncWidgetFromAppState } from "@/lib/widget-location";
 
 const TAB_BAR_HEIGHT = 56;
 
@@ -40,9 +41,12 @@ export default function AppLayout() {
     const handle = App.addListener("appStateChange", ({ isActive }) => {
       if (isActive) {
         void syncWidgetFeedback();
+        void syncWidgetFromAppState();
         if (activeLocationIsDeviceRef.current) {
           void refreshRef.current(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
         }
+      } else {
+        void syncWidgetFromAppState();
       }
     });
     return () => {
