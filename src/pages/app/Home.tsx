@@ -1089,7 +1089,8 @@ function wmoToCondition(code: number): string {
   if (code <= 67) return "rain";
   if (code <= 77) return "snow";
   if (code <= 82) return "rain";
-  if (code <= 86) return "heavy_rain";
+  if (code <= 84) return "heavy_rain";
+  if (code <= 86) return "snow";
   return "thunderstorm";
 }
 
