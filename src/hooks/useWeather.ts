@@ -190,7 +190,7 @@ export function useWeather() {
     cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
-    setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setPollenData,
+    setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setAqiForecast, setPollenData,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -274,6 +274,11 @@ export function useWeather() {
           data.current.location = city;
           data.current.aqiIndex = aqiResult.aqi;
           setAqiBreakdown(aqiResult.breakdown.length > 0 ? aqiResult.breakdown : null);
+          setAqiForecast(
+            aqiResult.forecastAqi != null && aqiResult.forecastCategory != null
+              ? { aqi: aqiResult.forecastAqi, category: aqiResult.forecastCategory }
+              : null,
+          );
           setPollenData(pollenResult);
           setWeather(data);
           const fetchedAt = new Date();

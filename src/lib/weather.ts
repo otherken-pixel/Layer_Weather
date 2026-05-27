@@ -484,14 +484,14 @@ export async function fetchAQIBestSource(
   latitude: number,
   longitude: number,
   countryCode?: string,
-): Promise<{ aqi: number | null; breakdown: EPAObservation[] }> {
+): Promise<{ aqi: number | null; breakdown: EPAObservation[]; forecastAqi: number | null; forecastCategory: string | null }> {
   const cc = (countryCode ?? "").toUpperCase();
   if (cc === "US" || cc === "") {
     const result = await fetchEPAAQI(latitude, longitude);
     if (result.aqi !== null) return result;
   }
   const aqi = await fetchAQIIndex(latitude, longitude);
-  return { aqi, breakdown: [] };
+  return { aqi, breakdown: [], forecastAqi: null, forecastCategory: null };
 }
 
 function toLocalDayKey(d: Date): string {

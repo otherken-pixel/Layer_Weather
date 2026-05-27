@@ -65,10 +65,11 @@ function getAQILevel(aqi: number): AQILevel {
 interface Props {
   aqiIndex: number;
   breakdown?: EPAObservation[] | null;
+  forecast?: { aqi: number; category: string } | null;
   isDark?: boolean;
 }
 
-export function AQICard({ aqiIndex, breakdown, isDark = false }: Props) {
+export function AQICard({ aqiIndex, breakdown, forecast, isDark = false }: Props) {
   const [expanded, setExpanded] = useState(false);
   const level = getAQILevel(aqiIndex);
   const fillPct = Math.min(aqiIndex / 300, 1);
@@ -171,6 +172,32 @@ export function AQICard({ aqiIndex, breakdown, isDark = false }: Props) {
           <span style={{ color: labelColor }}> · Main: {dominantPollutant.parameter}</span>
         )}
       </p>
+
+      {/* Tomorrow's AQI forecast */}
+      {forecast != null && (
+        <div style={{
+          marginTop: 10, paddingTop: 10,
+          borderTop: `1px solid ${dividerColor}`,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: labelColor, flex: 1 }}>
+            Tomorrow
+          </span>
+          {(() => {
+            const fl = getAQILevel(forecast.aqi);
+            const fb = isDark ? fl.darkBg : fl.bg;
+            const ft = isDark ? fl.darkTextColor : fl.textColor;
+            return (
+              <>
+                <span style={{ fontSize: 14, fontWeight: 700, color: fl.color }}>{forecast.aqi}</span>
+                <div style={{ padding: "2px 10px", borderRadius: 999, background: fb }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ft }}>{fl.label}</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Expandable pollutant breakdown */}
       <AnimatePresence initial={false}>

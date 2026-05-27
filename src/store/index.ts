@@ -55,6 +55,8 @@ interface AppState {
   lightningActivity: LightningActivity | null;
   /** EPA AirNow pollutant breakdown for the current location. Null when unavailable or using cached data. */
   aqiBreakdown: EPAObservation[] | null;
+  /** EPA AirNow tomorrow's AQI forecast. Null when unavailable or non-US. */
+  aqiForecast: { aqi: number; category: string } | null;
   /** Pollen levels for tree, grass, and weed. Null when outside coverage or using cached data. */
   pollenData: PollenData | null;
   /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
@@ -108,6 +110,7 @@ interface AppState {
   setNWSAlerts: (alerts: NWSAlert[]) => void;
   setLightningActivity: (activity: LightningActivity | null) => void;
   setAqiBreakdown: (breakdown: EPAObservation[] | null) => void;
+  setAqiForecast: (forecast: { aqi: number; category: string } | null) => void;
   setPollenData: (data: PollenData | null) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
@@ -139,6 +142,7 @@ const initialState = {
   nwsAlerts: [] as NWSAlert[],
   lightningActivity: null as LightningActivity | null,
   aqiBreakdown: null as EPAObservation[] | null,
+  aqiForecast: null as { aqi: number; category: string } | null,
   pollenData: null as PollenData | null,
   isLoadingWeather: false,
   weatherError: null,
@@ -179,6 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setNWSAlerts: (nwsAlerts) => set({ nwsAlerts }),
   setLightningActivity: (lightningActivity) => set({ lightningActivity }),
   setAqiBreakdown: (aqiBreakdown) => set({ aqiBreakdown }),
+  setAqiForecast: (aqiForecast) => set({ aqiForecast }),
   setPollenData: (pollenData) => set({ pollenData }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),

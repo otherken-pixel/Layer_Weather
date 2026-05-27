@@ -6,6 +6,8 @@ export type { EPAObservation };
 export interface EPAAQIResult {
   aqi: number | null;
   breakdown: EPAObservation[];
+  forecastAqi: number | null;
+  forecastCategory: string | null;
 }
 
 /**
@@ -24,8 +26,10 @@ export async function fetchEPAAQI(lat: number, lon: number): Promise<EPAAQIResul
     return {
       aqi: typeof rec.aqi === "number" ? rec.aqi : null,
       breakdown: Array.isArray(rec.breakdown) ? (rec.breakdown as EPAObservation[]) : [],
+      forecastAqi: typeof rec.forecastAqi === "number" ? rec.forecastAqi : null,
+      forecastCategory: typeof rec.forecastCategory === "string" ? rec.forecastCategory : null,
     };
   } catch {
-    return { aqi: null, breakdown: [] };
+    return { aqi: null, breakdown: [], forecastAqi: null, forecastCategory: null };
   }
 }

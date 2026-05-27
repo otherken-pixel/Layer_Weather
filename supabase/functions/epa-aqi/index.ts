@@ -15,6 +15,7 @@ const CORS = {
 };
 
 const AIRNOW_BASE = "https://www.airnowapi.org/aq/observation/latLong/current/";
+const AIRNOW_FORECAST_BASE = "https://www.airnowapi.org/aq/forecast/latLong/";
 const TIMEOUT_MS = 8_000;
 
 interface AirNowObservation {
@@ -25,6 +26,15 @@ interface AirNowObservation {
   StateCode: string;
   Latitude: number;
   Longitude: number;
+}
+
+interface AirNowForecast {
+  DateForecast: string;
+  ParameterName: string;
+  AQI: number;
+  Category: { Number: number; Name: string };
+  ReportingArea: string;
+  StateCode: string;
 }
 
 Deno.serve(async (req) => {
@@ -62,9 +72,25 @@ Deno.serve(async (req) => {
       API_KEY: apiKey,
     });
 
-    const res = await fetch(`${AIRNOW_BASE}?${params}`, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+    // Fetch current observations + tomorrow's forecast in parallel
+    const tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = tomorrowDate.toISOString().slice(0, 10);
+
+    const forecastParams = new URLSearchParams({
+      format: "application/json",
+      latitude: lat.toFixed(4),
+      longitude: lon.toFixed(4),
+      distance: "25",
+      date: tomorrowStr,
+      API_KEY: apiKey,
     });
+
+    const [res, forecastRes] = await Promise.all([
+      fetch(`${AIRNOW_BASE}?${params}`, { signal: AbortSignal.timeout(TIMEOUT_MS) }),
+      fetch(`${AIRNOW_FORECAST_BASE}?${forecastParams}`, { signal: AbortSignal.timeout(TIMEOUT_MS) })
+        .catch(() => null),
+    ]);
 
     if (!res.ok) {
       return new Response(
@@ -95,8 +121,29 @@ Deno.serve(async (req) => {
       reportingArea: o.ReportingArea,
     }));
 
+    // Tomorrow's forecast AQI (highest across all pollutants)
+    let forecastAqi: number | null = null;
+    let forecastCategory: string | null = null;
+    if (forecastRes?.ok) {
+      try {
+        const forecasts: AirNowForecast[] = await forecastRes.json();
+        if (Array.isArray(forecasts) && forecasts.length > 0) {
+          const best = forecasts.reduce<AirNowForecast | null>((prev, f) => {
+            if (typeof f.AQI !== "number" || f.AQI < 0) return prev;
+            return !prev || f.AQI > prev.AQI ? f : prev;
+          }, null);
+          if (best) {
+            forecastAqi = best.AQI;
+            forecastCategory = best.Category?.Name ?? null;
+          }
+        }
+      } catch {
+        // Forecast parse failed — continue without it
+      }
+    }
+
     return new Response(
-      JSON.stringify({ aqi: maxAqi, breakdown }),
+      JSON.stringify({ aqi: maxAqi, breakdown, forecastAqi, forecastCategory }),
       { headers: { ...CORS, "Content-Type": "application/json" } },
     );
   } catch (err) {

@@ -66,7 +66,9 @@ export default function Home() {
     forecastConfidence,
     lightningActivity,
     aqiBreakdown,
+    aqiForecast,
     pollenData,
+    nwsAlerts,
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -610,6 +612,11 @@ export default function Home() {
             zIndex: 2,
           }}>
 
+            {/* NWS severe weather alerts (US only) */}
+            {nwsAlerts.length > 0 && (
+              <NWSAlertsBanner alerts={nwsAlerts} isDark={isDark} />
+            )}
+
             {/* Weather change alerts — only show rain warnings, not feels-like info */}
             {weatherAlerts.some((a) => a.type === "warning") && (
               <AlertBanner alerts={weatherAlerts.filter((a) => a.type === "warning")} />
@@ -665,6 +672,7 @@ export default function Home() {
                       <AQICard
                         aqiIndex={weather.current.aqiIndex}
                         breakdown={aqiBreakdown}
+                        forecast={aqiForecast}
                         isDark={isDark}
                       />
                     ) : null;
@@ -862,6 +870,65 @@ export default function Home() {
           </div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+// ── NWS Alerts Banner ─────────────────────────────────────────────────────────
+
+function NWSAlertsBanner({ alerts, isDark }: { alerts: import("@/types").NWSAlert[]; isDark: boolean }) {
+  const [dismissed, setDismissed] = React.useState<Set<string>>(new Set());
+
+  function severityColor(s: string): { bg: string; border: string; text: string } {
+    if (s === "Extreme") return { bg: isDark ? "rgba(239,68,68,0.18)" : "#FEF2F2", border: "#FCA5A5", text: isDark ? "#FCA5A5" : "#B91C1C" };
+    if (s === "Severe") return { bg: isDark ? "rgba(249,115,22,0.16)" : "#FFF7ED", border: "#FDBA74", text: isDark ? "#FDBA74" : "#C2410C" };
+    if (s === "Moderate") return { bg: isDark ? "rgba(234,179,8,0.14)" : "#FFFBEB", border: "#FDE68A", text: isDark ? "#FCD34D" : "#92400E" };
+    return { bg: isDark ? "rgba(59,130,246,0.14)" : "#EFF6FF", border: "#BFDBFE", text: isDark ? "#93C5FD" : "#1D4ED8" };
+  }
+
+  const visible = alerts.filter((a) => !dismissed.has(a.id) && new Date(a.expires) > new Date());
+  if (visible.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {visible.map((alert) => {
+        const { bg, border, text } = severityColor(alert.severity);
+        return (
+          <div
+            key={alert.id}
+            style={{
+              background: bg, border: `1px solid ${border}`,
+              borderRadius: 16, padding: "10px 14px",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
+              {alert.severity === "Extreme" || alert.severity === "Severe" ? "🚨" : "⚠️"}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: text, margin: "0 0 2px" }}>
+                {alert.event}
+              </p>
+              <p style={{ fontSize: 12, color: text, opacity: 0.85, margin: 0, lineHeight: 1.4 }}>
+                {alert.headline}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
+              aria-label="Dismiss alert"
+              style={{
+                flexShrink: 0, width: 28, height: 28, borderRadius: "50%",
+                border: "none", background: `${border}55`,
+                color: text, fontSize: 14, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })}
     </div>
   );
 }
