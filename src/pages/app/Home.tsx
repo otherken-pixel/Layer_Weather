@@ -136,7 +136,7 @@ export default function Home() {
             (l) => buildLocationCacheKey(l) === locKey,
           );
           if (!alreadySaved) {
-            const updated = await addSavedLocation(loc).catch(() => null);
+            const updated = await addSavedLocation(loc, userId ?? undefined).catch(() => null);
             if (updated) setSavedLocations(updated);
           }
         }
@@ -182,7 +182,7 @@ export default function Home() {
     // GPS save leaves city empty until refresh geocodes; persist in sheet only runs with a city.
     const savedLoc = useAppStore.getState().location;
     if (savedLoc?.city) {
-      const updated = await addSavedLocation(savedLoc).catch(() => null);
+      const updated = await addSavedLocation(savedLoc, userId ?? undefined).catch(() => null);
       if (updated) setSavedLocations(updated);
     }
   }
@@ -216,7 +216,7 @@ export default function Home() {
     const cacheKey = buildLocationCacheKey(loc);
     await removeCityWeatherCache(cacheKey).catch(() => {});
     evictCityCache(cacheKey);
-    const updated = await removeSavedLocation(loc).catch(() => null);
+    const updated = await removeSavedLocation(loc, userId ?? undefined).catch(() => null);
     if (updated) {
       setSavedLocations(updated);
       const activeKey =

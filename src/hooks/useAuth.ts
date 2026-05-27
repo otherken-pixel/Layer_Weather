@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase, getProfile, getCalibration, upsertCalibration, createDefaultCalibration } from "@/lib/supabase";
+import { supabase, getProfile, getCalibration, upsertCalibration, createDefaultCalibration, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
+import { mergeFromCloud } from "@/lib/saved-locations";
 import type { Profile, UserCalibration } from "@/types";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
@@ -64,6 +65,7 @@ export function useAuth() {
     setOutfit,
     setWeatherLastFetched,
     setLocation,
+    setSavedLocations,
     reset,
   } = useAppStore();
 
@@ -242,6 +244,15 @@ export function useAuth() {
           region: "",
           country: "",
         });
+      }
+
+      if (prof?.saved_locations?.length) {
+        const merged = await mergeFromCloud(prof.saved_locations);
+        setSavedLocations(merged);
+        // Sync back if local had additions the cloud didn't know about
+        if (merged.length > (prof.saved_locations.length)) {
+          upsertProfile(id, { saved_locations: merged }).catch(() => {});
+        }
       }
     };
 

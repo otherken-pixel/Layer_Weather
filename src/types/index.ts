@@ -20,6 +20,7 @@ export interface Profile {
   last_latitude: number | null;
   last_longitude: number | null;
   last_city: string | null;
+  saved_locations: LocationData[] | null;
   updated_at: string;
 }
 
