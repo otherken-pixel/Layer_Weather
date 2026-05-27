@@ -120,7 +120,6 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
             // Context has size limits; queued transfer still delivers the payload.
             session.transferUserInfo(payload)
         }
-        session.transferUserInfo(payload)
     }
 
     private func buildPayload() -> [String: Any] {

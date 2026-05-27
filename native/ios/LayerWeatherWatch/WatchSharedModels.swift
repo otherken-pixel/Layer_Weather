@@ -395,7 +395,11 @@ struct WidgetData {
         if !hourly.isEmpty { store(hourly, forKey: AppGroupKeys.hourly) }
         if !daily.isEmpty { store(daily, forKey: AppGroupKeys.daily) }
         if !timeline.isEmpty { store(timeline, forKey: AppGroupKeys.timeline) }
-        store(commuteAlert, forKey: AppGroupKeys.commuteAlert)
+        if let commuteAlert {
+            store(commuteAlert, forKey: AppGroupKeys.commuteAlert)
+        } else {
+            defaults.removeObject(forKey: AppGroupKeys.commuteAlert)
+        }
         defaults.set(accentColor, forKey: AppGroupKeys.accentColor)
         defaults.set(String(thermalSensitivity), forKey: AppGroupKeys.thermalSensitivity)
         defaults.synchronize()

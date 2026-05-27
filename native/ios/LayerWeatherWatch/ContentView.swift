@@ -154,13 +154,15 @@ struct ContentView: View {
 
         Task {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
-            await MainActor.run {
+            let alreadyHasWeather = await MainActor.run {
                 if widgetData.hasDisplayableWeather {
                     isRefreshing = false
                     HapticManager.shared.playSuccess()
-                    return
+                    return true
                 }
+                return false
             }
+            if alreadyHasWeather { return }
 
             do {
                 let data = try await WatchWeatherService.shared.fetchWeather()
