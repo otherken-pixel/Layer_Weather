@@ -94,6 +94,26 @@ function currentPeriodLabel(): DayPeriodLabel {
   return "Morning";
 }
 
+function voteStorageKey(period: DayPeriodLabel): string {
+  const d = new Date();
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `outfit_vote_${date}_${period}`;
+}
+
+function readPersistedVote(period: DayPeriodLabel): OutfitFeedbackValue | null {
+  try {
+    const val = localStorage.getItem(voteStorageKey(period));
+    if (val === "thumbs_up" || val === "thumbs_down") return val;
+  } catch {}
+  return null;
+}
+
+function persistVote(period: DayPeriodLabel, value: OutfitFeedbackValue) {
+  try {
+    localStorage.setItem(voteStorageKey(period), value);
+  } catch {}
+}
+
 export function OutfitRecommendationCard({
   recommendation,
   tempUnit,
@@ -113,18 +133,20 @@ export function OutfitRecommendationCard({
   const preferTextFlatLay = textOnly || Boolean(svgCatalogError);
   // avatarCondition/commuteAlert always reflect current conditions
   const { commuteAlert, avatarCondition } = recommendation;
-  const [voted, setVoted] = useState<OutfitFeedbackValue | null>(null);
-  const [shared, setShared] = useState(false);
-  const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
-
   const defaultPeriod = timeline?.find((e) => e.period.label === currentPeriodLabel())
     ? currentPeriodLabel()
     : timeline?.[0]?.period.label ?? "Morning";
   const [activeTab, setActiveTab] = useState<DayPeriodLabel>(defaultPeriod);
 
+  const [voted, setVoted] = useState<OutfitFeedbackValue | null>(() =>
+    readPersistedVote(defaultPeriod)
+  );
+  const [shared, setShared] = useState(false);
+  const [feelsLikeExpanded, setFeelsLikeExpanded] = useState(false);
+
   useEffect(() => {
-    setVoted(null);
-  }, [recommendation.outfit, feelsLike]);
+    setVoted(readPersistedVote(currentPeriodLabel()));
+  }, [activeTab]);
 
   async function handleVote(value: OutfitFeedbackValue) {
     if (voted) return;
@@ -132,6 +154,7 @@ export function OutfitRecommendationCard({
       if (value === "thumbs_up") hapticSuccess();
       else hapticLight();
       await onFeedback?.(value);
+      persistVote(currentPeriodLabel(), value);
       setVoted(value);
     } catch (e) {
       console.error(e);
