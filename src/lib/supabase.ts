@@ -46,14 +46,6 @@ function profileFromDb(data: Record<string, unknown>): Profile {
   return { ...data, style_preference: coerceStylePreference(data.style_preference) } as Profile;
 }
 
-function profileUpdatesToDb(updates: Partial<Omit<Profile, "id">>): Record<string, unknown> {
-  const result: Record<string, unknown> = { ...updates };
-  if (updates.style_preference !== undefined) {
-    result.style_preference = JSON.stringify(updates.style_preference);
-  }
-  return result;
-}
-
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
@@ -68,10 +60,9 @@ export async function upsertProfile(
   userId: string,
   updates: Partial<Omit<Profile, "id">>
 ): Promise<Profile | null> {
-  const dbUpdates = profileUpdatesToDb(updates);
   const { data, error } = await supabase
     .from("profiles")
-    .upsert({ id: userId, ...dbUpdates, updated_at: new Date().toISOString() })
+    .upsert({ id: userId, ...updates, updated_at: new Date().toISOString() })
     .select()
     .single();
   if (error) throw error;
