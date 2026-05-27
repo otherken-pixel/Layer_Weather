@@ -23,7 +23,7 @@ const GEOCODE_TIMEOUT_MS = 8_000;
 const WEATHER_TIMEOUT_MS = 20_000;
 const REFRESH_TIMEOUT_MS = 30_000;
 
-/** Shared across all `useWeather()` callers so concurrent refreshes cancel correctly. */
+/** Shared across callers; incremented only when a refresh starts network work (not on in-memory cache hits). */
 let refreshGeneration = 0;
 
 export const WEATHER_FETCH_ERROR_MESSAGE = "Unable to fetch weather data";
@@ -196,8 +196,6 @@ export function useWeather() {
     const { useDeviceLocation = false, cacheKey } = options;
     if (!force && !cacheKey && !isStale && weather) return;
 
-    const generation = ++refreshGeneration;
-
     if (!force && cacheKey) {
       const cached = cityWeatherCache[cacheKey];
       if (cached && Date.now() - cached.fetchedAt.getTime() < STALE_AFTER_MS) {
@@ -210,6 +208,8 @@ export function useWeather() {
         return;
       }
     }
+
+    const generation = ++refreshGeneration;
 
     setIsLoadingWeather(true);
     setWeatherError(null);
