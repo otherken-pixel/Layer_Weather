@@ -325,6 +325,7 @@ export async function getRainHistory(lat: number, lng: number): Promise<{ last24
     body: { lat, lng },
   });
   if (error) return null;
+  if (!data || typeof data !== "object") return null;
   const r = data as Record<string, unknown>;
   if ("error" in r) return null;
   return {
