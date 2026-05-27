@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Profile, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast, PackingAiInsights } from "@/types";
+import type { Profile, StylePreference, UserCalibration, OutfitFeedbackRecord, WardrobeItem, WardrobeCategory, WeatherWardrobePreset, WeatherScenario, SavedPackingTrip, PackingItem, SerializedDailyForecast, PackingAiInsights } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 
@@ -24,6 +24,36 @@ export const supabase = createClient(
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
+function coerceStylePreference(raw: unknown): StylePreference[] {
+  let arr: StylePreference[];
+  if (Array.isArray(raw)) {
+    arr = raw as StylePreference[];
+  } else if (typeof raw === "string") {
+    if (raw.startsWith("[")) {
+      try { arr = JSON.parse(raw) as StylePreference[]; } catch { arr = ["neutral"]; }
+    } else {
+      arr = [raw as StylePreference];
+    }
+  } else {
+    arr = ["neutral"];
+  }
+  // Expand legacy "all" to the three specific styles
+  if (arr.includes("all")) return ["feminine", "masculine", "neutral"];
+  return arr.length > 0 ? arr : ["neutral"];
+}
+
+function profileFromDb(data: Record<string, unknown>): Profile {
+  return { ...data, style_preference: coerceStylePreference(data.style_preference) } as Profile;
+}
+
+function profileUpdatesToDb(updates: Partial<Omit<Profile, "id">>): Record<string, unknown> {
+  const result: Record<string, unknown> = { ...updates };
+  if (updates.style_preference !== undefined) {
+    result.style_preference = JSON.stringify(updates.style_preference);
+  }
+  return result;
+}
+
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
@@ -31,20 +61,21 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .eq("id", userId)
     .single();
   if (error) return null;
-  return data as Profile;
+  return profileFromDb(data as Record<string, unknown>);
 }
 
 export async function upsertProfile(
   userId: string,
   updates: Partial<Omit<Profile, "id">>
 ): Promise<Profile | null> {
+  const dbUpdates = profileUpdatesToDb(updates);
   const { data, error } = await supabase
     .from("profiles")
-    .upsert({ id: userId, ...updates, updated_at: new Date().toISOString() })
+    .upsert({ id: userId, ...dbUpdates, updated_at: new Date().toISOString() })
     .select()
     .single();
   if (error) throw error;
-  return data as Profile;
+  return profileFromDb(data as Record<string, unknown>);
 }
 
 // ── Calibration ───────────────────────────────────────────────────────────────

@@ -41,13 +41,16 @@ export function resolveSvgId(
 
 export function catalogForPreference(
   catalog: SvgCatalogEntry[],
-  preference: StylePreference,
+  preferences: StylePreference[],
   category: SvgCategory
 ): SvgCatalogEntry[] {
   return catalog.filter((e) => {
     if (e.category !== category) return false;
-    if (preference === "all") return true;
-    return e.style === "neutral" || e.style === preference;
+    if (preferences.includes("all")) return true;
+    if (e.style === "feminine") return preferences.includes("feminine");
+    if (e.style === "masculine") return preferences.includes("masculine");
+    // neutral items appear alongside any selected style
+    return preferences.includes("neutral") || preferences.includes("feminine") || preferences.includes("masculine");
   });
 }
 

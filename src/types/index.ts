@@ -12,7 +12,7 @@ export interface Profile {
   accent_color: string | null;
   temp_unit: "F" | "C";
   outfit_display_mode: "visual" | "text";
-  style_preference: StylePreference;
+  style_preference: StylePreference[];
   formality_preference: FormalityPreference | null;
   commute_start: string | null; // "07:30"
   commute_end: string | null;   // "18:00"

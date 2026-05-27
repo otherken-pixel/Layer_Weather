@@ -213,11 +213,12 @@ const SECTIONS: HelpSection[] = [
         question: "What is Style Preference and how do I set it?",
         answer: (
           <>
-            <p>Style Preference filters which clothing illustrations appear in the wardrobe editor so you only see options relevant to you. It's found in <strong>Settings → Wardrobe Style</strong>. The three options are:</p>
+            <p>Style Preference filters which clothing illustrations appear in the wardrobe editor so you only see options relevant to you. It's found in <strong>Settings → Wardrobe Style</strong>. You can select one or more of the four options:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
               <li><strong>Feminine</strong> — Shows dresses, women's cuts, and shared styles.</li>
               <li><strong>Masculine</strong> — Shows men's cuts and shared styles. Gender-specific feminine options are hidden.</li>
-              <li><strong>Show All</strong> — Every clothing illustration is available regardless of style. Good if you want the full selection.</li>
+              <li><strong>Neutral</strong> — Shows only gender-neutral and unisex styles.</li>
+              <li><strong>Show All</strong> — Selects all three above. Every clothing illustration is available regardless of style.</li>
             </ul>
             <p style={{ marginTop: 8 }}>Changing this setting filters what you see in the editor — it doesn't affect wardrobes you've already saved.</p>
           </>
