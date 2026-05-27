@@ -3,6 +3,24 @@ import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecomme
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
 
+const DEVICE_LOCATION_PREF_KEY = "device_location_mode";
+
+function persistDeviceLocationMode(value: boolean): void {
+  import("@capacitor/preferences")
+    .then(({ Preferences }) => Preferences.set({ key: DEVICE_LOCATION_PREF_KEY, value: String(value) }))
+    .catch(() => {});
+}
+
+export async function loadDeviceLocationPref(): Promise<boolean> {
+  try {
+    const { Preferences } = await import("@capacitor/preferences");
+    const { value } = await Preferences.get({ key: DEVICE_LOCATION_PREF_KEY });
+    return value === "true";
+  } catch {
+    return false;
+  }
+}
+
 export interface CachedCityWeather {
   weather: WeatherData;
   outfit: OutfitRecommendation;
@@ -128,7 +146,10 @@ export const useAppStore = create<AppState>((set) => ({
   setIsOnboarded: (isOnboarded) => set({ isOnboarded }),
   setLocation: (location) => set({ location }),
   setSavedLocations: (savedLocations) => set({ savedLocations }),
-  setActiveLocationIsDevice: (activeLocationIsDevice) => set({ activeLocationIsDevice }),
+  setActiveLocationIsDevice: (activeLocationIsDevice) => {
+    persistDeviceLocationMode(activeLocationIsDevice);
+    set({ activeLocationIsDevice });
+  },
   setWardrobeItems: (itemsOrUpdater) =>
     set((state) => ({
       wardrobeItems:
