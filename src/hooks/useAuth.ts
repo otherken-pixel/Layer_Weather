@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase, getProfile, getCalibration, upsertCalibration, createDefaultCalibration, upsertProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
+import { syncWidgetFromAppState } from "@/lib/widget-location";
+import { Capacitor } from "@capacitor/core";
 import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
 import { mergeFromCloud } from "@/lib/saved-locations";
@@ -261,6 +263,10 @@ export function useAuth() {
         if (merged.length > cloud.length) {
           upsertProfile(id, { saved_locations: merged }).catch(() => {});
         }
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        syncWidgetFromAppState().catch(() => {});
       }
     };
 

@@ -53,7 +53,7 @@ struct WidgetSnapshot: Codable {
             condition: "partly_cloudy",
             weatherCode: 2,
             isDay: true,
-            location: "San Francisco",
+            location: "Open app to sync",
             outfitLabel: "Light Jacket",
             outfitDescription: "A light jacket over a t-shirt should keep you comfortable.",
             warmthTier: "warmth_3",

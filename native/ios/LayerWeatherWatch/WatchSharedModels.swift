@@ -67,7 +67,7 @@ struct WidgetSnapshot: Codable {
             condition: "partly_cloudy",
             weatherCode: 2,
             isDay: true,
-            location: "San Francisco",
+            location: "Open app to sync",
             outfitLabel: "Light Jacket",
             outfitDescription: "A light jacket over a t-shirt should keep you comfortable.",
             warmthTier: "warmth_3",
@@ -332,6 +332,11 @@ struct WidgetData {
         }
         if let sensitivity = payload["thermalSensitivity"] as? Int {
             thermalSensitivity = sensitivity
+        }
+        if let coordData = payload["lastCoordinates"] as? Data,
+           let json = String(data: coordData, encoding: .utf8) {
+            UserDefaults(suiteName: AppGroupKeys.suiteName)?
+                .set(json, forKey: AppGroupKeys.lastCoordinates)
         }
 
         return WidgetData(

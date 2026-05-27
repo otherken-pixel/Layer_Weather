@@ -8,7 +8,7 @@ import { fetchLightningActivity } from "@/lib/swdiService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
 import { upsertProfile } from "@/lib/supabase";
-import { saveWidgetSnapshot } from "@/lib/widget";
+import { syncWidgetFromAppState } from "@/lib/widget-location";
 import {
   saveWeatherCache,
   saveCityWeatherCache,
@@ -124,6 +124,7 @@ function applyCachedEntry(
   } else if (useDeviceLocation) {
     setActiveLocationIsDevice(true);
   }
+  syncWidgetFromAppState().catch(() => {});
 }
 
 function formatCacheAge(d: Date): string {
@@ -215,6 +216,7 @@ export function useWeather() {
         setAqiBreakdown(null);
         setAqiForecast(null);
         setPollenData(null);
+        syncWidgetFromAppState().catch(() => {});
         return;
       }
     }
@@ -375,18 +377,7 @@ export function useWeather() {
             setLightningActivity(null);
           }
 
-          saveWidgetSnapshot(
-            data,
-            rec,
-            timeline,
-            {
-              accent_color: storeProfile?.accent_color ?? null,
-              temp_unit: storeProfile?.temp_unit ?? "F",
-              thermal_sensitivity: cal.thermal_sensitivity,
-              calibration: cal,
-            },
-            latitude !== undefined && longitude !== undefined ? { latitude, longitude } : undefined,
-          ).catch(() => {});
+          syncWidgetFromAppState().catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
         REFRESH_TIMEOUT_MS,

@@ -21,6 +21,8 @@ export interface Profile {
   last_longitude: number | null;
   last_city: string | null;
   saved_locations: LocationData[] | null;
+  /** Widget & Watch location: today (default), home (profile last city), or a saved city key. */
+  widget_location_preference?: WidgetLocationPreference | null;
   nerd_mode_enabled: boolean;
   nerd_mode_cards: NerdModeCardId[];
   card_layout: Array<{ id: string; minimized: boolean }> | null;
@@ -316,6 +318,16 @@ export interface OutfitTimelineEntry {
 }
 
 export type DayOutfitTimeline = OutfitTimelineEntry[];
+
+// ── Widget / Watch location ───────────────────────────────────────────────────
+
+export type WidgetLocationMode = "today" | "home" | "saved";
+
+export interface WidgetLocationPreference {
+  mode: WidgetLocationMode;
+  /** `buildLocationCacheKey` for a saved city when mode is `saved`. */
+  savedKey?: string;
+}
 
 // ── Location ──────────────────────────────────────────────────────────────────
 

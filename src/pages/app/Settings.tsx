@@ -14,7 +14,13 @@ import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
 import { buildLocationCacheKey } from "@/lib/location-cache-key";
 import { recomputeOutfitFromCurrentWeather } from "@/lib/recompute-outfit";
-import type { LocationData } from "@/types";
+import type { LocationData, WidgetLocationPreference, WidgetLocationMode } from "@/types";
+import {
+  loadWidgetLocationPreference,
+  saveWidgetLocationPreference,
+  parseWidgetLocationPreference,
+  syncWidgetFromAppState,
+} from "@/lib/widget-location";
 import { Colors } from "@/constants/colors";
 import { applyAccentPalette, saveAccentLocal, loadAccentLocal, ACCENT_DEFAULT } from "@/hooks/useAccentTheme";
 
@@ -74,6 +80,28 @@ export default function Settings() {
   const [deleteConfirmModalOpen, setDeleteConfirmModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [widgetLocPref, setWidgetLocPref] = useState<WidgetLocationPreference>({ mode: "today" });
+  const [widgetLocSaving, setWidgetLocSaving] = useState(false);
+
+  useEffect(() => {
+    const fromProfile = profile?.widget_location_preference;
+    if (fromProfile) {
+      setWidgetLocPref(parseWidgetLocationPreference(fromProfile));
+      return;
+    }
+    void loadWidgetLocationPreference().then(setWidgetLocPref);
+  }, [profile?.widget_location_preference]);
+
+  async function applyWidgetLocation(pref: WidgetLocationPreference) {
+    setWidgetLocPref(pref);
+    setWidgetLocSaving(true);
+    try {
+      await saveWidgetLocationPreference(pref, userId ?? undefined);
+      await syncWidgetFromAppState({ forceFetch: pref.mode !== "today" });
+    } finally {
+      setWidgetLocSaving(false);
+    }
+  }
 
   useEffect(() => {
     const label = location?.city || profile?.last_city;
@@ -283,6 +311,105 @@ export default function Settings() {
             >
               Use current location
             </button>
+          </ThemedCard>
+        </Section>
+
+        {/* Widget & Watch location */}
+        <Section title="Widget & Watch" labelColor={sectionLabelColor}>
+          <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
+            <p style={{ fontSize: 12, color: hintColor, marginBottom: 10 }}>
+              Home screen widgets and Apple Watch use this location. “Same as Today” follows whatever you are viewing on the Today tab.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {(
+                [
+                  {
+                    mode: "today" as WidgetLocationMode,
+                    label: "Same as Today",
+                    desc: location?.city
+                      ? `Currently ${location.city}${activeLocationIsDevice ? " (GPS)" : ""}`
+                      : "Matches your active Today forecast",
+                  },
+                  {
+                    mode: "home" as WidgetLocationMode,
+                    label: "Home",
+                    desc: profile?.last_city
+                      ? profile.last_city
+                      : "Set a saved city above first",
+                    disabled: profile?.last_latitude == null || profile?.last_longitude == null,
+                  },
+                ] as const
+              ).map((item) => {
+                const { mode, label, desc } = item;
+                const disabled = "disabled" in item ? item.disabled : false;
+                const active = widgetLocPref.mode === mode && (mode !== "saved");
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    disabled={disabled || widgetLocSaving}
+                    onClick={() => void applyWidgetLocation({ mode })}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      textAlign: "left",
+                      background: active
+                        ? (isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)")
+                        : (isDark ? "#3A3A3C" : "#F9FAFB"),
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : (isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6")}`,
+                      cursor: disabled || widgetLocSaving ? "not-allowed" : "pointer",
+                      width: "100%",
+                      opacity: disabled ? 0.5 : 1,
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? (isDark ? "var(--accent-light)" : "var(--accent-primary)") : rowTextColor, margin: 0 }}>{label}</p>
+                      <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>{desc}</p>
+                    </div>
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)" }}>✓</span>}
+                  </button>
+                );
+              })}
+              {localSavedLocations.map((loc) => {
+                const key = buildLocationCacheKey(loc);
+                const active = widgetLocPref.mode === "saved" && widgetLocPref.savedKey === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={widgetLocSaving}
+                    onClick={() => void applyWidgetLocation({ mode: "saved", savedKey: key })}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      textAlign: "left",
+                      background: active
+                        ? (isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)")
+                        : (isDark ? "#3A3A3C" : "#F9FAFB"),
+                      border: `1.5px solid ${active ? "var(--accent-primary)" : (isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6")}`,
+                      cursor: widgetLocSaving ? "not-allowed" : "pointer",
+                      width: "100%",
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>📍</span>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: active ? (isDark ? "var(--accent-light)" : "var(--accent-primary)") : rowTextColor, margin: 0 }}>{loc.city}</p>
+                      <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>Fixed widget & watch location</p>
+                    </div>
+                    {active && <span style={{ color: isDark ? "var(--accent-light)" : "var(--accent-primary)" }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {widgetLocSaving && (
+              <p style={{ fontSize: 12, color: hintColor, marginTop: 8 }}>Updating widgets…</p>
+            )}
           </ThemedCard>
         </Section>
 
