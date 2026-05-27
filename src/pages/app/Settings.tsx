@@ -88,6 +88,13 @@ export default function Settings() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sync nerd mode state from profile (handles late profile load and external updates)
+  useEffect(() => {
+    setNerdModeEnabled(profile?.nerd_mode_enabled ?? false);
+    setNerdModeCards(profile?.nerd_mode_cards ?? []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.nerd_mode_enabled, profile?.nerd_mode_cards?.join(",")]);
+
   async function saveCity() {
     if (!userId || !cityQuery.trim()) return;
     const result = await saveFromCity(cityQuery);
@@ -786,6 +793,9 @@ export default function Settings() {
                   setNerdModeEnabled(next);
                   setIsDirty(true);
                   if (profile) setProfile({ ...profile, nerd_mode_enabled: next });
+                  if (userId) {
+                    upsertProfile(userId, { nerd_mode_enabled: next, nerd_mode_cards: nerdModeCards }).catch(() => {});
+                  }
                 }}
                 style={{
                   width: 51, height: 31, borderRadius: 999, border: "none",
@@ -823,6 +833,9 @@ export default function Settings() {
                         setNerdModeCards(next);
                         setIsDirty(true);
                         if (profile) setProfile({ ...profile, nerd_mode_cards: next });
+                        if (userId) {
+                          upsertProfile(userId, { nerd_mode_cards: next, nerd_mode_enabled: nerdModeEnabled }).catch(() => {});
+                        }
                       }}
                       style={{
                         display: "flex", alignItems: "center", gap: 12,
