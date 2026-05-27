@@ -92,6 +92,15 @@ function daytimeStats(
 
 const cToF = (c: number) => Math.round((c * 9) / 5 + 32);
 const kmhToMph = (k: number) => Math.round(k * 0.621371);
+const metersToMiles = (m: number) => Math.round((m / 1609.34) * 10) / 10;
+
+// Derive thunderstorm probability from WeatherKit condition codes
+function deriveThunderstormProb(conditionCode: string): number | undefined {
+  if (conditionCode === "Thunderstorms") return 95;
+  if (conditionCode === "StrongStorms") return 80;
+  if (conditionCode === "ScatteredThunderstorms") return 55;
+  return undefined;
+}
 
 // ── JWT generation ────────────────────────────────────────────────────────────
 
@@ -221,20 +230,28 @@ Deno.serve(async (req) => {
         weatherCode: wmoCode(cur.conditionCode ?? "Cloudy"),
         isDay: cur.daylight ?? true,
         uvIndex: cur.uvIndex ?? 0,
+        windGust: cur.windGust != null ? kmhToMph(cur.windGust) : null,
+        pressure: cur.pressure != null ? Math.round(cur.pressure) : null,
+        visibility: cur.visibility != null ? metersToMiles(cur.visibility) : null,
+        dewPoint: cur.temperatureDewPoint != null ? cToF(cur.temperatureDewPoint) : null,
         location: "",
         updatedAt: new Date().toISOString(),
       },
-      hourly: hours.slice(0, 168).map((h) => ({
-        time: h.forecastStart,
-        temp: cToF(h.temperature as number ?? 0),
-        feelsLike: cToF(h.temperatureApparent as number ?? h.temperature as number ?? 0),
-        precipProb: Math.round(((h.precipitationChance as number) ?? 0) * 100),
-        condition: appCondition(h.conditionCode as string ?? "Cloudy"),
-        weatherCode: wmoCode(h.conditionCode as string ?? "Cloudy"),
-        windSpeed: kmhToMph(h.windSpeed as number ?? 0),
-        windDirection: Math.round(h.windDirection as number ?? 0),
-        isDay: h.daylight as boolean ?? true,
-      })),
+      hourly: hours.slice(0, 168).map((h) => {
+        const tProb = deriveThunderstormProb(h.conditionCode as string ?? "");
+        return {
+          time: h.forecastStart,
+          temp: cToF(h.temperature as number ?? 0),
+          feelsLike: cToF(h.temperatureApparent as number ?? h.temperature as number ?? 0),
+          precipProb: Math.round(((h.precipitationChance as number) ?? 0) * 100),
+          condition: appCondition(h.conditionCode as string ?? "Cloudy"),
+          weatherCode: wmoCode(h.conditionCode as string ?? "Cloudy"),
+          windSpeed: kmhToMph(h.windSpeed as number ?? 0),
+          windDirection: Math.round(h.windDirection as number ?? 0),
+          isDay: h.daylight as boolean ?? true,
+          ...(tProb != null ? { thunderstormProb: tProb } : {}),
+        };
+      }),
       daily: days.slice(0, 7).map((d) => {
         const day = (d.daytimeForecast ?? {}) as Record<string, unknown>;
         const night = (d.overnightForecast ?? {}) as Record<string, unknown>;

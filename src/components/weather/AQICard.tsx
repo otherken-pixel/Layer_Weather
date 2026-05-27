@@ -1,5 +1,6 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { EPAObservation } from "@/types";
 
 interface AQILevel {
   label: string;
@@ -63,12 +64,20 @@ function getAQILevel(aqi: number): AQILevel {
 
 interface Props {
   aqiIndex: number;
+  breakdown?: EPAObservation[] | null;
+  forecast?: { aqi: number; category: string } | null;
   isDark?: boolean;
 }
 
-export function AQICard({ aqiIndex, isDark = false }: Props) {
+export function AQICard({ aqiIndex, breakdown, forecast, isDark = false }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const level = getAQILevel(aqiIndex);
   const fillPct = Math.min(aqiIndex / 300, 1);
+
+  const hasBreakdown = breakdown && breakdown.length > 0;
+  const dominantPollutant = hasBreakdown
+    ? breakdown.reduce((a, b) => a.aqi >= b.aqi ? a : b)
+    : null;
 
   const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
   const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
@@ -77,6 +86,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
   const unitColor = isDark ? "#9BA4B4" : "#4B5563";
   const trackColor = isDark ? "#3A3A3C" : "#F3F4F6";
   const descColor = isDark ? "#9BA4B4" : "#4B5563";
+  const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6";
   const badgeBg = isDark ? level.darkBg : level.bg;
   const badgeText = isDark ? level.darkTextColor : level.textColor;
 
@@ -93,15 +103,40 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
         border: cardBorder,
       }}
     >
-      <p
-        style={{
-          fontSize: 14, fontWeight: 700, color: labelColor,
-          letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12,
-        }}
-      >
-        Air Quality
-      </p>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, color: labelColor, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Air Quality
+        </p>
+        {hasBreakdown && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            aria-label={expanded ? "Hide pollutant breakdown" : "Show pollutant breakdown"}
+            aria-expanded={expanded}
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              padding: "4px 8px", borderRadius: 8,
+              display: "flex", alignItems: "center", gap: 4,
+              color: descColor,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600 }}>
+              {expanded ? "Less" : "Details"}
+            </span>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round"
+              style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        )}
+      </div>
 
+      {/* AQI number + badge */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div>
           <span style={{ fontSize: 36, fontWeight: 700, color: level.color, lineHeight: 1 }}>
@@ -109,13 +144,7 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
           </span>
           <span style={{ fontSize: 15, color: unitColor, marginLeft: 6 }}>US AQI</span>
         </div>
-        <div
-          style={{
-            padding: "4px 12px",
-            borderRadius: 999,
-            background: badgeBg,
-          }}
-        >
+        <div style={{ padding: "4px 12px", borderRadius: 999, background: badgeBg }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: badgeText }}>
             {level.label}
           </span>
@@ -136,9 +165,100 @@ export function AQICard({ aqiIndex, isDark = false }: Props) {
         />
       </div>
 
+      {/* Description + dominant pollutant inline hint */}
       <p style={{ fontSize: 14, color: descColor, lineHeight: 1.5 }}>
         {level.description}
+        {dominantPollutant && !expanded && (
+          <span style={{ color: labelColor }}> · Main: {dominantPollutant.parameter}</span>
+        )}
       </p>
+
+      {/* Tomorrow's AQI forecast */}
+      {forecast != null && (
+        <div style={{
+          marginTop: 10, paddingTop: 10,
+          borderTop: `1px solid ${dividerColor}`,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: labelColor, flex: 1 }}>
+            Tomorrow
+          </span>
+          {(() => {
+            const fl = getAQILevel(forecast.aqi);
+            const fb = isDark ? fl.darkBg : fl.bg;
+            const ft = isDark ? fl.darkTextColor : fl.textColor;
+            return (
+              <>
+                <span style={{ fontSize: 14, fontWeight: 700, color: fl.color }}>{forecast.aqi}</span>
+                <div style={{ padding: "2px 10px", borderRadius: 999, background: fb }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ft }}>{fl.label}</span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Expandable pollutant breakdown */}
+      <AnimatePresence initial={false}>
+        {expanded && hasBreakdown && (
+          <motion.div
+            key="breakdown"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <div
+              style={{
+                marginTop: 12,
+                paddingTop: 12,
+                borderTop: `1px solid ${dividerColor}`,
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+              }}
+            >
+              <p style={{ fontSize: 11, fontWeight: 700, color: labelColor, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Pollutants
+              </p>
+              {breakdown.map((obs) => {
+                const obsLevel = getAQILevel(obs.aqi);
+                const obsBadgeBg = isDark ? obsLevel.darkBg : obsLevel.bg;
+                const obsBadgeText = isDark ? obsLevel.darkTextColor : obsLevel.textColor;
+                return (
+                  <div key={obs.parameter} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: isDark ? "#F4F4F5" : "#111827",
+                      width: 52, flexShrink: 0,
+                    }}>
+                      {obs.parameter}
+                    </span>
+                    <div style={{ flex: 1, height: 4, background: trackColor, borderRadius: 2, overflow: "hidden" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(obs.aqi / 300, 1) * 100}%` }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        style={{ height: "100%", background: obsLevel.color, borderRadius: 2 }}
+                      />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: obsLevel.color, width: 28, textAlign: "right", flexShrink: 0 }}>
+                      {obs.aqi}
+                    </span>
+                    <div style={{ padding: "2px 8px", borderRadius: 999, background: obsBadgeBg, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: obsBadgeText }}>
+                        {obsLevel.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

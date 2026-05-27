@@ -3,7 +3,7 @@ import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
-import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence, reverseGeocodePlace } from "@/lib/weather";
+import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence, reverseGeocodePlace, fetchPollenData } from "@/lib/weather";
 import { fetchLightningActivity } from "@/lib/swdiService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
@@ -103,8 +103,10 @@ function applyCachedEntry(
     setWeatherLastFetched,
     setActiveLocationIsDevice,
     setCityWeatherCache,
+    setAqiBreakdown,
   } = useAppStore.getState();
 
+  setAqiBreakdown(null);
   setWeatherError(
     `Offline — showing weather from ${formatCacheAge(entry.fetchedAt)}`,
   );
@@ -188,7 +190,7 @@ export function useWeather() {
     cityWeatherCache,
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
-    setForecastConfidence, setNWSAlerts, setLightningActivity,
+    setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setAqiForecast, setPollenData,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -206,6 +208,7 @@ export function useWeather() {
         setOutfitTimeline(cached.outfitTimeline);
         setWeatherLastFetched(cached.fetchedAt);
         setActiveLocationIsDevice(cacheKey === DEVICE_LOCATION_KEY);
+        setAqiBreakdown(null);
         return;
       }
     }
@@ -257,18 +260,26 @@ export function useWeather() {
             }).catch(console.error);
           }
 
-          const [data, aqiIndex] = await Promise.all([
+          const [data, aqiResult, pollenResult] = await Promise.all([
             withTimeout(
               fetchWeatherData(latitude, longitude, { countryCode }),
               WEATHER_TIMEOUT_MS,
               "Weather fetch",
             ),
             fetchAQIBestSource(latitude, longitude, countryCode),
+            fetchPollenData(latitude, longitude),
           ]);
           if (generation !== refreshGeneration) return;
 
           data.current.location = city;
-          data.current.aqiIndex = aqiIndex;
+          data.current.aqiIndex = aqiResult.aqi;
+          setAqiBreakdown(aqiResult.breakdown.length > 0 ? aqiResult.breakdown : null);
+          setAqiForecast(
+            aqiResult.forecastAqi != null && aqiResult.forecastCategory != null
+              ? { aqi: aqiResult.forecastAqi, category: aqiResult.forecastCategory }
+              : null,
+          );
+          setPollenData(pollenResult);
           setWeather(data);
           const fetchedAt = new Date();
           setWeatherLastFetched(fetchedAt);

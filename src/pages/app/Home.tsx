@@ -38,6 +38,7 @@ import type { LocationData, OutfitFeedbackValue, NerdModeCardId, RainHistoryData
 import { RainAccumulationCard } from "@/components/weather/RainAccumulationCard";
 import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
 import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
+import { PollenCard } from "@/components/weather/PollenCard";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -63,6 +64,11 @@ export default function Home() {
     wardrobeItems, setWardrobeItems,
     svgCatalogById,
     forecastConfidence,
+    lightningActivity,
+    aqiBreakdown,
+    aqiForecast,
+    pollenData,
+    nwsAlerts,
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -606,6 +612,11 @@ export default function Home() {
             zIndex: 2,
           }}>
 
+            {/* NWS severe weather alerts (US only) */}
+            {nwsAlerts.length > 0 && (
+              <NWSAlertsBanner alerts={nwsAlerts} isDark={isDark} />
+            )}
+
             {/* Weather change alerts — only show rain warnings, not feels-like info */}
             {weatherAlerts.some((a) => a.type === "warning") && (
               <AlertBanner alerts={weatherAlerts.filter((a) => a.type === "warning")} />
@@ -652,16 +663,26 @@ export default function Home() {
                         weather={weather.current}
                         tempUnit={tempUnit}
                         onUnitChange={handleUnitChange}
+                        lightningActivity={lightningActivity}
                         isDark={isDark}
                       />
                     );
                   case "aqi":
                     return weather.current.aqiIndex != null ? (
-                      <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
+                      <AQICard
+                        aqiIndex={weather.current.aqiIndex}
+                        breakdown={aqiBreakdown}
+                        forecast={aqiForecast}
+                        isDark={isDark}
+                      />
                     ) : null;
                   case "nowcast":
                     return weather.nextHourPrecip ? (
-                      <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
+                      <NowcastCard
+                        data={weather.nextHourPrecip}
+                        lightningActivity={lightningActivity}
+                        isDark={isDark}
+                      />
                     ) : null;
                   case "hourly":
                     return (
@@ -802,6 +823,7 @@ export default function Home() {
                         rainHistoryLoading={rainHistoryLoading}
                         tempUnit={tempUnit}
                         latitude={location?.latitude ?? profile?.last_latitude ?? 40}
+                        pollenData={pollenData}
                         isDark={isDark}
                       />
                     ))}
@@ -852,16 +874,76 @@ export default function Home() {
   );
 }
 
+// ── NWS Alerts Banner ─────────────────────────────────────────────────────────
+
+function NWSAlertsBanner({ alerts, isDark }: { alerts: import("@/types").NWSAlert[]; isDark: boolean }) {
+  const [dismissed, setDismissed] = React.useState<Set<string>>(new Set());
+
+  function severityColor(s: string): { bg: string; border: string; text: string } {
+    if (s === "Extreme") return { bg: isDark ? "rgba(239,68,68,0.18)" : "#FEF2F2", border: "#FCA5A5", text: isDark ? "#FCA5A5" : "#B91C1C" };
+    if (s === "Severe") return { bg: isDark ? "rgba(249,115,22,0.16)" : "#FFF7ED", border: "#FDBA74", text: isDark ? "#FDBA74" : "#C2410C" };
+    if (s === "Moderate") return { bg: isDark ? "rgba(234,179,8,0.14)" : "#FFFBEB", border: "#FDE68A", text: isDark ? "#FCD34D" : "#92400E" };
+    return { bg: isDark ? "rgba(59,130,246,0.14)" : "#EFF6FF", border: "#BFDBFE", text: isDark ? "#93C5FD" : "#1D4ED8" };
+  }
+
+  const visible = alerts.filter((a) => !dismissed.has(a.id) && new Date(a.expires) > new Date());
+  if (visible.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {visible.map((alert) => {
+        const { bg, border, text } = severityColor(alert.severity);
+        return (
+          <div
+            key={alert.id}
+            style={{
+              background: bg, border: `1px solid ${border}`,
+              borderRadius: 16, padding: "10px 14px",
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}
+          >
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
+              {alert.severity === "Extreme" || alert.severity === "Severe" ? "🚨" : "⚠️"}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: text, margin: "0 0 2px" }}>
+                {alert.event}
+              </p>
+              <p style={{ fontSize: 12, color: text, opacity: 0.85, margin: 0, lineHeight: 1.4 }}>
+                {alert.headline}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDismissed((prev) => new Set([...prev, alert.id]))}
+              aria-label="Dismiss alert"
+              style={{
+                flexShrink: 0, width: 28, height: 28, borderRadius: "50%",
+                border: "none", background: `${border}55`,
+                color: text, fontSize: 14, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Nerd Card Renderer ────────────────────────────────────────────────────────
 
 function NerdCardRenderer({
-  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, isDark,
+  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, pollenData, isDark,
 }: {
   cardId: NerdModeCardId;
   rainHistory: RainHistoryData | null;
   rainHistoryLoading: boolean;
   tempUnit: "F" | "C";
   latitude: number;
+  pollenData: import("@/types").PollenData | null;
   isDark: boolean;
 }) {
   if (cardId === "rain_accumulation") {
@@ -880,6 +962,10 @@ function NerdCardRenderer({
   if (cardId === "seasonal_produce") {
     return <SeasonalProduceCard latitude={latitude} isDark={isDark} />;
   }
+  if (cardId === "pollen") {
+    if (!pollenData) return null;
+    return <PollenCard data={pollenData} isDark={isDark} />;
+  }
   return null;
 }
 
@@ -887,6 +973,7 @@ const NERD_CARD_LABELS: Record<NerdModeCardId, { emoji: string; label: string }>
   rain_accumulation: { emoji: "🌧️", label: "Rain Accumulation" },
   moon_phases: { emoji: "🌕", label: "Moon Phases" },
   seasonal_produce: { emoji: "🥦", label: "In Season" },
+  pollen: { emoji: "🌿", label: "Pollen" },
 };
 
 function NerdCardEditRow({ cardId, isDark }: { cardId: NerdModeCardId; isDark: boolean }) {
@@ -917,7 +1004,7 @@ function HourlyStrip({
   cardSurface,
   onFullForecast,
 }: {
-  hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number }[];
+  hourly: { time: Date; feelsLike: number; weatherCode: number; precipProb: number; thunderstormProb?: number }[];
   tempUnit: "F" | "C";
   isDark: boolean;
   cardSurface: string;
@@ -980,6 +1067,11 @@ function HourlyStrip({
               <span style={{ fontSize: 12, fontWeight: 600, color: precipColor }}>
                 {h.precipProb}%
               </span>
+              {(h.thunderstormProb ?? 0) >= 30 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: isNow ? "rgba(255,255,255,0.9)" : "#F97316" }}>
+                  ⚡{h.thunderstormProb}%
+                </span>
+              )}
             </div>
           );
         })}
@@ -997,6 +1089,7 @@ function wmoToCondition(code: number): string {
   if (code <= 67) return "rain";
   if (code <= 77) return "snow";
   if (code <= 82) return "rain";
+  if (code <= 86) return "heavy_rain";
   return "thunderstorm";
 }
 

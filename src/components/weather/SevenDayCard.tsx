@@ -1,8 +1,13 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
+import { Sunrise, Sunset } from "lucide-react";
 import type { DailyForecast, HourlyForecast } from "@/types";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
+
+function formatTime12(date: Date): string {
+  return date.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" });
+}
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -227,7 +232,13 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
                   transition={{ duration: 0.22, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <HourlyDrillDown hourly={dayHourly} tempUnit={tempUnit} isDark={isDark} />
+                  <HourlyDrillDown
+                    hourly={dayHourly}
+                    tempUnit={tempUnit}
+                    isDark={isDark}
+                    sunrise={day.sunrise}
+                    sunset={day.sunset}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -244,16 +255,20 @@ function HourlyDrillDown({
   hourly,
   tempUnit,
   isDark,
+  sunrise,
+  sunset,
 }: {
   hourly: HourlyForecast[];
   tempUnit: "F" | "C";
   isDark: boolean;
+  sunrise?: Date;
+  sunset?: Date;
 }) {
   const pillBg = isDark ? "#3A3A3C" : "#F3F4F6";
   const timeColor = isDark ? "#9BA4B4" : "#4B5563";
   const tempColor = isDark ? "#F4F4F5" : "#111827";
-  // Precip % — #1D4ED8 on light pill (6.1:1 ✓); #60A5FA on dark pill (4.5:1 ✓)
   const precipColor = isDark ? "#60A5FA" : "#1D4ED8";
+  const sunInfoColor = isDark ? "#9BA4B4" : "#6B7280";
 
   return (
     <div
@@ -319,6 +334,28 @@ function HourlyDrillDown({
           );
         })}
       </div>
+
+      {/* Sunrise / Sunset info row */}
+      {(sunrise || sunset) && (
+        <div style={{ display: "flex", gap: 16, paddingTop: 6, paddingLeft: 2 }}>
+          {sunrise && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Sunrise size={13} color="rgba(255,193,7,1)" strokeWidth={2} aria-hidden="true" />
+              <span style={{ fontSize: 12, fontWeight: 500, color: sunInfoColor }}>
+                {formatTime12(sunrise)}
+              </span>
+            </div>
+          )}
+          {sunset && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Sunset size={13} color="rgba(255,120,50,1)" strokeWidth={2} aria-hidden="true" />
+              <span style={{ fontSize: 12, fontWeight: 500, color: sunInfoColor }}>
+                {formatTime12(sunset)}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

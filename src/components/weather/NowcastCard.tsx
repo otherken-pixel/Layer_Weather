@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
-import type { NextHourPrecip } from "@/types";
+import type { NextHourPrecip, LightningActivity } from "@/types";
 
 interface Props {
   data: NextHourPrecip;
+  lightningActivity?: LightningActivity | null;
   isDark?: boolean;
 }
 
-export function NowcastCard({ data, isDark = false }: Props) {
+export function NowcastCard({ data, lightningActivity, isDark = false }: Props) {
   const { minutes } = data;
 
   const maxIntensity = useMemo(
@@ -37,11 +38,13 @@ export function NowcastCard({ data, isDark = false }: Props) {
   const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cardShadow = isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)";
   const labelColor = isDark ? "#9BA4B4" : "#4B5563";
-  // Blue summary text — #1D4ED8 on white (6.7:1 ✓), #60A5FA on dark (4.5:1 ✓)
   const summaryColor = hasAnyPrecip ? (isDark ? "#60A5FA" : "#1D4ED8") : labelColor;
   const chartBg = isDark ? "#1F1F21" : "#F9FAFB";
   const emptyBarColor = isDark ? "#3A3A3C" : "#E5E7EB";
   const timeLabelColor = isDark ? "#9BA4B4" : "#4B5563";
+
+  const showLightningBanner =
+    (lightningActivity === "moderate" || lightningActivity === "high") && hasAnyPrecip;
 
   return (
     <div
@@ -106,6 +109,29 @@ export function NowcastCard({ data, isDark = false }: Props) {
         <span style={{ fontSize: 12, color: timeLabelColor, fontWeight: 500 }}>+30 min</span>
         <span style={{ fontSize: 12, color: timeLabelColor, fontWeight: 500 }}>+60 min</span>
       </div>
+
+      {/* Lightning thunderstorm banner */}
+      {showLightningBanner && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: isDark ? "rgba(239,68,68,0.15)" : "#FEF2F2",
+            border: "1px solid rgba(239,68,68,0.3)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 15, flexShrink: 0 }}>⚡</span>
+          <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? "#F87171" : "#991B1B", lineHeight: 1.4 }}>
+            {lightningActivity === "high"
+              ? "High lightning activity — seek shelter indoors"
+              : "Thunderstorm activity nearby — stay aware"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
