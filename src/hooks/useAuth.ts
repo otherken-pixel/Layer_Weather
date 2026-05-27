@@ -4,7 +4,7 @@ import { useAppStore } from "@/store";
 import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
 import { mergeFromCloud } from "@/lib/saved-locations";
-import { clearCardLayout } from "@/lib/card-layout";
+import { clearCardLayout, type CardConfig } from "@/lib/card-layout";
 import type { Profile, UserCalibration } from "@/types";
 
 const CALIBRATION_PENDING_KEY = "wt_calibration_pending";
@@ -67,6 +67,7 @@ export function useAuth() {
     setWeatherLastFetched,
     setLocation,
     setSavedLocations,
+    hydrateCardLayout,
     reset,
   } = useAppStore();
 
@@ -202,6 +203,9 @@ export function useAuth() {
       if (prof) {
         setProfile(prof);
         saveProfileCache(prof);
+        if (prof.card_layout) {
+          hydrateCardLayout(prof.card_layout as CardConfig[]);
+        }
       }
 
       if (cal) {

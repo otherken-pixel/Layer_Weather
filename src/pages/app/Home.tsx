@@ -606,29 +606,6 @@ export default function Home() {
             zIndex: 2,
           }}>
 
-            {/* Edit / Done row */}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                onClick={() => setIsEditMode((e) => !e)}
-                style={{
-                  background: "none", border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 5,
-                  padding: "2px 2px",
-                  color: "var(--accent-primary)",
-                  fontSize: 14, fontWeight: 600,
-                  minHeight: 32,
-                }}
-              >
-                {isEditMode ? "Done" : (
-                  <>
-                    <PencilSVG />
-                    <span>Edit</span>
-                  </>
-                )}
-              </button>
-            </div>
-
             {/* Weather change alerts — only show rain warnings, not feels-like info */}
             {weatherAlerts.some((a) => a.type === "warning") && (
               <AlertBanner alerts={weatherAlerts.filter((a) => a.type === "warning")} />
@@ -838,6 +815,35 @@ export default function Home() {
                 ? "Weather data provided by Apple Weather™"
                 : "Weather data provided by Open-Meteo.com"}
             </p>
+
+            {/* Edit Card Layout pill */}
+            <div style={{ display: "flex", justifyContent: "center", paddingBottom: 8 }}>
+              <button
+                type="button"
+                onClick={() => setIsEditMode((e) => !e)}
+                style={{
+                  background: isEditMode ? "var(--accent-primary)" : (isDark ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)"),
+                  border: "none",
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 18px",
+                  color: isEditMode ? "#fff" : "var(--accent-primary)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  letterSpacing: 0.1,
+                }}
+              >
+                {isEditMode ? "Done" : (
+                  <>
+                    <PencilSVG />
+                    <span>Edit Card Layout</span>
+                  </>
+                )}
+              </button>
+            </div>
 
           </div>
         </motion.div>
