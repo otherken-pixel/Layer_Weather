@@ -64,6 +64,7 @@ export default function Settings() {
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -115,6 +116,7 @@ export default function Settings() {
       setStoreFormality(formality);
       if (updated) setProfile(updated);
       recomputeOutfitFromCurrentWeather();
+      setIsDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally {
@@ -281,7 +283,7 @@ export default function Settings() {
               <PillToggle
                 options={["F", "C"] as const}
                 active={tempUnit}
-                onSelect={(u) => setTempUnit(u)}
+                onSelect={(u) => { setTempUnit(u); setIsDirty(true); }}
                 format={(u) => `°${u}`}
                 pillBg={pillBg}
                 pillInactiveText={pillInactiveText}
@@ -304,7 +306,11 @@ export default function Settings() {
               <PillToggle
                 options={["visual", "text"] as const}
                 active={displayMode}
-                onSelect={(m) => setDisplayMode(m)}
+                onSelect={(m) => {
+                  setDisplayMode(m);
+                  setIsDirty(true);
+                  if (profile) setProfile({ ...profile, outfit_display_mode: m });
+                }}
                 format={(m) => m === "visual" ? "Visual" : "Text Only"}
                 pillBg={pillBg}
                 pillInactiveText={pillInactiveText}
@@ -449,7 +455,7 @@ export default function Settings() {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setFormality(key)}
+                    onClick={() => { setFormality(key); setIsDirty(true); }}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -504,6 +510,7 @@ export default function Settings() {
                     type="button"
                     onClick={() => {
                       setThemePreference(key);
+                      setIsDirty(true);
                       if (profile) {
                         setProfile({ ...profile, theme_preference: key === "system" ? null : key });
                       }
@@ -552,6 +559,7 @@ export default function Settings() {
                     type="button"
                     onClick={() => {
                       setAccentColor(swatch.hex);
+                      setIsDirty(true);
                       applyAccentPalette(swatch.hex);
                       saveAccentLocal(swatch.hex);
                     }}
@@ -616,7 +624,7 @@ export default function Settings() {
             <TimeRow
               label="Morning departure"
               value={commuteStart}
-              onChange={setCommuteStart}
+              onChange={(v) => { setCommuteStart(v); setIsDirty(true); }}
               isDark={isDark}
               rowTextColor={rowTextColor}
               inputBg={inputBg}
@@ -627,7 +635,7 @@ export default function Settings() {
             <TimeRow
               label="Evening return"
               value={commuteEnd}
-              onChange={setCommuteEnd}
+              onChange={(v) => { setCommuteEnd(v); setIsDirty(true); }}
               isDark={isDark}
               rowTextColor={rowTextColor}
               inputBg={inputBg}
@@ -887,16 +895,19 @@ export default function Settings() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <button
             onClick={saveSettings}
-            disabled={saving}
+            disabled={saving || (!isDirty && !saved)}
             style={{
-              background: saved ? "#10B981" : ACCENT,
-              color: "white", border: "none", borderRadius: 16,
+              background: saved ? "#10B981" : isDirty ? ACCENT : isDark ? "#3A3A3C" : "#E5E7EB",
+              color: saved || isDirty ? "white" : isDark ? "#6B7280" : "#9CA3AF",
+              border: "none", borderRadius: 16,
               padding: "16px 0", fontSize: 16, fontWeight: 700,
-              width: "100%", cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.7 : 1, transition: "background 0.3s",
+              width: "100%",
+              cursor: saving || (!isDirty && !saved) ? "default" : "pointer",
+              opacity: saving ? 0.7 : 1,
+              transition: "background 0.3s, color 0.3s",
             }}
           >
-            {saving ? "⟳ Saving…" : saved ? "✓ Saved!" : "Save Changes"}
+            {saving ? "⟳ Saving…" : saved ? "✓ Saved!" : isDirty ? "Save Changes" : "All changes saved"}
           </button>
           <button
             type="button"
