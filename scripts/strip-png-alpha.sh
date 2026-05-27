@@ -10,11 +10,12 @@ fi
 INPUT="$1"
 OUTPUT="$2"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+INPUT="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
 
 [[ -f "$INPUT" ]] || { echo "ERROR: Missing $INPUT" >&2; exit 1; }
 
 mkdir -p "$(dirname "$OUTPUT")"
-TMP="$(mktemp "${TMPDIR:-/tmp}/strip-png-alpha.XXXXXX.png")"
+TMP="$(mktemp "${TMPDIR:-/tmp}/strip-png-alpha.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 
 (cd "$ROOT" && npx --yes sharp-cli -i "$INPUT" -o "$TMP" removeAlpha >/dev/null)
