@@ -26,5 +26,5 @@ if [[ ! -f "$ICON_SET/Contents.json" ]]; then
 JSON
 fi
 
-cp "$SRC" "$ICON_FILE"
-echo "✓ Watch app icon updated: $ICON_FILE"
+bash "$ROOT/scripts/strip-png-alpha.sh" "$SRC" "$ICON_FILE"
+echo "✓ Watch app icon updated (opaque RGB): $ICON_FILE"

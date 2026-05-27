@@ -34,31 +34,39 @@ def _maskable_svg_source() -> str:
     )
 
 
-def render(out_path: str, size: int, *, input_svg: str | None = None):
+def _sharp(*args: str):
+    subprocess.run(["npx", "sharp-cli", *args], check=True, cwd=REPO)
+
+
+def render(
+    out_path: str,
+    size: int,
+    *,
+    input_svg: str | None = None,
+    opaque: bool = False,
+):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     density = _svg_density_for_size(size)
     src = input_svg or SVG
-    subprocess.run(
-        [
-            "npx",
-            "sharp-cli",
-            "--density",
-            str(density),
-            "-i",
-            src,
-            "-o",
-            out_path,
-            "resize",
-            str(size),
-            str(size),
-        ],
-        check=True,
-        cwd=REPO,
+    tmp = out_path + ".tmp.png" if opaque else out_path
+    _sharp(
+        "--density",
+        str(density),
+        "-i",
+        src,
+        "-o",
+        tmp,
+        "resize",
+        str(size),
+        str(size),
     )
-    print(f"  wrote {out_path} ({size}x{size})")
+    if opaque:
+        _sharp("-i", tmp, "-o", out_path, "removeAlpha")
+        os.unlink(tmp)
+    print(f"  wrote {out_path} ({size}x{size}{', RGB' if opaque else ''})")
 
 
-render(os.path.join(REPO, "public/icons/icon.png"), 1024)
+render(os.path.join(REPO, "public/icons/icon.png"), 1024, opaque=True)
 render(os.path.join(REPO, "public/icons/notification-icon.png"), 192)
 render(os.path.join(REPO, "public/icons/favicon.png"), 64)
 with tempfile.NamedTemporaryFile(

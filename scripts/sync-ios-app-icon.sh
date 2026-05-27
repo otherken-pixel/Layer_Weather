@@ -17,5 +17,5 @@ if [[ ! -d "$ICON_SET" ]]; then
   exit 1
 fi
 
-cp "$ICON_SRC" "$ICON_DST"
-echo "✓ iOS app icon updated: $ICON_DST"
+bash "$ROOT/scripts/strip-png-alpha.sh" "$ICON_SRC" "$ICON_DST"
+echo "✓ iOS app icon updated (opaque RGB): $ICON_DST"
