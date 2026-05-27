@@ -1,3 +1,4 @@
+import { buildLocationCacheKey } from "@/lib/location-cache-key";
 import type { LocationData } from "@/types";
 
 const PREF_KEY = "wt_saved_locations";
@@ -31,7 +32,8 @@ export async function getSavedLocations(): Promise<LocationData[]> {
 export async function addSavedLocation(loc: LocationData): Promise<LocationData[]> {
   const existing = await getSavedLocations();
   // Deduplicate by city name (case-insensitive)
-  const filtered = existing.filter((l) => l.city.toLowerCase() !== loc.city.toLowerCase());
+  const key = buildLocationCacheKey(loc);
+  const filtered = existing.filter((l) => buildLocationCacheKey(l) !== key);
   const updated = [loc, ...filtered].slice(0, MAX_LOCATIONS);
   await writeRaw(JSON.stringify(updated));
   return updated;
@@ -39,7 +41,7 @@ export async function addSavedLocation(loc: LocationData): Promise<LocationData[
 
 export async function removeSavedLocation(city: string): Promise<LocationData[]> {
   const existing = await getSavedLocations();
-  const updated = existing.filter((l) => l.city.toLowerCase() !== city.toLowerCase());
+  const updated = existing.filter((l) => l.city.toLowerCase() !== city.toLowerCase()); // remove by display name
   await writeRaw(JSON.stringify(updated));
   return updated;
 }

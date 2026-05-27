@@ -24,6 +24,8 @@ import { buildDisplayCopyFromOverride } from "@/lib/outfitDisplayCopy";
 import { sanitizeWardrobeOverrideForRain } from "@/lib/outfitRainDisplay";
 import { getWeatherScenario } from "@/lib/wardrobeScenario";
 import { addSavedLocation, getSavedLocations, removeSavedLocation } from "@/lib/saved-locations";
+import { buildLocationCacheKey } from "@/lib/location-cache-key";
+import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
 import { DEVICE_LOCATION_KEY } from "@/store";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
@@ -51,7 +53,7 @@ export default function Home() {
     activeLocationIsDevice, setActiveLocationIsDevice,
     setProfile, setCalibration, setLocation, weatherLastFetched,
     weatherWardrobes, setWeatherWardrobes,
-    setWardrobeItems,
+    wardrobeItems, setWardrobeItems,
     svgCatalogById,
     forecastConfidence,
   } = useAppStore();
@@ -104,10 +106,12 @@ export default function Home() {
         return;
       }
       // Pass city as cache key so switching between saved cities uses per-city cache.
-      refresh(false, { cacheKey: city });
+      const loc = useAppStore.getState().location;
+      const key = loc ? buildLocationCacheKey(loc) : city;
+      refresh(false, { cacheKey: key });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location?.city]);
+  }, [location?.city, location?.latitude, location?.longitude]);
 
   // Initial load (refresh may call setLocation — skip duplicate city-change fetch).
   // Always clear the skip flag when refresh finishes: returning users already have
@@ -137,16 +141,21 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Geofence: trigger weather refresh when user moves significantly
+  // Geofence: only when viewing device GPS — avoid overriding a saved city tab
   useEffect(() => {
-    if (!location) return;
+    if (!location || !activeLocationIsDevice) {
+      void stopGeofence().catch(() => {});
+      return;
+    }
     let cancelled = false;
     void (async () => {
       await stopGeofence();
       if (cancelled) return;
       await startGeofence({
         currentLocation: location,
-        onSignificantMove: () => { refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY }); },
+        onSignificantMove: () => {
+          refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+        },
       });
     })().catch(() => {});
     return () => {
@@ -154,7 +163,7 @@ export default function Home() {
       void stopGeofence().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location]);
+  }, [location, activeLocationIsDevice]);
 
   async function handleLocationSaved(ctx?: { fromCitySave?: boolean }) {
     setActiveLocationIsDevice(false);
@@ -170,11 +179,22 @@ export default function Home() {
     }
   }
 
-  async function handleTabSelect(loc: LocationData) {
+  function handleTabSelect(loc: LocationData) {
     setActiveLocationIsDevice(false);
     setLocation(loc);
-    // setLocation triggers the city-change effect above which calls refresh(true) with city cache key
-    // Pass the city as cache key via the effect below
+  }
+
+  function handleRefresh() {
+    if (activeLocationIsDevice) {
+      refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+      return;
+    }
+    const loc = useAppStore.getState().location;
+    if (loc) {
+      refresh(true, { cacheKey: buildLocationCacheKey(loc) });
+    } else {
+      refresh(true);
+    }
   }
 
   async function handleDeviceTabSelect() {
@@ -294,6 +314,11 @@ export default function Home() {
 
   const layeringTip = useMemo(() => getLayeringTip(outfitTimeline), [outfitTimeline]);
 
+  const wardrobeMatch = useMemo(() => {
+    if (!outfit || wardrobeItems.length === 0) return null;
+    return matchWardrobeToOutfit(wardrobeItems, outfit);
+  }, [outfit, wardrobeItems]);
+
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
 
@@ -402,7 +427,7 @@ export default function Home() {
               today={weather.daily[0] ?? null}
               tempUnit={tempUnit}
               isRefreshing={isLoadingWeather}
-              onRefresh={() => refresh(true, { useDeviceLocation: true })}
+              onRefresh={handleRefresh}
               onLocationPress={handleOpenUpdateLocation}
             />
             <LocationPickerSheet
@@ -472,7 +497,7 @@ export default function Home() {
               timeline={outfitTimeline}
               onFeedback={handleOutfitFeedback}
               isDark={isDark}
-              wardrobeMatch={null}
+              wardrobeMatch={wardrobeMatch}
               wardrobePreset={activePreset}
               onViewWardrobe={() => navigate("/app/wardrobe")}
             />

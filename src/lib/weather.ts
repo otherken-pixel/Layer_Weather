@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { NOMINATIM_HEADERS } from "@/lib/nominatim";
 import type {
   WeatherData,
   CurrentWeather,
@@ -39,6 +40,28 @@ async function withRetry<T>(fn: () => Promise<T>, retries = WEATHER_MAX_RETRIES)
   throw lastError;
 }
 
+function requireFiniteNumber(value: unknown, field: string): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) throw new Error(`Invalid weather field: ${field}`);
+  return n;
+}
+
+function requireCondition(value: unknown): WeatherCondition {
+  const s = String(value);
+  const allowed: WeatherCondition[] = [
+    "clear", "partly_cloudy", "cloudy", "foggy", "drizzle",
+    "rain", "heavy_rain", "snow", "thunderstorm",
+  ];
+  if (!allowed.includes(s as WeatherCondition)) throw new Error(`Invalid weather condition: ${s}`);
+  return s as WeatherCondition;
+}
+
+/** Keep current + future hours; allow one hour in the past so "now" is not dropped. */
+function filterHourlyFromNow(hourly: HourlyForecast[]): HourlyForecast[] {
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  return hourly.filter((h) => h.time.getTime() >= cutoff);
+}
+
 // ── WMO → app condition (used by Open-Meteo fallback + detectSignificantChanges) ──
 function wmoToCondition(code: number): WeatherCondition {
   if (code === 0) return "clear";
@@ -56,41 +79,47 @@ function wmoToCondition(code: number): WeatherCondition {
 // ── Parse edge function JSON into WeatherData (converts ISO strings → Dates) ──
 function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
   const cur = raw.current as Record<string, unknown>;
+  if (!cur || typeof cur !== "object") throw new Error("Invalid weather response: missing current");
+
   const hourlyRaw = raw.hourly as Record<string, unknown>[];
   const dailyRaw = raw.daily as Record<string, unknown>[];
   const nextRaw = raw.nextHourPrecip as Record<string, unknown> | null;
 
+  const updatedAtRaw = cur.updatedAt as string;
+  const updatedAt = updatedAtRaw ? new Date(updatedAtRaw) : new Date();
+  if (Number.isNaN(updatedAt.getTime())) throw new Error("Invalid weather response: updatedAt");
+
   const current: CurrentWeather = {
-    temp: cur.temp as number,
-    feelsLike: cur.feelsLike as number,
-    humidity: cur.humidity as number,
-    windSpeed: cur.windSpeed as number,
-    windDirection: cur.windDirection as number,
-    precipProb: cur.precipProb as number,
-    uvIndex: cur.uvIndex as number ?? 0,
+    temp: requireFiniteNumber(cur.temp, "current.temp"),
+    feelsLike: requireFiniteNumber(cur.feelsLike, "current.feelsLike"),
+    humidity: requireFiniteNumber(cur.humidity, "current.humidity"),
+    windSpeed: requireFiniteNumber(cur.windSpeed, "current.windSpeed"),
+    windDirection: requireFiniteNumber(cur.windDirection, "current.windDirection"),
+    precipProb: requireFiniteNumber(cur.precipProb, "current.precipProb"),
+    uvIndex: requireFiniteNumber(cur.uvIndex ?? 0, "current.uvIndex"),
     aqiIndex: null,
-    condition: cur.condition as WeatherCondition,
-    weatherCode: cur.weatherCode as number,
-    isDay: cur.isDay as boolean,
-    location: cur.location as string,
-    updatedAt: new Date(cur.updatedAt as string),
+    condition: requireCondition(cur.condition),
+    weatherCode: requireFiniteNumber(cur.weatherCode, "current.weatherCode"),
+    isDay: Boolean(cur.isDay),
+    location: String(cur.location ?? ""),
+    updatedAt,
   };
 
-  const now = new Date();
-
-  const hourly: HourlyForecast[] = (hourlyRaw ?? [])
-    .map((h) => ({
+  const hourly: HourlyForecast[] = filterHourlyFromNow(
+    (hourlyRaw ?? []).map((h) => ({
       time: new Date(h.time as string),
-      temp: h.temp as number,
-      feelsLike: h.feelsLike as number,
-      precipProb: h.precipProb as number,
-      condition: h.condition as WeatherCondition,
-      weatherCode: h.weatherCode as number,
-      windSpeed: h.windSpeed as number,
-      windDirection: h.windDirection as number | undefined,
-      isDay: h.isDay as boolean,
-    }))
-    .filter((h) => h.time >= now);
+      temp: requireFiniteNumber(h.temp, "hourly.temp"),
+      feelsLike: requireFiniteNumber(h.feelsLike, "hourly.feelsLike"),
+      precipProb: requireFiniteNumber(h.precipProb, "hourly.precipProb"),
+      condition: requireCondition(h.condition),
+      weatherCode: requireFiniteNumber(h.weatherCode, "hourly.weatherCode"),
+      windSpeed: requireFiniteNumber(h.windSpeed, "hourly.windSpeed"),
+      windDirection: h.windDirection != null
+        ? requireFiniteNumber(h.windDirection, "hourly.windDirection")
+        : undefined,
+      isDay: Boolean(h.isDay),
+    })).filter((h) => !Number.isNaN(h.time.getTime())),
+  );
 
   const daily: DailyForecast[] = (dailyRaw ?? []).map((d) => ({
     date: new Date(d.date as string),
@@ -195,7 +224,6 @@ async function fetchFromOpenMeteo(
   const cur = json.current as Record<string, unknown>;
   const hourly = json.hourly as Record<string, unknown[]>;
   const daily = json.daily as Record<string, unknown[]>;
-  const now = new Date();
 
   const current: CurrentWeather = {
     temp: Math.round(cur.temperature_2m as number),
@@ -226,7 +254,9 @@ async function fetchFromOpenMeteo(
       windDirection: Math.round((hourly.wind_direction_10m as number[])[i]),
       isDay: (hourly.is_day as number[])[i] === 1,
     }))
-    .filter((h) => h.time >= now);
+    .filter((h) => !Number.isNaN(h.time.getTime()));
+
+  const hourlyFiltered = filterHourlyFromNow(hourlyData);
 
   const dailyData: DailyForecast[] = (daily.time as string[]).map((t, i) => ({
     date: parseLocalDateOnly(t),
@@ -241,7 +271,7 @@ async function fetchFromOpenMeteo(
     sunset: new Date((daily.sunset as string[])[i]),
   }));
 
-  return { current, hourly: hourlyData, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
+  return { current, hourly: hourlyFiltered, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
 }
 
 // ── Air Quality Index (Open-Meteo Air Quality API, free) ─────────────────────
@@ -341,7 +371,7 @@ export async function reverseGeocodePlace(lat: number, lon: number): Promise<Rev
   try {
     const res = await fetchWithTimeout(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
-      { headers: { "Accept-Language": "en" } },
+      { headers: NOMINATIM_HEADERS },
       8_000,
     );
     if (!res.ok) return { city: "Your Location", countryCode: "US" };

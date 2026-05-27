@@ -7,12 +7,13 @@ interface Props {
 interface State {
   hasError: boolean;
   message: string;
+  resetKey: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, message: "" };
+  state: State = { hasError: false, message: "", resetKey: 0 };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, message: error.message };
   }
 
@@ -20,8 +21,18 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("Unhandled render error:", error, info.componentStack);
   }
 
+  private handleRetry = () => {
+    this.setState((s) => ({
+      hasError: false,
+      message: "",
+      resetKey: s.resetKey + 1,
+    }));
+  };
+
   render() {
-    if (!this.state.hasError) return this.props.children;
+    if (!this.state.hasError) {
+      return <React.Fragment key={this.state.resetKey}>{this.props.children}</React.Fragment>;
+    }
 
     return (
       <div
@@ -43,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <p style={{ opacity: 0.7, fontSize: 14 }}>{this.state.message}</p>
         <button
           type="button"
-          onClick={() => this.setState({ hasError: false, message: "" })}
+          onClick={this.handleRetry}
           style={{
             padding: "10px 24px",
             borderRadius: 999,

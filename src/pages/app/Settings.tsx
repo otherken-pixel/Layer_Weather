@@ -490,6 +490,7 @@ export default function Settings() {
                     onClick={() => {
                       setAccentColor(swatch.hex);
                       applyAccentPalette(swatch.hex);
+                      saveAccentLocal(swatch.hex);
                     }}
                     aria-label={swatch.label}
                     aria-pressed={isSelected}
