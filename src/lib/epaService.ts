@@ -20,7 +20,7 @@ export async function fetchEPAAQI(lat: number, lon: number): Promise<EPAAQIResul
       body: { lat, lon },
     });
     if (error || !data || typeof data !== "object") {
-      return { aqi: null, breakdown: [] };
+      return { aqi: null, breakdown: [], forecastAqi: null, forecastCategory: null };
     }
     const rec = data as Record<string, unknown>;
     return {

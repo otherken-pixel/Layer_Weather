@@ -369,7 +369,7 @@ export async function fetchPollenData(
     if (!h) return null;
 
     // Find the current hour index
-    const times = h.time as string[] | undefined;
+    const times = h.time as unknown as string[] | undefined;
     if (!times || times.length === 0) return null;
     const nowMs = Date.now();
     let curIdx = 0;
