@@ -984,7 +984,7 @@ export default function Settings() {
             onClick={saveSettings}
             disabled={saving || (!isDirty && !saved)}
             style={{
-              background: saved ? "#10B981" : isDirty ? ACCENT : isDark ? "#3A3A3C" : "#E5E7EB",
+              background: isDirty ? ACCENT : saved ? "#10B981" : isDark ? "#3A3A3C" : "#E5E7EB",
               color: saved || isDirty ? "white" : isDark ? "#6B7280" : "#9CA3AF",
               border: "none", borderRadius: 16,
               padding: "16px 0", fontSize: 16, fontWeight: 700,
@@ -994,7 +994,7 @@ export default function Settings() {
               transition: "background 0.3s, color 0.3s",
             }}
           >
-            {saving ? "⟳ Saving…" : saved ? "✓ Saved!" : isDirty ? "Save Changes" : "All changes saved"}
+            {saving ? "⟳ Saving…" : isDirty ? "Save Changes" : saved ? "✓ Saved!" : "All changes saved"}
           </button>
           <button
             type="button"
