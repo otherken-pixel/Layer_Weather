@@ -16,6 +16,7 @@ import {
   isWeatherCacheFresh,
 } from "@/lib/cache";
 import { resolveDeviceCoordinates } from "@/hooks/useSaveLocation";
+import { buildLocationCacheKey } from "@/lib/location-cache-key";
 
 const STALE_AFTER_MS = 15 * 60 * 1000;
 const GEOCODE_TIMEOUT_MS = 8_000;
@@ -45,15 +46,19 @@ function mapWeatherError(err: unknown): string {
 }
 
 async function resolveCoordinates(
-  force: boolean,
   useDeviceLocation: boolean,
 ): Promise<{ latitude: number; longitude: number }> {
-  if (force && useDeviceLocation) {
+  if (useDeviceLocation) {
     try {
       const coords = await resolveDeviceCoordinates();
       if (coords) return coords;
     } catch {
       /* fall through */
+    }
+  } else {
+    const { location } = useAppStore.getState();
+    if (location?.latitude != null && location?.longitude != null) {
+      return { latitude: location.latitude, longitude: location.longitude };
     }
   }
 
@@ -206,7 +211,7 @@ export function useWeather() {
     try {
       await withTimeout(
         (async () => {
-          const { latitude, longitude } = await resolveCoordinates(force, useDeviceLocation);
+          const { latitude, longitude } = await resolveCoordinates(useDeviceLocation);
           if (generation !== refreshGeneration.current) return;
 
           const storeLocation = useAppStore.getState().location;
@@ -296,10 +301,25 @@ export function useWeather() {
               h.time.getMonth() === today.getMonth() &&
               h.time.getDate() === today.getDate(),
           );
-          const timeline = getDayOutfitTimeline(todayHourly, cal, stylePreference, formalityPref);
+          const timeline = getDayOutfitTimeline(
+            todayHourly,
+            cal,
+            stylePreference,
+            formalityPref,
+            data.current.humidity,
+          );
           setOutfitTimeline(timeline);
 
-          const resolvedKey = cacheKey ?? (useDeviceLocation ? DEVICE_LOCATION_KEY : city);
+          const locForKey = useAppStore.getState().location;
+          const resolvedKey =
+            cacheKey ??
+            (useDeviceLocation
+              ? DEVICE_LOCATION_KEY
+              : locForKey?.city
+                ? buildLocationCacheKey(locForKey)
+                : city
+                  ? buildLocationCacheKey({ city, latitude, longitude })
+                  : undefined);
           if (resolvedKey) {
             const entry: CachedCityWeather = {
               weather: data,
@@ -325,7 +345,12 @@ export function useWeather() {
             data,
             rec,
             timeline,
-            storeProfile ?? undefined,
+            {
+              accent_color: storeProfile?.accent_color ?? null,
+              temp_unit: storeProfile?.temp_unit ?? "F",
+              thermal_sensitivity: cal.thermal_sensitivity,
+              calibration: cal,
+            },
             latitude !== undefined && longitude !== undefined ? { latitude, longitude } : undefined,
           ).catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
@@ -336,13 +361,14 @@ export function useWeather() {
     } catch (err) {
       if (generation !== refreshGeneration.current) return;
 
+      const staleLoc = useAppStore.getState().location;
       const resolvedKey =
         cacheKey ??
         (useDeviceLocation
           ? DEVICE_LOCATION_KEY
-          : useAppStore.getState().location?.city ||
-            useAppStore.getState().profile?.last_city ||
-            undefined);
+          : staleLoc?.city
+            ? buildLocationCacheKey(staleLoc)
+            : undefined);
 
       const usedCache = await tryLoadStaleWeatherCache(resolvedKey, useDeviceLocation);
       if (!usedCache) {

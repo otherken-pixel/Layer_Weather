@@ -1,3 +1,5 @@
+import { NOMINATIM_HEADERS } from "@/lib/nominatim";
+
 export interface GeocodedPlace {
   latitude: number;
   longitude: number;
@@ -10,7 +12,7 @@ export async function geocodeCity(query: string): Promise<GeocodedPlace | null> 
 
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(trimmed)}&format=json&limit=1`,
-    { headers: { "Accept-Language": "en" } },
+    { headers: NOMINATIM_HEADERS },
   );
   if (!res.ok) return null;
 

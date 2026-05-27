@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MapPin, Pencil, Plus, X } from "lucide-react";
+import { locationTabKey } from "@/lib/location-cache-key";
 import type { LocationData } from "@/types";
 
 interface Props {
@@ -91,7 +92,7 @@ export function LocationTabs({
         {locations.map((loc) => {
           const isActive = !activeIsDevice && loc.city === activeCity;
           return (
-            <div key={loc.city} style={{ position: "relative", flexShrink: 0 }}>
+            <div key={locationTabKey(loc)} style={{ position: "relative", flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={() => { if (!editMode) onSelect(loc); }}

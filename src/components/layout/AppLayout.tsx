@@ -1,16 +1,52 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { Outlet } from "react-router-dom";
+import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { TabBar } from "./TabBar";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useAccentTheme } from "@/hooks/useAccentTheme";
-import { useAppStore } from "@/store";
+import { useWeather } from "@/hooks/useWeather";
+import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
+import { applyPendingWidgetFeedback } from "@/lib/widget-feedback";
+import { buildLocationCacheKey } from "@/lib/location-cache-key";
 
 const TAB_BAR_HEIGHT = 56;
 
 export default function AppLayout() {
   usePushNotifications();
   const accentColor = useAppStore((s) => s.profile?.accent_color);
+  const userId = useAppStore((s) => s.userId);
+  const activeLocationIsDevice = useAppStore((s) => s.activeLocationIsDevice);
+  const { refresh } = useWeather();
   useAccentTheme(accentColor);
+
+  const syncWidgetFeedback = useCallback(async () => {
+    if (!userId) return;
+    const changed = await applyPendingWidgetFeedback(userId);
+    if (!changed) return;
+    if (activeLocationIsDevice) {
+      await refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
+      return;
+    }
+    const loc = useAppStore.getState().location;
+    if (loc) {
+      await refresh(true, { cacheKey: buildLocationCacheKey(loc) });
+    } else {
+      await refresh(true);
+    }
+  }, [userId, activeLocationIsDevice, refresh]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void syncWidgetFeedback();
+    if (!Capacitor.isNativePlatform()) return;
+    const handle = App.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) void syncWidgetFeedback();
+    });
+    return () => {
+      void handle.then((h) => h.remove());
+    };
+  }, [userId, syncWidgetFeedback]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

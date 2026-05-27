@@ -463,6 +463,11 @@ function resolveWarmthTier(
     return "warmth_2_rain";
   }
 
+  // High rain tolerance: dry layers in light rain, but still use rain tiers when heavy
+  if (isRainy && rainTolerance === "high" && isHeavyRain) {
+    return "warmth_3_rain";
+  }
+
   const lightJacketFloor = thresholds.heavyCoat + 15;
   if (effectiveFeelsLike >= thresholds.shorts)        return "warmth_1";
   if (effectiveFeelsLike >= pantsShortsleeveMin)      return "warmth_2";
@@ -793,7 +798,8 @@ export function getOutfitRecommendation(opts: {
       // Casual: umbrella when gear is on or precip is high
       umbrella =
         outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy" ||
-        (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high");
+        (effectivePrecipProb > 60 && calibration.rain_tolerance !== "high") ||
+        (calibration.rain_tolerance === "high" && effectivePrecipProb > 50);
     }
   }
 
@@ -951,11 +957,19 @@ function buildCommuteAlert(
     const morningData = checkTime(commuteStart);
     if (morningData) {
       const delta = morningData.feelsLike - currentFeelsLike;
-      if (Math.abs(delta) >= 10) {
+      const layerChange = getLayerChangeDirection(currentOutfit, morningData.outfit);
+      const outfitChanged = layerChange !== null && morningData.outfit !== currentOutfit;
+      if (Math.abs(delta) >= 10 || outfitChanged) {
+        const layerNote =
+          outfitChanged && layerChange === "layer up"
+            ? " You'll want more layers for your commute."
+            : outfitChanged && layerChange === "layer down"
+              ? " You can dress lighter when you leave."
+              : "";
         return {
           type: "morning",
-          message: `Departure at ${formatTime(commuteStart)}: ${morningData.feelsLike}°F feels-like. ${delta < 0 ? "Dress warmer for your commute." : "It'll feel warmer when you leave."}`,
-          urgency: Math.abs(delta) >= 18 ? "warning" : "info",
+          message: `Departure at ${formatTime(commuteStart)}: ${morningData.feelsLike}°F feels-like. ${delta < 0 ? "Dress warmer for your commute." : delta > 0 ? "It'll feel warmer when you leave." : "Conditions change for your commute."}${layerNote}`,
+          urgency: Math.abs(delta) >= 18 || (outfitChanged && layerChange === "layer up") ? "warning" : "info",
         };
       }
     }
@@ -965,11 +979,15 @@ function buildCommuteAlert(
     const eveningData = checkTime(commuteEnd);
     if (eveningData) {
       const delta = eveningData.feelsLike - currentFeelsLike;
-      if (delta <= -12) {
+      const layerChange = getLayerChangeDirection(currentOutfit, eveningData.outfit);
+      const outfitChanged = layerChange !== null && eveningData.outfit !== currentOutfit;
+      if (delta <= -12 || (outfitChanged && layerChange === "layer up")) {
         return {
           type: "evening",
-          message: `It drops ${Math.abs(Math.round(delta))}° by your ${formatTime(commuteEnd)} return. Toss a jacket in your bag.`,
-          urgency: Math.abs(delta) >= 18 ? "warning" : "info",
+          message: outfitChanged && layerChange === "layer up" && delta > -12
+            ? `Your ${formatTime(commuteEnd)} return needs warmer layers — pack a jacket.`
+            : `It drops ${Math.abs(Math.round(delta))}° by your ${formatTime(commuteEnd)} return. Toss a jacket in your bag.`,
+          urgency: Math.abs(delta) >= 18 || outfitChanged ? "warning" : "info",
         };
       }
     }
@@ -998,6 +1016,8 @@ export function getDayOutfitTimeline(
   calibration: UserCalibration,
   stylePreference?: StylePreference,
   formality?: FormalityPreference,
+  /** Current humidity (%) — hourly rows lack humidity; use live reading for heat-index alignment. */
+  humidityForPeriods = 50,
 ): DayOutfitTimeline {
   const result: DayOutfitTimeline = [];
   let previousRainy: boolean | null = null;
@@ -1047,12 +1067,12 @@ export function getDayOutfitTimeline(
       weatherCode,
       windSpeed: avgWindSpeed,
       precipProb: maxPrecipProb,
-      humidity: 50, // hourly data has no per-hour humidity; neutral value avoids false adjustments
+      humidity: humidityForPeriods,
       calibration,
       stylePreference,
       formality,
       isDay: blockIsDay,
-      hourly: [],
+      hourly: todayHourly,
       previousRainy,
     });
 
@@ -1104,10 +1124,10 @@ export function generatePackingList(
   if (dailyForecasts.length === 0) return [];
 
   const items: PackingItem[] = [];
-  const days = dailyForecasts.length;
+  const thresholds = computeAdjustedThresholds(calibration);
 
-  const coldDays     = dailyForecasts.filter((d) => d.feelsLikeMin < calibration.light_jacket_max_temp).length;
-  const hotDays      = dailyForecasts.filter((d) => d.feelsLikeMax >= calibration.shorts_min_temp).length;
+  const coldDays     = dailyForecasts.filter((d) => d.feelsLikeMin < thresholds.lightJacket).length;
+  const hotDays      = dailyForecasts.filter((d) => d.feelsLikeMax >= thresholds.shorts).length;
   const rainDays     = dailyForecasts.filter((d) => d.precipProb > 50).length;
   const flipFlopDays = dailyForecasts.filter((d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
   const sneakerDays  = dailyForecasts.filter((d) => d.feelsLikeMax < FLIP_FLOPS_MIN_TEMP_F && d.feelsLikeMin >= SNOW_BOOTS_BELOW_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
@@ -1140,7 +1160,11 @@ export function generatePackingList(
     }
   }
 
-  items.push({ category: "bottoms", name: "Pants / Jeans", quantity: Math.min(days, 3) });
+  items.push({
+    category: "bottoms",
+    name: "Pants / Jeans",
+    quantity: Math.min(dailyForecasts.length, 3),
+  });
 
   return items;
 }

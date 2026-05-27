@@ -1,8 +1,10 @@
+import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import type {
   WeatherData,
   OutfitRecommendation,
   DayOutfitTimeline,
   Profile,
+  UserCalibration,
 } from "@/types";
 
 // Keys must match AppGroupKeys.swift in the widget/watch extensions.
@@ -17,25 +19,6 @@ const KEYS = {
   feedbackAction: "widget_feedback_action",
   lastCoordinates: "widget_last_coordinates",
 } as const;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function warmthTierFromFeelsLike(feelsLike: number, precipProb: number, weatherCode: number): string {
-  const isSnow = weatherCode >= 71 && weatherCode <= 77;
-  if (isSnow) return "warmth_6_snow";
-  const isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 82);
-  if (isRain) {
-    if (feelsLike >= 65) return "warmth_1_rain";
-    if (feelsLike >= 50) return "warmth_2_rain";
-    return "warmth_3_rain";
-  }
-  if (feelsLike >= 85) return "warmth_1";
-  if (feelsLike >= 75) return "warmth_2";
-  if (feelsLike >= 65) return "warmth_3";
-  if (feelsLike >= 55) return "warmth_4";
-  if (feelsLike >= 40) return "warmth_5";
-  return "warmth_6";
-}
 
 async function writeKey(key: string, value: string): Promise<void> {
   try {
@@ -64,11 +47,16 @@ export async function saveWidgetSnapshot(
   weather: WeatherData,
   outfit: OutfitRecommendation,
   timeline?: DayOutfitTimeline,
-  profile?: Pick<Profile, "accent_color" | "temp_unit"> & { thermal_sensitivity?: number },
+  profile?: Pick<Profile, "temp_unit"> & {
+    accent_color?: string | null;
+    thermal_sensitivity?: number;
+    calibration?: UserCalibration;
+  },
   coordinates?: { latitude: number; longitude: number },
 ): Promise<void> {
   try {
     const { current, hourly, daily } = weather;
+    const calibration = profile?.calibration ?? DEFAULT_CALIBRATION;
 
     const snapshot = {
       temp: current.temp,
@@ -97,16 +85,29 @@ export async function saveWidgetSnapshot(
       updatedAt: new Date().toISOString(),
     };
 
-    const hourlyEntries = hourly.slice(0, 24).map((h) => ({
-      hour: h.time instanceof Date ? h.time.toISOString() : String(h.time),
-      temp: h.temp,
-      feelsLike: h.feelsLike,
-      precipProb: h.precipProb,
-      condition: h.condition,
-      weatherCode: h.weatherCode,
-      isDay: h.isDay,
-      warmthTier: warmthTierFromFeelsLike(h.feelsLike, h.precipProb, h.weatherCode),
-    }));
+    const hourlyEntries = hourly.slice(0, 24).map((h) => {
+      const hourRec = getOutfitRecommendation({
+        feelsLike: h.feelsLike,
+        temp: h.temp,
+        weatherCode: h.weatherCode,
+        windSpeed: h.windSpeed,
+        precipProb: h.precipProb,
+        humidity: current.humidity,
+        calibration,
+        hourly,
+        isDay: h.isDay,
+      });
+      return {
+        hour: h.time instanceof Date ? h.time.toISOString() : String(h.time),
+        temp: h.temp,
+        feelsLike: h.feelsLike,
+        precipProb: h.precipProb,
+        condition: h.condition,
+        weatherCode: h.weatherCode,
+        isDay: h.isDay,
+        warmthTier: hourRec.warmthTier,
+      };
+    });
 
     const dailyEntries = daily.slice(0, 7).map((d) => ({
       date: d.date instanceof Date ? d.date.toISOString() : String(d.date),
@@ -194,6 +195,32 @@ export async function clearFeedbackAction(): Promise<void> {
     const { WidgetBridge } = await import("@/lib/widget-bridge");
     await WidgetBridge.saveWidgetData({ key: KEYS.feedbackAction, value: "" });
   } catch {
-    // Non-fatal
+    try {
+      const { Preferences } = await import("@capacitor/preferences");
+      await Preferences.set({ key: KEYS.feedbackAction, value: "" });
+    } catch {
+      // Non-fatal
+    }
+  }
+}
+
+/** Thermal slider value from Watch / widget (App Group). */
+export async function readWidgetThermalSensitivity(): Promise<number | null> {
+  try {
+    const { WidgetBridge } = await import("@/lib/widget-bridge");
+    const result = await WidgetBridge.readWidgetData({ key: KEYS.thermalSensitivity });
+    if (result.value == null || result.value === "") return null;
+    const n = parseInt(result.value, 10);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    try {
+      const { Preferences } = await import("@capacitor/preferences");
+      const result = await Preferences.get({ key: KEYS.thermalSensitivity });
+      if (!result.value) return null;
+      const n = parseInt(result.value, 10);
+      return Number.isFinite(n) ? n : null;
+    } catch {
+      return null;
+    }
   }
 }

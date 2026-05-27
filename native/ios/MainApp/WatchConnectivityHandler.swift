@@ -42,8 +42,11 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
-        guard message["request"] as? String == "weatherUpdate" else { return }
-        pushDataToWatch(session: session)
+        if message["request"] as? String == "weatherUpdate" {
+            pushDataToWatch(session: session)
+            return
+        }
+        persistWatchPayload(message)
     }
 
     func session(
@@ -51,12 +54,27 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
-        guard message["request"] as? String == "weatherUpdate" else {
-            replyHandler([:])
+        if message["request"] as? String == "weatherUpdate" {
+            let payload = buildPayload()
+            replyHandler(payload)
             return
         }
-        let payload = buildPayload()
-        replyHandler(payload)
+        persistWatchPayload(message)
+        replyHandler([:])
+    }
+
+    /// Writes Watch feedback / calibration into App Group for the Capacitor app to consume.
+    private func persistWatchPayload(_ message: [String: Any]) {
+        let defaults = sharedDefaults
+        if let feedback = message["feedbackAction"] as? String, !feedback.isEmpty {
+            defaults?.set(feedback, forKey: "widget_feedback_action")
+            defaults?.set(Date().timeIntervalSince1970, forKey: "widget_feedback_timestamp")
+        }
+        if let thermal = message["thermalSensitivity"] as? Int {
+            defaults?.set(String(thermal), forKey: "widget_thermal_sensitivity")
+        } else if let thermal = message["thermalSensitivity"] as? String {
+            defaults?.set(thermal, forKey: "widget_thermal_sensitivity")
+        }
     }
 
     // MARK: - Private

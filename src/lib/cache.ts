@@ -8,6 +8,7 @@ import type { CachedCityWeather } from "@/store";
 
 export const WEATHER_CACHE_KEY = "wt_weather_cache";
 export const CITY_WEATHER_CACHE_PREFIX = "wt_city_weather_";
+const CITY_CACHE_MANIFEST_KEY = "wt_city_weather_manifest";
 
 /** Maximum age for offline / failure fallback weather data. */
 export const WEATHER_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
@@ -24,7 +25,25 @@ export function isWeatherCacheFresh(savedAt: string | Date): boolean {
 }
 
 function cityCacheStorageKey(cacheKey: string): string {
-  return `${CITY_WEATHER_CACHE_PREFIX}${cacheKey}`;
+  return `${CITY_WEATHER_CACHE_PREFIX}${encodeURIComponent(cacheKey)}`;
+}
+
+async function loadCityCacheManifest(): Promise<string[]> {
+  const raw = await storageGet(CITY_CACHE_MANIFEST_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function registerCityCacheKey(cacheKey: string): Promise<void> {
+  const keys = await loadCityCacheManifest();
+  if (keys.includes(cacheKey)) return;
+  keys.push(cacheKey);
+  await storageSet(CITY_CACHE_MANIFEST_KEY, JSON.stringify(keys));
 }
 
 function serializeForCache(data: WeatherData): Record<string, unknown> {
@@ -172,6 +191,7 @@ export async function saveCityWeatherCache(
     fetchedAt: entry.fetchedAt.toISOString(),
   };
   await storageSet(cityCacheStorageKey(cacheKey), JSON.stringify(stored));
+  await registerCityCacheKey(cacheKey);
 }
 
 export async function loadCityWeatherCache(
@@ -201,12 +221,19 @@ export async function loadCityWeatherCache(
 
 export async function clearWeatherCache(): Promise<void> {
   await storageRemove(WEATHER_CACHE_KEY);
-  const cityKeys: string[] = [];
+
+  const manifestKeys = await loadCityCacheManifest();
+  for (const cacheKey of manifestKeys) {
+    await storageRemove(cityCacheStorageKey(cacheKey));
+  }
+  await storageRemove(CITY_CACHE_MANIFEST_KEY);
+
+  const storageKeys: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) cityKeys.push(k);
+    if (k?.startsWith(CITY_WEATHER_CACHE_PREFIX)) storageKeys.push(k);
   }
-  for (const k of cityKeys) {
+  for (const k of storageKeys) {
     localStorage.removeItem(k);
   }
 }

@@ -29,7 +29,7 @@ function WindMarker({ lat, lng, windDir, windSpeed, isDark }: {
             display:flex;align-items:center;justify-content:center;
             box-shadow:0 2px 8px rgba(0,0,0,0.25);
           ">
-            <svg width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${windDir}deg);transition:transform 0.6s ease;">
+            <svg width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${(windDir + 180) % 360}deg);transition:transform 0.6s ease;">
               <polygon points="11,3 14,16 11,13 8,16" fill="${arrowColor}" />
               <circle cx="11" cy="11" r="2" fill="${arrowColor}" opacity="0.5" />
             </svg>
@@ -53,7 +53,7 @@ function WindMarker({ lat, lng, windDir, windSpeed, isDark }: {
 const RADAR_MAX_ZOOM = 12;
 /** RainViewer tiles are only served through zoom 7 (see rainviewer.com/api/weather-maps-api.html). */
 const RAINVIEWER_NATIVE_MAX_ZOOM = 7;
-const RADAR_DEFAULT_ZOOM = 8;
+const RADAR_DEFAULT_ZOOM = 7;
 
 interface RVFrame { time: number; path: string; }
 interface RVManifest {
