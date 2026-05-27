@@ -608,7 +608,6 @@ export default function Wardrobe() {
       style={{
         minHeight: "100dvh",
         background: bgPage,
-        paddingTop: "env(safe-area-inset-top, 0px)",
         paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
       }}
     >
