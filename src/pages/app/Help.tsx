@@ -573,13 +573,21 @@ export default function Help() {
   const accentColor = "var(--accent-primary)";
 
   return (
-    <div style={{ minHeight: "100%", background: pageBg, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        minHeight: "100%",
+        background: pageBg,
+        display: "flex",
+        flexDirection: "column",
+        marginTop: "calc(-1 * env(safe-area-inset-top, 0px))",
+      }}
+    >
 
       {/* Header */}
       <div
         style={{
           background: pageBg,
-          paddingTop: 12,
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
           paddingBottom: 16,
           paddingLeft: 16,
           paddingRight: 16,
