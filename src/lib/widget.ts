@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { getOutfitRecommendation, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import type {
   WeatherData,
@@ -20,17 +21,31 @@ const KEYS = {
   lastCoordinates: "widget_last_coordinates",
 } as const;
 
+const APP_GROUP_KEY_PREFIX = "widget_";
+
 async function writeKey(key: string, value: string): Promise<void> {
+  const isAppGroupKey = key.startsWith(APP_GROUP_KEY_PREFIX);
+  const isNative = Capacitor.isNativePlatform();
+
   try {
     const { WidgetBridge } = await import("@/lib/widget-bridge");
     await WidgetBridge.saveWidgetData({ key, value });
-  } catch {
-    // Fallback: standard Preferences for older bridge or web
-    try {
-      const { Preferences } = await import("@capacitor/preferences");
-      await Preferences.set({ key, value });
-    } catch {
-      // Non-fatal
+    if (import.meta.env.DEV) {
+      console.info(`[WidgetBridge] wrote ${key} (${value.length} bytes)`);
+    }
+    return;
+  } catch (err) {
+    if (isNative && isAppGroupKey) {
+      console.error(`[WidgetBridge] failed for ${key}:`, err);
+      throw err;
+    }
+    if (!isNative) {
+      try {
+        const { Preferences } = await import("@capacitor/preferences");
+        await Preferences.set({ key, value });
+      } catch {
+        // Non-fatal on web
+      }
     }
   }
 }
@@ -163,8 +178,10 @@ export async function saveWidgetSnapshot(
     } catch {
       // Non-fatal
     }
-  } catch {
-    // Non-fatal — widget data is best-effort
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn("saveWidgetSnapshot failed:", err);
+    }
   }
 }
 

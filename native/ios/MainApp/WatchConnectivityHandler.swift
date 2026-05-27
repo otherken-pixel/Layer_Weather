@@ -12,6 +12,7 @@ import WidgetKit
 final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
     static let shared = WatchConnectivityHandler()
 
+    private var didActivate = false
     private let suiteName = "group.com.layerweather.shared"
 
     private var sharedDefaults: UserDefaults? {
@@ -24,6 +25,8 @@ final class WatchConnectivityHandler: NSObject, WCSessionDelegate {
 
     func activate() {
         guard WCSession.isSupported() else { return }
+        guard !didActivate else { return }
+        didActivate = true
         WCSession.default.delegate = self
         WCSession.default.activate()
     }

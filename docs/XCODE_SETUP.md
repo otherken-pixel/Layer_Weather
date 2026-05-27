@@ -62,9 +62,19 @@ Shared App Group: `group.com.layerweather.shared`
 Open **`ios/App/App.xcworkspace`**, not `App.xcodeproj`. Run `npm run ios:pods` from project root.
 
 
-### `Cannot find WatchConnectivityHandler in scope`
+### Widget / watch show placeholder weather or “Open app to sync”
 
-AppDelegate calls `WatchConnectivityHandler` but the Swift file is not in the **App** target. Run:
+Capacitor 6 does **not** auto-register local plugins. The setup script patches `Main.storyboard` to use `LayerWeatherBridgeViewController`, which registers `WidgetBridgePlugin` and writes to the App Group.
+
+1. Run `npm run ios:prepare` (or `npm run ios:extensions`)
+2. In Xcode console after loading weather, confirm: `To Native -> WidgetBridge saveWidgetData`
+3. In the app: **Settings → Widget & Watch → Sync widget & watch now**
+
+If the sync button reports “not registered”, open **Main.storyboard** and set the root view controller to **LayerWeatherBridgeViewController** (Module: **App**).
+
+### `Cannot find WatchConnectivityHandler` / `LayerWeatherBridgeViewController` in scope
+
+Native Swift files are not in the **App** target. Run:
 
 ```bash
 npm run ios:extensions
@@ -106,21 +116,22 @@ These files belong to the **App** target (the main Capacitor app). Drag them int
 `App/App/` group in Xcode and ensure "App" is checked in target membership.
 
 ```
+native/ios/MainApp/LayerWeatherBridgeViewController.swift
 native/ios/MainApp/WidgetBridgePlugin.swift
 native/ios/MainApp/WatchConnectivityHandler.swift
 ```
 
-Then activate WatchConnectivity in `AppDelegate.swift`:
-```swift
-import WatchConnectivity
+**Capacitor 6:** Register plugins in `LayerWeatherBridgeViewController.capacitorDidLoad()` (the setup script sets this class in `Main.storyboard`):
 
-func application(_ application: UIApplication,
-                 didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    // ... existing Capacitor setup ...
+```swift
+override open func capacitorDidLoad() {
+    super.capacitorDidLoad()
+    bridge?.registerPluginInstance(WidgetBridgePlugin())
     WatchConnectivityHandler.shared.activate()
-    return true
 }
 ```
+
+Do **not** call `WatchConnectivityHandler` from `AppDelegate` if the bridge view controller is in use (duplicate activation is guarded but unnecessary).
 
 ---
 

@@ -6,7 +6,7 @@ import WidgetKit
 /// WidgetKit extensions and the Apple Watch app can read it without launching
 /// the main app. Also triggers WidgetKit timeline reloads.
 ///
-/// Registered automatically by Capacitor via the @objc annotation.
+/// Register in `LayerWeatherBridgeViewController.capacitorDidLoad()` (Capacitor 6).
 @objc(WidgetBridgePlugin)
 public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "WidgetBridgePlugin"
@@ -28,7 +28,15 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing required parameters: key, value")
             return
         }
-        sharedDefaults?.set(value, forKey: key)
+        guard let defaults = sharedDefaults else {
+            call.reject(
+                "App Group UserDefaults unavailable. Enable App Groups capability " +
+                "group.com.layerweather.shared on the App target."
+            )
+            return
+        }
+        defaults.set(value, forKey: key)
+        defaults.synchronize()
         call.resolve()
     }
 
@@ -37,7 +45,14 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject("Missing required parameter: key")
             return
         }
-        let value = sharedDefaults?.string(forKey: key)
+        guard let defaults = sharedDefaults else {
+            call.reject(
+                "App Group UserDefaults unavailable. Enable App Groups capability " +
+                "group.com.layerweather.shared on the App target."
+            )
+            return
+        }
+        let value = defaults.string(forKey: key)
         call.resolve(["value": value as Any])
     }
 
