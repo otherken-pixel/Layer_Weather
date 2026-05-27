@@ -1,7 +1,8 @@
 import React from "react";
 import type { PollenData, PollenLevel } from "@/types";
 
-function levelLabel(l: PollenLevel | null): string {
+function levelLabel(l: PollenLevel | null, grains?: number | null): string {
+  if (grains === 0) return "None";
   if (l === "low") return "Low";
   if (l === "moderate") return "Moderate";
   if (l === "high") return "High";
@@ -43,8 +44,9 @@ export function PollenCard({ data, isDark = false }: Props) {
   const trackColor = isDark ? "#52525B" : "#E5E7EB";
   const border = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
 
-  const overallColor = levelColor(data.level);
-  const overallLabel = levelLabel(data.level);
+  const allZero = (data.tree ?? 0) === 0 && (data.grass ?? 0) === 0 && (data.weed ?? 0) === 0;
+  const overallColor = allZero ? "#22C55E" : levelColor(data.level);
+  const overallLabel = allZero ? "None" : levelLabel(data.level);
 
   const rows: { emoji: string; label: string; grains: number | null }[] = [
     { emoji: "🌲", label: "Tree", grains: data.tree },
@@ -107,8 +109,8 @@ export function PollenCard({ data, isDark = false }: Props) {
                   )}
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 600, color: grains == null ? labelColor : color }}>
-                  {levelLabel(lvl)}
-                  {grains != null && (
+                  {levelLabel(lvl, grains)}
+                  {grains != null && grains > 0 && (
                     <span style={{ fontSize: 11, color: labelColor, fontWeight: 400, marginLeft: 4 }}>
                       {Math.round(grains)} gr/m³
                     </span>

@@ -933,6 +933,33 @@ function NWSAlertsBanner({ alerts, isDark }: { alerts: import("@/types").NWSAler
   );
 }
 
+// ── Pollen unavailable fallback ───────────────────────────────────────────────
+
+function PollenUnavailableCard({ isDark }: { isDark: boolean }) {
+  const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const border = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const labelColor = isDark ? "#9BA4B4" : "#4B5563";
+  const textColor = isDark ? "#D1D5DB" : "#374151";
+  return (
+    <div style={{
+      background: cardBg, borderRadius: 24, padding: "20px",
+      boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
+      border,
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <span style={{ fontSize: 24, flexShrink: 0 }}>🌿</span>
+      <div>
+        <p style={{ fontSize: 14, fontWeight: 700, color: labelColor, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 3px" }}>
+          Pollen
+        </p>
+        <p style={{ fontSize: 13, color: textColor, margin: 0 }}>
+          Pollen data not available for your area.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Nerd Card Renderer ────────────────────────────────────────────────────────
 
 function NerdCardRenderer({
@@ -963,7 +990,7 @@ function NerdCardRenderer({
     return <SeasonalProduceCard latitude={latitude} isDark={isDark} />;
   }
   if (cardId === "pollen") {
-    if (!pollenData) return null;
+    if (!pollenData) return <PollenUnavailableCard isDark={isDark} />;
     return <PollenCard data={pollenData} isDark={isDark} />;
   }
   return null;

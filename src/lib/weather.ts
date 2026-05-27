@@ -398,21 +398,27 @@ export async function fetchPollenData(
     const mugwort = curVal("mugwort_pollen");
     const ragweed = curVal("ragweed_pollen");
 
-    const treeMax = Math.max(alder ?? 0, birch ?? 0, olive ?? 0);
-    const weedMax = Math.max(mugwort ?? 0, ragweed ?? 0);
-    const tree = treeMax > 0 ? treeMax : null;
-    const weed = weedMax > 0 ? weedMax : null;
+    // Determine whether each group has any API reading (null = no coverage, 0 = none detected)
+    const hasTree = alder !== null || birch !== null || olive !== null;
+    const hasGrass = grass !== null;
+    const hasWeed = mugwort !== null || ragweed !== null;
 
-    const candidates: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
-    if (tree != null) candidates.push({ type: "tree", val: tree });
-    if (grass != null) candidates.push({ type: "grass", val: grass });
-    if (weed != null) candidates.push({ type: "weed", val: weed });
+    // Return null only when the API provided no readings at all (outside coverage area)
+    if (!hasTree && !hasGrass && !hasWeed) return null;
 
-    if (candidates.length === 0) return null;
-    candidates.sort((a, b) => b.val - a.val);
-    const dominant = candidates[0].type;
+    const tree = hasTree ? Math.max(alder ?? 0, birch ?? 0, olive ?? 0) : null;
+    const weed = hasWeed ? Math.max(mugwort ?? 0, ragweed ?? 0) : null;
 
-    const levels = candidates.map((c) => pollenLevel(c.val));
+    // Dominant type = highest non-zero count; null when everything is 0
+    const withReading: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
+    if (tree !== null) withReading.push({ type: "tree", val: tree });
+    if (grass !== null) withReading.push({ type: "grass", val: grass });
+    if (weed !== null) withReading.push({ type: "weed", val: weed });
+
+    const nonZero = withReading.filter((c) => c.val > 0).sort((a, b) => b.val - a.val);
+    const dominant = nonZero.length > 0 ? nonZero[0].type : null;
+
+    const levels = withReading.map((c) => pollenLevel(c.val));
     const ORDER: Array<import("@/types").PollenLevel> = ["very_high", "high", "moderate", "low"];
     const level = ORDER.find((l) => levels.includes(l)) ?? null;
 
