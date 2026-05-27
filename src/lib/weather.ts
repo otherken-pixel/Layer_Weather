@@ -377,18 +377,18 @@ export async function fetchPollenData(
       if (new Date(times[i]).getTime() <= nowMs) curIdx = i;
     }
 
-    function curVal(key: string): number | null {
+    const curVal = (key: string): number | null => {
       const arr = h![key];
       return arr && arr[curIdx] != null ? arr[curIdx] : null;
-    }
+    };
 
-    function pollenLevel(grains: number | null): import("@/types").PollenLevel | null {
+    const pollenLevel = (grains: number | null): import("@/types").PollenLevel | null => {
       if (grains == null) return null;
       if (grains < 10) return "low";
       if (grains < 50) return "moderate";
       if (grains < 150) return "high";
       return "very_high";
-    }
+    };
 
     const alder = curVal("alder_pollen");
     const birch = curVal("birch_pollen");
