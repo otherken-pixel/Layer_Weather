@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { CARD_LABELS, type CardId, type CardConfig } from "@/lib/card-layout";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { OutfitRecommendationCard } from "@/components/weather/OutfitRecommendation";
 import { WeatherWidget } from "@/components/weather/WeatherWidget";
@@ -59,7 +60,9 @@ export default function Home() {
     wardrobeItems, setWardrobeItems,
     svgCatalogById,
     forecastConfidence,
+    cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
+  const [isEditMode, setIsEditMode] = useState(false);
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const isDark = useDarkMode(profile?.theme_preference ?? null);
@@ -334,6 +337,31 @@ export default function Home() {
     return matchWardrobeToOutfit(wardrobeItems, outfit);
   }, [outfit, wardrobeItems]);
 
+  const visibleCards = useMemo(() => {
+    if (!weather) return [] as CardConfig[];
+    return cardLayout.filter((c) => {
+      if (c.id === "aqi") return weather.current.aqiIndex != null;
+      if (c.id === "nowcast") return !!weather.nextHourPrecip;
+      if (c.id === "seven_day") return weather.daily.length > 0;
+      return true;
+    });
+  }, [cardLayout, weather]);
+
+  const handleMoveCard = useCallback((id: CardId, direction: "up" | "down") => {
+    const visibleIds = visibleCards.map((c) => c.id);
+    const visIdx = visibleIds.indexOf(id);
+    if (visIdx === -1) return;
+    const targetVisIdx = direction === "up" ? visIdx - 1 : visIdx + 1;
+    if (targetVisIdx < 0 || targetVisIdx >= visibleIds.length) return;
+    const targetId = visibleIds[targetVisIdx];
+    const idxA = cardLayout.findIndex((c) => c.id === id);
+    const idxB = cardLayout.findIndex((c) => c.id === targetId);
+    if (idxA === -1 || idxB === -1) return;
+    const next = [...cardLayout];
+    [next[idxA], next[idxB]] = [next[idxB], next[idxA]];
+    setCardLayout(next);
+  }, [visibleCards, cardLayout, setCardLayout]);
+
   return (
     <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
 
@@ -530,6 +558,29 @@ export default function Home() {
             zIndex: 2,
           }}>
 
+            {/* Edit / Done row */}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setIsEditMode((e) => !e)}
+                style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "2px 2px",
+                  color: "var(--accent-primary)",
+                  fontSize: 14, fontWeight: 600,
+                  minHeight: 32,
+                }}
+              >
+                {isEditMode ? "Done" : (
+                  <>
+                    <PencilSVG />
+                    <span>Edit</span>
+                  </>
+                )}
+              </button>
+            </div>
+
             {/* Weather change alerts — only show rain warnings, not feels-like info */}
             {weatherAlerts.some((a) => a.type === "warning") && (
               <AlertBanner alerts={weatherAlerts.filter((a) => a.type === "warning")} />
@@ -550,92 +601,130 @@ export default function Home() {
               </div>
             )}
 
-            {/* Today's outfit */}
-            <OutfitRecommendationCard
-              recommendation={outfit}
-              tempUnit={tempUnit}
-              feelsLike={weather.current.feelsLike}
-              outfitReason={outfitReason}
-              feelsLikeExplanation={feelsLikeExplanation}
-              timeline={outfitTimeline}
-              onFeedback={handleOutfitFeedback}
-              isDark={isDark}
-              wardrobeMatch={wardrobeMatch}
-              wardrobePreset={activePreset}
-              onViewWardrobe={() => navigate("/app/wardrobe")}
-            />
+            {/* Dynamic cards */}
+            {visibleCards.map((card, idx) => {
+              const content = (() => {
+                switch (card.id) {
+                  case "outfit":
+                    return (
+                      <OutfitRecommendationCard
+                        recommendation={outfit}
+                        tempUnit={tempUnit}
+                        feelsLike={weather.current.feelsLike}
+                        outfitReason={outfitReason}
+                        feelsLikeExplanation={feelsLikeExplanation}
+                        timeline={outfitTimeline}
+                        onFeedback={handleOutfitFeedback}
+                        isDark={isDark}
+                        wardrobeMatch={wardrobeMatch}
+                        wardrobePreset={activePreset}
+                        onViewWardrobe={() => navigate("/app/wardrobe")}
+                      />
+                    );
+                  case "conditions":
+                    return (
+                      <WeatherWidget
+                        weather={weather.current}
+                        tempUnit={tempUnit}
+                        onUnitChange={handleUnitChange}
+                        isDark={isDark}
+                      />
+                    );
+                  case "aqi":
+                    return weather.current.aqiIndex != null ? (
+                      <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
+                    ) : null;
+                  case "nowcast":
+                    return weather.nextHourPrecip ? (
+                      <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
+                    ) : null;
+                  case "hourly":
+                    return (
+                      <HourlyStrip
+                        hourly={weather.hourly.slice(0, 12)}
+                        tempUnit={tempUnit}
+                        isDark={isDark}
+                        cardSurface={cardSurface}
+                        onFullForecast={() => navigate("/app/forecast")}
+                      />
+                    );
+                  case "seven_day":
+                    return weather.daily.length > 0 ? (
+                      <SevenDayCard
+                        daily={weather.daily}
+                        tempUnit={tempUnit}
+                        hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}
+                        isDark={isDark}
+                      />
+                    ) : null;
+                  default:
+                    return null;
+                }
+              })();
 
-            {/* NOAA forecast confidence badge (US only) */}
-            {forecastConfidence === "low" && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 16px", borderRadius: 16,
-                background: isDark ? "rgba(251,146,60,0.15)" : "#FFF7ED",
-                border: "1px solid #FED7AA",
-              }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-                <p style={{ fontSize: 13, color: isDark ? "#FDBA74" : "#C2410C", flex: 1, margin: 0 }}>
-                  Uncertain forecast — models disagree. Pack layers and consider an umbrella.
-                </p>
-              </div>
-            )}
-            {forecastConfidence === "medium" && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 16px", borderRadius: 16,
-                background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB",
-                border: "1px solid #FDE68A",
-              }}>
-                <span style={{ fontSize: 16, flexShrink: 0 }}>🌤️</span>
-                <p style={{ fontSize: 13, color: isDark ? "#FCD34D" : "#92400E", flex: 1, margin: 0 }}>
-                  Forecast may vary — check again closer to the time.
-                </p>
-              </div>
-            )}
+              if (!content) return null;
 
-            {/* Calendar style hint */}
-            {styleHint && eventType !== "default" && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12,
-                padding: "12px 16px", borderRadius: 20,
-                background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
-                border: "1px solid var(--accent-light)",
-              }}>
-                <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
-                <p style={{ fontSize: 13, color: isDark ? "var(--accent-light)" : "var(--accent-text)", flex: 1 }}>{styleHint}</p>
-              </div>
-            )}
+              return (
+                <React.Fragment key={card.id}>
+                  <CardShell
+                    title={CARD_LABELS[card.id]}
+                    isEditMode={isEditMode}
+                    minimized={card.minimized}
+                    isFirst={idx === 0}
+                    isLast={idx === visibleCards.length - 1}
+                    onMoveUp={() => handleMoveCard(card.id, "up")}
+                    onMoveDown={() => handleMoveCard(card.id, "down")}
+                    onToggleMinimize={() => toggleCardMinimized(card.id)}
+                    isDark={isDark}
+                  >
+                    {content}
+                  </CardShell>
 
-            {/* Current Conditions */}
-            <WeatherWidget
-              weather={weather.current}
-              tempUnit={tempUnit}
-              onUnitChange={handleUnitChange}
-              isDark={isDark}
-            />
-
-            {/* AQI card */}
-            {weather.current.aqiIndex !== null && weather.current.aqiIndex !== undefined && (
-              <AQICard aqiIndex={weather.current.aqiIndex} isDark={isDark} />
-            )}
-
-            {/* Nowcast */}
-            {weather.nextHourPrecip && (
-              <NowcastCard data={weather.nextHourPrecip} isDark={isDark} />
-            )}
-
-            {/* Hourly strip */}
-            <HourlyStrip hourly={weather.hourly.slice(0, 12)} tempUnit={tempUnit} isDark={isDark} cardSurface={cardSurface} onFullForecast={() => navigate("/app/forecast")} />
-
-            {/* 7-Day forecast */}
-            {weather.daily.length > 0 && (
-              <SevenDayCard
-                daily={weather.daily}
-                tempUnit={tempUnit}
-                hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}
-                isDark={isDark}
-              />
-            )}
+                  {/* NOAA confidence badge + calendar hint always follow the outfit card */}
+                  {card.id === "outfit" && (
+                    <>
+                      {forecastConfidence === "low" && (
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "10px 16px", borderRadius: 16,
+                          background: isDark ? "rgba(251,146,60,0.15)" : "#FFF7ED",
+                          border: "1px solid #FED7AA",
+                        }}>
+                          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+                          <p style={{ fontSize: 13, color: isDark ? "#FDBA74" : "#C2410C", flex: 1, margin: 0 }}>
+                            Uncertain forecast — models disagree. Pack layers and consider an umbrella.
+                          </p>
+                        </div>
+                      )}
+                      {forecastConfidence === "medium" && (
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 10,
+                          padding: "10px 16px", borderRadius: 16,
+                          background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB",
+                          border: "1px solid #FDE68A",
+                        }}>
+                          <span style={{ fontSize: 16, flexShrink: 0 }}>🌤️</span>
+                          <p style={{ fontSize: 13, color: isDark ? "#FCD34D" : "#92400E", flex: 1, margin: 0 }}>
+                            Forecast may vary — check again closer to the time.
+                          </p>
+                        </div>
+                      )}
+                      {styleHint && eventType !== "default" && (
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 12,
+                          padding: "12px 16px", borderRadius: 20,
+                          background: isDark ? "var(--accent-surface)" : "var(--accent-tab-bg)",
+                          border: "1px solid var(--accent-light)",
+                        }}>
+                          <span style={{ fontSize: 18 }}>{EVENT_TYPE_LABELS[eventType].emoji}</span>
+                          <p style={{ fontSize: 13, color: isDark ? "var(--accent-light)" : "var(--accent-text)", flex: 1 }}>{styleHint}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </React.Fragment>
+              );
+            })}
 
             <p style={{ textAlign: "center", fontSize: 11, color: isDark ? "rgba(255,255,255,0.25)" : "#9CA3AF", paddingBottom: 4 }}>
               {weather._source === "weatherkit"
@@ -740,4 +829,195 @@ function wmoToCondition(code: number): string {
   if (code <= 77) return "snow";
   if (code <= 82) return "rain";
   return "thunderstorm";
+}
+
+// ── Card Shell (reorder + minimize wrapper) ───────────────────────────────────
+
+interface CardShellProps {
+  title: string;
+  isEditMode: boolean;
+  minimized: boolean;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onToggleMinimize: () => void;
+  isDark: boolean;
+  children: React.ReactNode;
+}
+
+function CardShell({
+  title, isEditMode, minimized, isFirst, isLast,
+  onMoveUp, onMoveDown, onToggleMinimize, isDark, children,
+}: CardShellProps) {
+  const surface = isDark ? Colors.dark.cardBg : "#FFFFFF";
+  const labelColor = isDark ? Colors.dark.textMuted : "#4B5563";
+  const dimColor = isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)";
+
+  return (
+    <motion.div layout transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}>
+
+      {/* Edit controls — slide in when edit mode is active */}
+      <AnimatePresence>
+        {isEditMode && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: "easeInOut" }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", gap: 2,
+              paddingBottom: 5, paddingLeft: 4,
+            }}>
+              <span style={{
+                flex: 1, fontSize: 11, fontWeight: 700,
+                color: isDark ? Colors.dark.textMuted : "#9CA3AF",
+                letterSpacing: "0.07em", textTransform: "uppercase",
+              }}>
+                {title}
+              </span>
+              <CardEditBtn
+                onClick={onMoveUp} disabled={isFirst}
+                aria-label="Move card up" dimColor={dimColor}
+              >
+                <ChevronUpSVG />
+              </CardEditBtn>
+              <CardEditBtn
+                onClick={onMoveDown} disabled={isLast}
+                aria-label="Move card down" dimColor={dimColor}
+              >
+                <ChevronDownSVG />
+              </CardEditBtn>
+              <CardEditBtn onClick={onToggleMinimize} aria-label={minimized ? "Expand card" : "Minimize card"}>
+                {minimized ? <PlusSVG /> : <MinusSVG />}
+              </CardEditBtn>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Card body — expanded or collapsed */}
+      <AnimatePresence mode="wait" initial={false}>
+        {minimized ? (
+          <motion.button
+            key="min"
+            type="button"
+            onClick={onToggleMinimize}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14 }}
+            style={{
+              width: "100%", textAlign: "left", cursor: "pointer",
+              background: surface, borderRadius: 20,
+              padding: "14px 20px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              border: isDark ? `1px solid ${Colors.dark.border}` : "none",
+              boxShadow: isDark ? "0 2px 20px rgba(0,0,0,0.25)" : "0 2px 20px rgba(0,0,0,0.07)",
+            }}
+          >
+            <span style={{
+              fontSize: 14, fontWeight: 700, letterSpacing: "0.08em",
+              textTransform: "uppercase", color: labelColor,
+            }}>
+              {title}
+            </span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke={labelColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </motion.button>
+        ) : (
+          <motion.div
+            key="exp"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14 }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function CardEditBtn({
+  children, onClick, disabled = false, dimColor, "aria-label": ariaLabel,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  dimColor?: string;
+  "aria-label": string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      aria-label={ariaLabel}
+      style={{
+        background: "none", border: "none",
+        cursor: disabled ? "default" : "pointer",
+        padding: "4px 8px",
+        color: disabled ? (dimColor ?? "rgba(0,0,0,0.2)") : "var(--accent-primary)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        minWidth: 36, minHeight: 36,
+        opacity: disabled ? 0.3 : 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Inline SVG icons ──────────────────────────────────────────────────────────
+
+function PencilSVG() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function ChevronUpSVG() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
+function ChevronDownSVG() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function MinusSVG() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function PlusSVG() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
 }
