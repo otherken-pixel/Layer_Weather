@@ -104,14 +104,18 @@ function readPersistedVote(period: DayPeriodLabel): OutfitFeedbackValue | null {
   try {
     const val = localStorage.getItem(voteStorageKey(period));
     if (val === "thumbs_up" || val === "thumbs_down") return val;
-  } catch {}
+  } catch (_e) {
+    // localStorage unavailable (private browsing, storage quota, etc.)
+  }
   return null;
 }
 
 function persistVote(period: DayPeriodLabel, value: OutfitFeedbackValue) {
   try {
     localStorage.setItem(voteStorageKey(period), value);
-  } catch {}
+  } catch (_e) {
+    // localStorage unavailable
+  }
 }
 
 export function OutfitRecommendationCard({
