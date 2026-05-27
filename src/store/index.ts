@@ -189,5 +189,8 @@ export const useAppStore = create<AppState>((set) => ({
       saveCardLayout(next);
       return { cardLayout: next };
     }),
-  reset: () => set({ ...initialState, cardLayout: loadCardLayout() }),
+  reset: () => {
+    persistDeviceLocationMode(false);
+    set({ ...initialState, cardLayout: loadCardLayout() });
+  },
 }));
