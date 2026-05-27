@@ -100,6 +100,7 @@ function reviveWeather(raw: Record<string, unknown>): WeatherData {
       windSpeed: h.windSpeed as number,
       windDirection: h.windDirection as number | undefined,
       isDay: h.isDay as boolean,
+      ...(h.thunderstormProb != null ? { thunderstormProb: h.thunderstormProb as number } : {}),
     })),
     daily: (dailyRaw ?? []).map((d) => ({
       date: new Date(d.date as string),

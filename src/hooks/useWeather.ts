@@ -104,9 +104,13 @@ function applyCachedEntry(
     setActiveLocationIsDevice,
     setCityWeatherCache,
     setAqiBreakdown,
+    setAqiForecast,
+    setPollenData,
   } = useAppStore.getState();
 
   setAqiBreakdown(null);
+  setAqiForecast(null);
+  setPollenData(null);
   setWeatherError(
     `Offline — showing weather from ${formatCacheAge(entry.fetchedAt)}`,
   );
@@ -209,6 +213,8 @@ export function useWeather() {
         setWeatherLastFetched(cached.fetchedAt);
         setActiveLocationIsDevice(cacheKey === DEVICE_LOCATION_KEY);
         setAqiBreakdown(null);
+        setAqiForecast(null);
+        setPollenData(null);
         return;
       }
     }
