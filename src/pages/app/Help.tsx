@@ -579,7 +579,7 @@ export default function Help() {
       <div
         style={{
           background: pageBg,
-          paddingTop: 12,
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
           paddingBottom: 16,
           paddingLeft: 16,
           paddingRight: 16,
