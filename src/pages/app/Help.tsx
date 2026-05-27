@@ -588,7 +588,7 @@ export default function Help() {
           alignItems: "center",
           gap: 12,
           position: "sticky",
-          top: 0,
+          top: "env(safe-area-inset-top, 0px)",
           zIndex: 10,
         }}
       >
