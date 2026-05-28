@@ -1,6 +1,6 @@
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-export type StylePreference = "feminine" | "masculine" | "neutral" | "all";
+export type StylePreference = "feminine" | "masculine" | "neutral";
 export type FormalityPreference = "activewear" | "casual" | "business";
 export type WeatherScenario = "hot" | "warm" | "mild" | "cool" | "cold" | "rainy" | "snowy";
 

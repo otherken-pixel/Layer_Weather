@@ -112,7 +112,14 @@ function b64url(input: string | Uint8Array): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
+// Module-scoped cache: JWTs are valid for 1 hour; reuse until 60 s before expiry.
+let cachedJwt: { token: string; expiresAt: number } | null = null;
+
 async function makeJWT(): Promise<string> {
+  if (cachedJwt && Date.now() < cachedJwt.expiresAt - 60_000) {
+    return cachedJwt.token;
+  }
+
   const teamId = Deno.env.get("WEATHERKIT_TEAM_ID")!;
   const keyId = Deno.env.get("WEATHERKIT_KEY_ID")!;
   const serviceId = Deno.env.get("WEATHERKIT_SERVICE_ID")!;
@@ -150,7 +157,9 @@ async function makeJWT(): Promise<string> {
     new TextEncoder().encode(sigInput),
   );
 
-  return `${sigInput}.${b64url(new Uint8Array(sig))}`;
+  const token = `${sigInput}.${b64url(new Uint8Array(sig))}`;
+  cachedJwt = { token, expiresAt: (now + 3600) * 1000 };
+  return token;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────

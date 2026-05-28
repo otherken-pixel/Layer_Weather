@@ -451,7 +451,7 @@ function computeWindChill(t: number, v: number): number {
 
 function resolveWarmthTier(
   effectiveFeelsLike: number,
-  thresholds: { shorts: number; lightJacket: number; heavyCoat: number },
+  thresholds: { shorts: number; lightJacket: number; heavyCoat: number; lightJacketFloor: number },
   pantsShortsleeveMin: number,
   isRainy: boolean,
   isHeavyRain: boolean,
@@ -471,12 +471,11 @@ function resolveWarmthTier(
     return "warmth_3_rain";
   }
 
-  const lightJacketFloor = thresholds.heavyCoat + 15;
-  if (effectiveFeelsLike >= thresholds.shorts)        return "warmth_1";
-  if (effectiveFeelsLike >= pantsShortsleeveMin)      return "warmth_2";
-  if (effectiveFeelsLike >= thresholds.lightJacket)   return "warmth_3";
-  if (effectiveFeelsLike >= lightJacketFloor)         return "warmth_4";
-  if (effectiveFeelsLike >= thresholds.heavyCoat)     return "warmth_5";
+  if (effectiveFeelsLike >= thresholds.shorts)              return "warmth_1";
+  if (effectiveFeelsLike >= pantsShortsleeveMin)            return "warmth_2";
+  if (effectiveFeelsLike >= thresholds.lightJacket)         return "warmth_3";
+  if (effectiveFeelsLike >= thresholds.lightJacketFloor)    return "warmth_4";
+  if (effectiveFeelsLike >= thresholds.heavyCoat)           return "warmth_5";
   return "warmth_6";
 }
 
@@ -549,7 +548,7 @@ export function getOutfitReason(opts: {
   const top = opts.garmentTop;
   const bottom = opts.garmentBottom;
   const isWindy = windSpeed > 15;
-  const isSnowy = weatherCode >= 71 && weatherCode <= 77;
+  const isSnowy = (weatherCode >= 71 && weatherCode <= 77) || weatherCode === 85 || weatherCode === 86;
   const isHeavyRain = precipProb > 70 || (weatherCode >= 61 && weatherCode <= 67);
   const isHumid = humidity > 70 && feelsLike > 70;
 
@@ -659,6 +658,7 @@ export function getLayeringTip(timeline: DayOutfitTimeline | null): string | nul
 /** Onboarding / swipe cards — infer rain & snow from outfit + temp */
 export function resolveFootwearForScenario(temp: number, outfit: OutfitType): FootwearKind {
   const isRainOutfit = outfit === "rain_light" || outfit === "rain_light_shorts" || outfit === "rain_heavy";
+  // Infer snow from outfit + cold temp (scenario cards don't carry a WMO code)
   const isSnowy = outfit === "heavy_coat" || (outfit === "heavy_jacket" && temp < SNOW_BOOTS_BELOW_TEMP_F);
   return resolveFootwear({
     effectiveFeelsLike: temp,
@@ -717,12 +717,14 @@ export function getOutfitRecommendation(opts: {
     shorts: shortsThreshold,
     lightJacket: lightJacketThreshold,
     heavyCoat: heavyCoatThreshold,
+    lightJacketFloor: lightJacketFloorThreshold,
     pantsShortsleeveMin,
   } = computeAdjustedThresholds(calibration);
   const adjustedThresholds = {
     shorts: shortsThreshold,
     lightJacket: lightJacketThreshold,
     heavyCoat: heavyCoatThreshold,
+    lightJacketFloor: lightJacketFloorThreshold,
   };
 
   // Apparent temperature: heat index takes priority over wind chill (mutually exclusive branches).
@@ -755,7 +757,8 @@ export function getOutfitRecommendation(opts: {
     opts.previousRainy,
   );
   const isWindy    = windSpeed > 15;
-  const isSnowy    = weatherCode >= 71 && weatherCode <= 77;
+  // WMO 71–77: snow / snow grains / ice pellets. WMO 85–86: snow showers (slight/heavy).
+  const isSnowy    = (weatherCode >= 71 && weatherCode <= 77) || weatherCode === 85 || weatherCode === 86;
 
   // Resolve intermediate warmth tier
   const warmthTier = resolveWarmthTier(

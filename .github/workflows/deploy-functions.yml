@@ -94,6 +94,18 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --use-api
 
+      - name: Sync WEATHER_ALERTS_SECRET to Supabase (if configured)
+        env:
+          WEATHER_ALERTS_SECRET: ${{ secrets.WEATHER_ALERTS_SECRET }}
+        run: |
+          if [ -n "$WEATHER_ALERTS_SECRET" ]; then
+            supabase secrets set WEATHER_ALERTS_SECRET="$WEATHER_ALERTS_SECRET" --project-ref "$SUPABASE_PROJECT_REF"
+            echo "WEATHER_ALERTS_SECRET synced to Supabase Edge secrets"
+          else
+            echo "WEATHER_ALERTS_SECRET GitHub secret not set — weather-alerts endpoint will reject all requests until set"
+            echo "Add WEATHER_ALERTS_SECRET to GitHub Secrets and re-run this workflow, then update your cron job to pass x-alerts-secret header"
+          fi
+
       - name: Sync GEMINI_API_KEY to Supabase (if configured)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

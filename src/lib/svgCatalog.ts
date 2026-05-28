@@ -46,7 +46,6 @@ export function catalogForPreference(
 ): SvgCatalogEntry[] {
   return catalog.filter((e) => {
     if (e.category !== category) return false;
-    if (preferences.includes("all")) return true;
     if (e.style === "feminine") return preferences.includes("feminine");
     if (e.style === "masculine") return preferences.includes("masculine");
     if (e.style === "neutral") return preferences.includes("neutral");

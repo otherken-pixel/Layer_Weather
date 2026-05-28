@@ -266,7 +266,7 @@ export default function Home() {
     return refresh(true);
   }, [activeLocationIsDevice, refresh]);
 
-  const { pullDistance, isRefreshing: isPullRefreshing, triggered } = usePullToRefresh(handleRefresh);
+  const { pullDistance, isRefreshing: isPullRefreshing, triggered } = usePullToRefresh(handleRefresh, isLoadingWeather);
 
   async function handleDeviceTabSelect() {
     setActiveLocationIsDevice(true);

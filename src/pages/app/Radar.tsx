@@ -302,7 +302,7 @@ export default function Radar() {
   const currentFrame = allFrames[frameIdx];
   const tileUrl =
     manifest && currentFrame
-      ? `${manifest.host}${currentFrame.path}/256/{z}/{x}/{y}/2/1_1.png`
+      ? `${manifest.host.replace(/^http:\/\//, "https://")}${currentFrame.path}/256/{z}/{x}/{y}/2/1_1.png`
       : null;
 
   const nowEpoch = Math.floor(Date.now() / 1000);

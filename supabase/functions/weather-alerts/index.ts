@@ -240,7 +240,17 @@ async function sendFcmNotification(
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  // This function is a scheduled/internal endpoint — not for direct client calls.
+  // Callers must supply the WEATHER_ALERTS_SECRET header to authenticate.
+  const expectedSecret = Deno.env.get("WEATHER_ALERTS_SECRET");
+  if (!expectedSecret || req.headers.get("x-alerts-secret") !== expectedSecret) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabase = createClient(supabaseUrl, serviceKey);
     let sent = 0;

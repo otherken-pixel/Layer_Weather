@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@6.12.4";
 import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
@@ -34,21 +35,36 @@ interface SendDailyDigestResponse {
 
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+};
+
 const resend = new Resend(Deno.env.get("RESEND_API_KEY")!);
 
 serve(async (req: Request): Promise<Response> => {
   // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization, content-type",
-      },
-    });
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
   if (req.method !== "POST") {
     return json({ success: false, error: "Method not allowed" }, 405);
+  }
+
+  // Authenticate the caller — only the user themselves may trigger their digest.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return json({ success: false, error: "Unauthorized" }, 401);
+  }
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return json({ success: false, error: "Unauthorized" }, 401);
   }
 
   let body: SendDailyDigestRequest;
@@ -62,6 +78,11 @@ serve(async (req: Request): Promise<Response> => {
 
   if (!to || !props) {
     return json({ success: false, error: "Missing required fields: to, props" }, 400);
+  }
+
+  // Ensure the requested recipient matches the authenticated user's email.
+  if (to !== user.email) {
+    return json({ success: false, error: "Forbidden: recipient must match authenticated user" }, 403);
   }
 
   // Render the React Email template to an HTML string

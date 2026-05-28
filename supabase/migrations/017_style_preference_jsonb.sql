@@ -1,3 +1,7 @@
+-- NOTE: This file shares the 017_ prefix with 017_style_preference_json.sql.
+-- Alphabetical order ensures json.sql (drops the old CHECK) runs before jsonb.sql
+-- (converts the column type). Both are idempotent. Do not rename either file.
+--
 -- style_preference is a multi-select array (feminine, masculine, neutral).
 -- Migration 006 used a single text enum that rejects JSON array values and 'neutral'.
 

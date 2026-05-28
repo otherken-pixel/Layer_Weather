@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 const TRIGGER_DISTANCE = 72; // px of pull needed to trigger
 const MAX_PULL = 96;         // px cap for visual rubber-band
 
-export function usePullToRefresh(onRefresh: () => void) {
+export function usePullToRefresh(onRefresh: () => void, disabled = false) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const touchStartY = useRef(0);
@@ -48,7 +48,7 @@ export function usePullToRefresh(onRefresh: () => void) {
     function onTouchEnd() {
       if (!pulling.current) return;
       pulling.current = false;
-      if (pullDistanceRef.current >= TRIGGER_DISTANCE) {
+      if (!disabled && pullDistanceRef.current >= TRIGGER_DISTANCE) {
         setIsRefreshing(true);
         setPullDistance(0);
         pullDistanceRef.current = 0;
