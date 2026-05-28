@@ -64,10 +64,10 @@ const SECTIONS: HelpSection[] = [
           <>
             <p>The Today screen has several areas, from top to bottom:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>Sky header</strong> — Animated sky that reflects current conditions (clear, cloudy, rainy, snowy) with the current temperature and a high/low for the day. Pull down anywhere on the screen to refresh the weather.</li>
+              <li><strong>Sky header</strong> — Animated sky that reflects current conditions (clear, cloudy, rainy, snowy) with the current temperature and a high/low for the day. A sun or moon icon sits on a timeline track — drag it left or right to scrub forward through the day and see what the weather will be at any hour. Pull down anywhere on the screen to refresh.</li>
               <li><strong>Location tabs</strong> — A horizontal strip just below the sky lets you quickly switch between your saved locations. Tap + to add a new one.</li>
               <li><strong>Alerts</strong> — If there are active government weather alerts (US only) or significant weather changes approaching, coloured banners appear at the top of the cards area.</li>
-              <li><strong>Outfit card</strong> — The main card showing what to wear today, along with a one-line reason (e.g. "58°F + breezy → light jacket recommended") and, when the feels-like differs from the thermometer, an explanation of why.</li>
+              <li><strong>Outfit card</strong> — The main card showing what to wear today, along with a one-line reason (e.g. "58°F + breezy → light jacket recommended") and, when the feels-like differs from the thermometer, an explanation of why. Inside the card, Morning / Afternoon / Evening tabs let you see outfit changes across the day.</li>
               <li><strong>Hourly forecast strip</strong> — Scroll past the outfit card to see hour-by-hour temperatures and precipitation chances for the next 12 hours. Tap <strong>48h →</strong> to open the full two-day chart.</li>
               <li><strong>Weather widgets</strong> — Continue scrolling for the 7-day forecast, air quality index, and the Nowcast (next-hour rain intensity).</li>
               <li><strong>Edit Card Layout</strong> — At the very bottom, tap <em>Edit Card Layout</em> to reorder or minimise the weather cards to your liking.</li>
@@ -85,6 +85,23 @@ const SECTIONS: HelpSection[] = [
               <li><strong>Retry banner</strong> — If the app shows a stale-data banner (yellow) or a full error screen, tap the <strong>Retry</strong> or <strong>Try again</strong> button.</li>
             </ul>
             <p style={{ marginTop: 8 }}>Weather data is cached for up to 12 hours, so the app continues to work offline using the last successful fetch.</p>
+          </>
+        ),
+      },
+      {
+        question: "What is the Sun/Moon Timeline Scrubber?",
+        answer: (
+          <>
+            <p>The thin track at the bottom of the sky header is an interactive time scrubber. A sun icon sits at today's current time by default. Drag it left to look back at earlier conditions, or drag it right to look ahead at any hour of the day:</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li>The large temperature, weather icon, and condition label in the sky all update instantly as you drag to reflect that hour's forecast.</li>
+              <li>The sky background colour shifts to match — for example, a stormy grey at 3 PM or a deep navy at 10 PM.</li>
+              <li>A floating chip above the thumb shows the exact time you're viewing.</li>
+              <li>Past sunset, the sun icon smoothly crossfades into a crescent moon and the sky darkens to night.</li>
+              <li>Near sunrise or sunset (±45 minutes), a golden or purple gradient wash fades over the sky to show the golden hour.</li>
+              <li>Release the scrubber and it automatically springs back to the current time after 4 seconds.</li>
+            </ul>
+            <p style={{ marginTop: 8 }}>The golden zone on the track marks the daytime window between sunrise and sunset. Small tick marks show where sunrise and sunset fall. This scrubber is purely visual — it doesn't change your outfit recommendation, which always reflects current conditions.</p>
           </>
         ),
       },
@@ -151,6 +168,20 @@ const SECTIONS: HelpSection[] = [
         ),
       },
       {
+        question: "What is Today's Outfit Timeline?",
+        answer: (
+          <>
+            <p>Inside the outfit card, a <strong>Today's Outfit Timeline</strong> section shows three tabs — 🌅 Morning, ☀️ Afternoon, and 🌆 Evening. Tapping a tab updates the outfit illustration and recommendation to match that period of the day.</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><strong>Morning</strong> — Covers roughly 5 AM–noon. Useful if you're dressing for a cool start before it warms up.</li>
+              <li><strong>Afternoon</strong> — Covers noon–6 PM. Shows what to wear for the warmest part of the day.</li>
+              <li><strong>Evening</strong> — Covers 6 PM onwards. Shows if you'll need an extra layer when temperatures drop.</li>
+            </ul>
+            <p style={{ marginTop: 8 }}>The tab for the current time of day is selected by default. When you're viewing a future period, the feedback buttons and commute alerts are hidden — those only apply to the current conditions. Feedback you give in any period is saved per-period and contributes to your long-term calibration just like normal feedback.</p>
+          </>
+        ),
+      },
+      {
         question: "How do I switch locations?",
         answer: (
           <>
@@ -199,6 +230,19 @@ const SECTIONS: HelpSection[] = [
         question: "What is the Nowcast card?",
         answer: (
           <p>The Nowcast card shows rain intensity predictions for the next 60 minutes in 5-minute intervals. It's useful for deciding whether to grab an umbrella right now, even if the overall day forecast looks dry.</p>
+        ),
+      },
+      {
+        question: "What does the Lightning Activity indicator show?",
+        answer: (
+          <>
+            <p>When thunderstorm activity is detected near your location, a lightning indicator appears in two places:</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><strong>Weather Conditions card</strong> — A coloured lightning row appears alongside wind, humidity, and UV, showing the current activity level: <em>Low</em> (yellow), <em>Moderate</em> (orange), or <em>High</em> (red).</li>
+              <li><strong>Nowcast card</strong> — When activity is moderate or high, a warning banner appears at the bottom of the next-hour rain chart with advice such as <em>"High lightning activity — seek shelter indoors."</em></li>
+            </ul>
+            <p style={{ marginTop: 8 }}>The hourly forecast strip also shows a ⚡ indicator on individual hours where thunderstorm probability reaches 30% or higher, so you can see not just current activity but when storms are expected to arrive.</p>
+          </>
         ),
       },
       {
