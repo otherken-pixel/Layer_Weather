@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { MapPin, ArrowUp, ArrowDown, Sunrise, Sunset } from "lucide-react";
-import type { CurrentWeather, DailyForecast } from "@/types";
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, ArrowUp, ArrowDown, Sunrise, Sunset, Clock } from "lucide-react";
+import type { CurrentWeather, DailyForecast, HourlyForecast } from "@/types";
 import { CONDITION_LABEL } from "@/constants/colors";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
+import { SunMoonScrubber } from "@/components/weather/SunMoonScrubber";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -19,31 +21,32 @@ interface Props {
   onRefresh: () => void;
   onLocationPress?: () => void;
   isRefreshing?: boolean;
+  hourlyToday: HourlyForecast[];
+  scrubHour: HourlyForecast | null;
+  onScrubChange: (hour: HourlyForecast | null) => void;
 }
 
-export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress, isRefreshing = false }: Props) {
-  const temp = toUnit(weather.temp, tempUnit);
+export function SkyHeader({
+  weather,
+  today,
+  tempUnit,
+  onRefresh,
+  onLocationPress,
+  isRefreshing = false,
+  hourlyToday,
+  scrubHour,
+  onScrubChange,
+}: Props) {
+  const isScrubbing = scrubHour !== null;
+
+  const displayTemp = isScrubbing
+    ? toUnit(scrubHour.temp, tempUnit)
+    : toUnit(weather.temp, tempUnit);
+  const displayCondition = isScrubbing ? scrubHour.condition : weather.condition;
+
   const hiTemp = today ? toUnit(today.tempMax, tempUnit) : null;
   const loTemp = today ? toUnit(today.tempMin, tempUnit) : null;
   const locationLabel = weather.location || "Your Location";
-
-  const [sunNowMs, setSunNowMs] = useState(() => Date.now());
-  useEffect(() => {
-    if (!today) return;
-    const update = () => setSunNowMs(Date.now());
-    update();
-    const id = setInterval(update, 60_000);
-    return () => clearInterval(id);
-  }, [today]);
-
-  const sunProgress = useMemo(() => {
-    if (!today) return null;
-    const now = sunNowMs;
-    const rise = today.sunrise.getTime();
-    const set = today.sunset.getTime();
-    if (now < rise || now > set) return null;
-    return (now - rise) / (set - rise);
-  }, [today, sunNowMs]);
 
   const frostedPill = {
     background: "rgba(0,0,0,0.28)",
@@ -149,134 +152,166 @@ export function SkyHeader({ weather, today, tempUnit, onRefresh, onLocationPress
 
       {/* Weather icon + temperature */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
-        <WeatherIcon condition={weather.condition} size="xl" color="white" />
-        <span
-          style={{
-            fontSize: 96,
-            fontWeight: 700,
-            color: "white",
-            lineHeight: 1,
-            letterSpacing: "-4px",
-            textShadow: "0 2px 20px rgba(0,0,0,0.25)",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
-          }}
-        >
-          {temp}°
-        </span>
-      </div>
-
-      {/* Condition label pill */}
-      <div style={{ marginTop: 6, ...frostedPill, padding: "3px 14px" }}>
-        <span style={{ fontSize: 15, fontWeight: 500, color: "rgba(255,255,255,0.95)" }}>
-          {CONDITION_LABEL[weather.condition]}
-        </span>
-      </div>
-
-      {/* H/L + sunrise/sunset — unified frosted pill */}
-      {hiTemp !== null && loTemp !== null && (
-        <div
-          style={{
-            marginTop: 8,
-            ...frostedPill,
-            padding: "7px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          {/* High */}
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <ArrowUp size={12} color="rgba(255,220,180,1)" strokeWidth={2.5} aria-hidden="true" />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
-              {hiTemp}°
-            </span>
-          </div>
-
-          {/* Low */}
-          <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <ArrowDown size={12} color="rgba(180,220,255,1)" strokeWidth={2.5} aria-hidden="true" />
-            <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
-              {loTemp}°
-            </span>
-          </div>
-
-          {today && (
-            <>
-              {/* Divider */}
-              <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.25)" }} />
-
-              {/* Sunrise */}
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <Sunrise size={14} color="rgba(255,210,120,1)" strokeWidth={2.5} aria-hidden="true" />
-                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
-                  {formatTime12(today.sunrise)}
-                </span>
-              </div>
-
-              {/* Sunset */}
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <Sunset size={14} color="rgba(255,160,80,1)" strokeWidth={2.5} aria-hidden="true" />
-                <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
-                  {formatTime12(today.sunset)}
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Sun position progress bar with thumb */}
-      {sunProgress !== null && (
-        <div
-          style={{
-            marginTop: 10,
-            width: "100%",
-            maxWidth: 240,
-            position: "relative",
-            height: 16,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          {/* Track */}
-          <div
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={displayCondition}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <WeatherIcon condition={displayCondition} size="xl" color="white" />
+          </motion.div>
+        </AnimatePresence>
+        <AnimatePresence mode="popLayout">
+          <motion.span
+            key={displayTemp}
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ type: "spring", stiffness: 350, damping: 28 }}
             style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              height: 4,
-              background: "rgba(255,255,255,0.25)",
-              borderRadius: 2,
-              overflow: "hidden",
+              fontSize: 96,
+              fontWeight: 700,
+              color: "white",
+              lineHeight: 1,
+              letterSpacing: "-4px",
+              textShadow: "0 2px 20px rgba(0,0,0,0.25)",
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif",
             }}
           >
-            <div
-              style={{
-                height: "100%",
-                width: `${Math.round(sunProgress * 100)}%`,
-                background: "linear-gradient(90deg, #FFD700, #FF9500)",
-                borderRadius: 2,
-                transition: "width 2s ease",
-              }}
-            />
-          </div>
+            {displayTemp}°
+          </motion.span>
+        </AnimatePresence>
+      </div>
 
-          {/* Sun thumb */}
-          <div
+      {/* Condition label pill with live/scrub indicator */}
+      <div style={{ marginTop: 6, ...frostedPill, padding: "4px 14px", display: "flex", alignItems: "center", gap: 7 }}>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={displayCondition}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ fontSize: 15, fontWeight: 500, color: "rgba(255,255,255,0.95)" }}
+          >
+            {CONDITION_LABEL[displayCondition]}
+          </motion.span>
+        </AnimatePresence>
+
+        {/* Live dot — only when not scrubbing */}
+        <AnimatePresence>
+          {!isScrubbing && (
+            <motion.div
+              key="live-dot"
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#34C759",
+                boxShadow: "0 0 4px rgba(52,199,89,0.7)",
+                flexShrink: 0,
+              }}
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* H/L + sunrise/sunset pill  OR  scrubbed-time pill */}
+      <AnimatePresence mode="wait">
+        {isScrubbing ? (
+          <motion.div
+            key="scrub-pill"
+            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
             style={{
-              position: "absolute",
-              left: `calc(${Math.round(sunProgress * 100)}% - 8px)`,
-              width: 16,
-              height: 16,
-              borderRadius: "50%",
-              background: "radial-gradient(circle at 40% 40%, #FFF176, #FFD700 50%, #FF9500)",
-              boxShadow: "0 0 6px 2px rgba(255,185,0,0.5), 0 1px 3px rgba(0,0,0,0.3)",
-              transition: "left 2s ease",
-              flexShrink: 0,
+              marginTop: 8,
+              ...frostedPill,
+              padding: "7px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
-            aria-hidden="true"
-          />
-        </div>
+          >
+            <Clock size={12} color="rgba(255,255,255,0.75)" strokeWidth={2.5} aria-hidden="true" />
+            <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
+              {formatTime12(scrubHour.time)}
+            </span>
+            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.25)" }} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.65)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+              Forecast
+            </span>
+          </motion.div>
+        ) : (
+          hiTemp !== null && loTemp !== null && (
+            <motion.div
+              key="hl-pill"
+              initial={{ opacity: 0, y: 6, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26 }}
+              style={{
+                marginTop: 8,
+                ...frostedPill,
+                padding: "7px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <ArrowUp size={12} color="rgba(255,220,180,1)" strokeWidth={2.5} aria-hidden="true" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
+                  {hiTemp}°
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <ArrowDown size={12} color="rgba(180,220,255,1)" strokeWidth={2.5} aria-hidden="true" />
+                <span style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.95)" }}>
+                  {loTemp}°
+                </span>
+              </div>
+
+              {today && (
+                <>
+                  <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.25)" }} />
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Sunrise size={14} color="rgba(255,210,120,1)" strokeWidth={2.5} aria-hidden="true" />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                      {formatTime12(today.sunrise)}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Sunset size={14} color="rgba(255,160,80,1)" strokeWidth={2.5} aria-hidden="true" />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.9)" }}>
+                      {formatTime12(today.sunset)}
+                    </span>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )
+        )}
+      </AnimatePresence>
+
+      {/* Interactive sun/moon scrubber */}
+      {today && hourlyToday.length > 0 && (
+        <SunMoonScrubber
+          hourlyToday={hourlyToday}
+          today={today}
+          onScrubChange={onScrubChange}
+        />
       )}
     </div>
   );
