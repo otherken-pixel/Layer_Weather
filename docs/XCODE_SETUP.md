@@ -156,7 +156,9 @@ Do **not** call `WatchConnectivityHandler` from `AppDelegate` if the bridge view
 
 ```
 native/ios/Shared/AppGroupKeys.swift
+native/ios/Shared/LastCoordinates.swift
 native/ios/Shared/SharedWeatherModels.swift
+native/ios/Shared/WeatherOutfitLogic.swift
 native/ios/LayerWeatherWidgets/SkyGradient.swift
 native/ios/LayerWeatherWidgets/WidgetModels.swift
 native/ios/LayerWeatherWidgets/WidgetDataProvider.swift
@@ -191,6 +193,8 @@ When Xcode prompts for target membership, check only **LayerWeatherWidgets** (no
 ### Files to add — drag from `native/ios/LayerWeatherWatch/` into the new Watch App group:
 
 ```
+native/ios/Shared/LastCoordinates.swift
+native/ios/Shared/WeatherOutfitLogic.swift
 native/ios/LayerWeatherWatch/WatchSharedModels.swift
 native/ios/LayerWeatherWatch/HapticManager.swift
 native/ios/LayerWeatherWatch/WatchConnectivityManager.swift
@@ -223,6 +227,8 @@ Complications in watchOS 9+ use WidgetKit inside a separate Watch Widget Extensi
 
 ```
 native/ios/LayerWeatherWatchComplications/ComplicationProvider.swift
+native/ios/Shared/LastCoordinates.swift
+native/ios/Shared/WeatherOutfitLogic.swift
 native/ios/LayerWeatherWatch/WatchSharedModels.swift   ← shared with Watch App target
 ```
 
