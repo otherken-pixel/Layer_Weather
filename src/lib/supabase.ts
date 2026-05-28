@@ -37,8 +37,8 @@ function coerceStylePreference(raw: unknown): StylePreference[] {
   } else {
     arr = ["neutral"];
   }
-  // Expand legacy "all" to the three specific styles
-  if (arr.includes("all")) return ["feminine", "masculine", "neutral"];
+  // Expand legacy "all" (pre-migration 017) to the three specific styles
+  if ((arr as string[]).includes("all")) return ["feminine", "masculine", "neutral"];
   return arr.length > 0 ? arr : ["neutral"];
 }
 

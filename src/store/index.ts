@@ -188,7 +188,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>
-    set((state) => ({ cityWeatherCache: { ...state.cityWeatherCache, [key]: entry } })),
+    set((state) => {
+      const updated = { ...state.cityWeatherCache, [key]: entry };
+      // Evict entries beyond the limit, dropping the oldest by fetchedAt first.
+      const MAX_CACHED_CITIES = 12;
+      const keys = Object.keys(updated);
+      if (keys.length <= MAX_CACHED_CITIES) return { cityWeatherCache: updated };
+      const sorted = keys.sort(
+        (a, b) => updated[b].fetchedAt.getTime() - updated[a].fetchedAt.getTime(),
+      );
+      const pruned = Object.fromEntries(
+        sorted.slice(0, MAX_CACHED_CITIES).map((k) => [k, updated[k]]),
+      );
+      return { cityWeatherCache: pruned };
+    }),
   removeCityWeatherCache: (key) =>
     set((state) => {
       const { [key]: _removed, ...cityWeatherCache } = state.cityWeatherCache;
@@ -211,7 +224,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   hydrateCardLayout: (layout) => {
     saveCardLayout(layout);
-    set({ cardLayout: loadCardLayout() });
+    set({ cardLayout: layout });
   },
   reset: () => set({ ...initialState, cardLayout: loadCardLayout() }),
 }));

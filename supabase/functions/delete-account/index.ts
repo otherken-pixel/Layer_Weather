@@ -35,6 +35,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Deleting the auth user cascades to all user-owned rows via ON DELETE CASCADE:
+    // profiles, user_calibration, outfit_feedback, user_weather_wardrobes, packing_trips.
+    //
+    // Storage note: svg_clothes_files contains only shared catalog SVGs (no user-uploaded
+    // files). Wardrobe tables store catalog IDs (references), not storage paths.
+    // Therefore no storage cleanup is required before account deletion.
     const { error } = await adminClient.auth.admin.deleteUser(user.id);
     if (error) throw error;
 

@@ -6,6 +6,25 @@ import type {
 } from "@/types";
 import type { CachedCityWeather } from "@/store";
 
+function requireNum(v: unknown, fallback = 0): number {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function requireBool(v: unknown, fallback = false): boolean {
+  return typeof v === "boolean" ? v : fallback;
+}
+
+const ALLOWED_CONDITIONS: WeatherCondition[] = [
+  "clear", "partly_cloudy", "cloudy", "foggy", "drizzle",
+  "rain", "heavy_rain", "snow", "thunderstorm",
+];
+function safeCondition(v: unknown): WeatherCondition {
+  return ALLOWED_CONDITIONS.includes(v as WeatherCondition)
+    ? (v as WeatherCondition)
+    : "cloudy";
+}
+
 export const WEATHER_CACHE_KEY = "wt_weather_cache";
 export const CITY_WEATHER_CACHE_PREFIX = "wt_city_weather_";
 const CITY_CACHE_MANIFEST_KEY = "wt_city_weather_manifest";
@@ -65,55 +84,70 @@ function serializeForCache(data: WeatherData): Record<string, unknown> {
 
 function reviveWeather(raw: Record<string, unknown>): WeatherData {
   const cur = raw.current as Record<string, unknown>;
-  const hourlyRaw = raw.hourly as Record<string, unknown>[];
-  const dailyRaw = raw.daily as Record<string, unknown>[];
-  const nextRaw = raw.nextHourPrecip as Record<string, unknown> | null;
+  if (!cur || typeof cur !== "object") throw new Error("Invalid cached weather: missing current");
+
+  const hourlyRaw = (raw.hourly as Record<string, unknown>[] | undefined) ?? [];
+  const dailyRaw  = (raw.daily  as Record<string, unknown>[] | undefined) ?? [];
+  const nextRaw   = raw.nextHourPrecip as Record<string, unknown> | null;
+
+  const updatedAt = new Date(cur.updatedAt as string);
+  if (Number.isNaN(updatedAt.getTime())) throw new Error("Invalid cached weather: bad updatedAt");
 
   return {
     current: {
-      temp: cur.temp as number,
-      feelsLike: cur.feelsLike as number,
-      humidity: cur.humidity as number,
-      windSpeed: cur.windSpeed as number,
-      windDirection: cur.windDirection as number,
-      precipProb: cur.precipProb as number,
-      uvIndex: (cur.uvIndex as number) ?? 0,
-      aqiIndex: (cur.aqiIndex as number | null) ?? null,
-      condition: cur.condition as WeatherCondition,
-      weatherCode: cur.weatherCode as number,
-      isDay: cur.isDay as boolean,
-      windGust: (cur.windGust as number | null) ?? null,
-      pressure: (cur.pressure as number | null) ?? null,
-      visibility: (cur.visibility as number | null) ?? null,
-      dewPoint: (cur.dewPoint as number | null) ?? null,
+      temp:          requireNum(cur.temp),
+      feelsLike:     requireNum(cur.feelsLike),
+      humidity:      requireNum(cur.humidity),
+      windSpeed:     requireNum(cur.windSpeed),
+      windDirection: requireNum(cur.windDirection),
+      precipProb:    requireNum(cur.precipProb),
+      uvIndex:       requireNum(cur.uvIndex),
+      aqiIndex:      cur.aqiIndex != null ? requireNum(cur.aqiIndex) : null,
+      condition:     safeCondition(cur.condition),
+      weatherCode:   requireNum(cur.weatherCode),
+      isDay:         requireBool(cur.isDay),
+      windGust:      cur.windGust != null ? requireNum(cur.windGust) : null,
+      pressure:      cur.pressure != null ? requireNum(cur.pressure) : null,
+      visibility:    cur.visibility != null ? requireNum(cur.visibility) : null,
+      dewPoint:      cur.dewPoint != null ? requireNum(cur.dewPoint) : null,
       pressureTrend: (cur.pressureTrend as "rising" | "falling" | "steady" | null) ?? null,
-      location: cur.location as string,
-      updatedAt: new Date(cur.updatedAt as string),
+      location:      typeof cur.location === "string" ? cur.location : "",
+      updatedAt,
     },
-    hourly: (hourlyRaw ?? []).map((h) => ({
-      time: new Date(h.time as string),
-      temp: h.temp as number,
-      feelsLike: h.feelsLike as number,
-      precipProb: h.precipProb as number,
-      condition: h.condition as WeatherCondition,
-      weatherCode: h.weatherCode as number,
-      windSpeed: h.windSpeed as number,
-      windDirection: h.windDirection as number | undefined,
-      isDay: h.isDay as boolean,
-      ...(h.thunderstormProb != null ? { thunderstormProb: h.thunderstormProb as number } : {}),
-    })),
-    daily: (dailyRaw ?? []).map((d) => ({
-      date: new Date(d.date as string),
-      tempMin: d.tempMin as number,
-      tempMax: d.tempMax as number,
-      feelsLikeMin: d.feelsLikeMin as number,
-      feelsLikeMax: d.feelsLikeMax as number,
-      precipProb: d.precipProb as number,
-      condition: d.condition as WeatherCondition,
-      weatherCode: d.weatherCode as number,
-      sunrise: new Date(d.sunrise as string),
-      sunset: new Date(d.sunset as string),
-    })),
+    hourly: hourlyRaw.flatMap((h) => {
+      const t = new Date(h.time as string);
+      if (Number.isNaN(t.getTime())) return [];
+      return [{
+        time:         t,
+        temp:         requireNum(h.temp),
+        feelsLike:    requireNum(h.feelsLike),
+        precipProb:   requireNum(h.precipProb),
+        condition:    safeCondition(h.condition),
+        weatherCode:  requireNum(h.weatherCode),
+        windSpeed:    requireNum(h.windSpeed),
+        windDirection: h.windDirection != null ? requireNum(h.windDirection) : undefined,
+        isDay:        requireBool(h.isDay),
+        ...(h.thunderstormProb != null ? { thunderstormProb: requireNum(h.thunderstormProb) } : {}),
+      }];
+    }),
+    daily: dailyRaw.flatMap((d) => {
+      const date    = new Date(d.date as string);
+      const sunrise = new Date(d.sunrise as string);
+      const sunset  = new Date(d.sunset as string);
+      if (Number.isNaN(date.getTime())) return [];
+      return [{
+        date,
+        tempMin:      requireNum(d.tempMin),
+        tempMax:      requireNum(d.tempMax),
+        feelsLikeMin: requireNum(d.feelsLikeMin),
+        feelsLikeMax: requireNum(d.feelsLikeMax),
+        precipProb:   requireNum(d.precipProb),
+        condition:    safeCondition(d.condition),
+        weatherCode:  requireNum(d.weatherCode),
+        sunrise,
+        sunset,
+      }];
+    }),
     nextHourPrecip: nextRaw
       ? {
           startTime: new Date(nextRaw.startTime as string),

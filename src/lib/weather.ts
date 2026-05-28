@@ -141,18 +141,24 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
     }).filter((h) => !Number.isNaN(h.time.getTime())),
   );
 
-  const daily: DailyForecast[] = (dailyRaw ?? []).map((d) => ({
-    date: new Date(d.date as string),
-    tempMin: d.tempMin as number,
-    tempMax: d.tempMax as number,
-    feelsLikeMin: d.feelsLikeMin as number,
-    feelsLikeMax: d.feelsLikeMax as number,
-    precipProb: d.precipProb as number,
-    condition: d.condition as WeatherCondition,
-    weatherCode: d.weatherCode as number,
-    sunrise: new Date(d.sunrise as string),
-    sunset: new Date(d.sunset as string),
-  }));
+  const daily: DailyForecast[] = (dailyRaw ?? []).flatMap((d) => {
+    try {
+      return [{
+        date: new Date(d.date as string),
+        tempMin: requireFiniteNumber(d.tempMin, "daily.tempMin"),
+        tempMax: requireFiniteNumber(d.tempMax, "daily.tempMax"),
+        feelsLikeMin: requireFiniteNumber(d.feelsLikeMin, "daily.feelsLikeMin"),
+        feelsLikeMax: requireFiniteNumber(d.feelsLikeMax, "daily.feelsLikeMax"),
+        precipProb: requireFiniteNumber(d.precipProb, "daily.precipProb"),
+        condition: requireCondition(d.condition),
+        weatherCode: requireFiniteNumber(d.weatherCode, "daily.weatherCode"),
+        sunrise: new Date(d.sunrise as string),
+        sunset: new Date(d.sunset as string),
+      }];
+    } catch {
+      return [];
+    }
+  });
 
   return {
     current,
