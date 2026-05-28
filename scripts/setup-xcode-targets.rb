@@ -172,6 +172,7 @@ add_source(main_target, main_grp, NATIVE / 'MainApp/WidgetBridgePlugin.swift')
 add_source(main_target, main_grp, NATIVE / 'MainApp/WatchConnectivityHandler.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/AppGroupKeys.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/SharedWeatherModels.swift')
+add_source(main_target, shared_grp, NATIVE / 'Shared/SharedWeatherHelpers.swift')
 
 add_system_framework(project, main_target, 'WatchConnectivity')
 add_system_framework(project, main_target, 'WidgetKit')
@@ -392,6 +393,7 @@ else
 
   add_source(wt, wg_sh, NATIVE / 'Shared/AppGroupKeys.swift')
   add_source(wt, wg_sh, NATIVE / 'Shared/SharedWeatherModels.swift')
+  add_source(wt, wg_sh, NATIVE / 'Shared/SharedWeatherHelpers.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/LayerWeatherWidgets.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/SkyGradient.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/WidgetDataProvider.swift')
@@ -472,8 +474,10 @@ else
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/WatchConnectivityManager.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/WatchWeatherService.swift')
+  wg_sh = find_or_add_group(wg, 'Shared')
+  add_source(wwatch, wg_sh, NATIVE / 'Shared/SharedWeatherHelpers.swift')
 
-  puts "  ✓  LayerWeatherWatch target created (10 source files)"
+  puts "  ✓  LayerWeatherWatch target created (11 source files)"
 end
 
 # NOTE: To make the watch app ship inside the iOS App Store upload (the
@@ -521,6 +525,7 @@ else
   cg_sh  = find_or_add_group(cg, 'Shared')
   add_source(ct, cg,   NATIVE / 'LayerWeatherWatchComplications/ComplicationProvider.swift')
   add_source(ct, cg_sh, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
+  add_source(ct, cg_sh, NATIVE / 'Shared/SharedWeatherHelpers.swift')
 
   watch_host = project.targets.find { |t| t.name == 'LayerWeatherWatch' }
   abort "ERROR: 'LayerWeatherWatch' target not found." unless watch_host
