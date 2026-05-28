@@ -57,6 +57,7 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
         guard session.isReachable else {
             lastError = nil
+            fetchDirectlyIfStale()
             return
         }
 
@@ -74,6 +75,25 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
                 }
             }
         )
+    }
+
+    // MARK: - Direct Fetch Fallback
+
+    /// Fetches weather directly from Open-Meteo when the paired iPhone is not reachable.
+    private func fetchDirectlyIfStale() {
+        guard widgetData?.snapshot?.isStale != false else { return }
+        Task {
+            do {
+                let fresh = try await WatchWeatherService.shared.fetchWeather()
+                await MainActor.run {
+                    fresh.persistToAppGroup()
+                    self.widgetData = fresh
+                    self.lastError = nil
+                }
+            } catch {
+                // Network unavailable or no saved coordinates — keep existing data.
+            }
+        }
     }
 
     // MARK: - App Group (watch-local cache after WCSession delivery)

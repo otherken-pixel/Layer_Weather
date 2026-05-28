@@ -18,14 +18,230 @@ struct WatchTimelineProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WeatherEntry>) -> Void) {
-        let data = WidgetData.load()
-        let entry = WeatherEntry(date: Date(), widgetData: data, accentColor: Color(hex: data.accentColor))
-        let refresh = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
-        completion(Timeline(entries: [entry], policy: .after(refresh)))
+        Task {
+            let data = await loadFreshData()
+            let entry = WeatherEntry(date: Date(), widgetData: data, accentColor: Color(hex: data.accentColor))
+            let refresh = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+            completion(Timeline(entries: [entry], policy: .after(refresh)))
+        }
+    }
+
+    private func loadFreshData() async -> WidgetData {
+        let existing = WidgetData.load()
+        guard isOlderThanOneHour(existing.snapshot) else { return existing }
+        do {
+            let fresh = try await ComplicationWeatherFetcher.fetch()
+            fresh.persistToAppGroup()
+            return fresh
+        } catch {
+            return existing
+        }
+    }
+
+    private func isOlderThanOneHour(_ snapshot: WidgetSnapshot?) -> Bool {
+        guard let snapshot else { return true }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = formatter.date(from: snapshot.updatedAt)
+        if date == nil { date = ISO8601DateFormatter().date(from: snapshot.updatedAt) }
+        guard let updated = date else { return true }
+        return Date().timeIntervalSince(updated) > 3300 // 55 minutes
     }
 }
 
-// MARK: - WeatherEntry (reused from WatchSharedModels context)
+// MARK: - Complication Weather Fetcher
+
+private struct ComplicationCoords: Codable {
+    let lat: Double
+    let lon: Double
+
+    enum CodingKeys: String, CodingKey {
+        case lat, lon
+        case latitude, longitude
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        if let lat = try c.decodeIfPresent(Double.self, forKey: .lat),
+           let lon = try c.decodeIfPresent(Double.self, forKey: .lon) {
+            self.lat = lat
+            self.lon = lon
+        } else {
+            self.lat = try c.decode(Double.self, forKey: .latitude)
+            self.lon = try c.decode(Double.self, forKey: .longitude)
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(lat, forKey: .lat)
+        try c.encode(lon, forKey: .lon)
+    }
+}
+
+private struct ComplicationOMResponse: Decodable {
+    let current: ComplicationOMCurrent
+}
+
+private struct ComplicationOMCurrent: Decodable {
+    let temperature2m: Double
+    let apparentTemperature: Double
+    let precipitationProbability: Double
+    let weatherCode: Int
+    let windSpeed10m: Double
+    let relativeHumidity2m: Double
+
+    enum CodingKeys: String, CodingKey {
+        case temperature2m = "temperature_2m"
+        case apparentTemperature = "apparent_temperature"
+        case precipitationProbability = "precipitation_probability"
+        case weatherCode = "weather_code"
+        case windSpeed10m = "wind_speed_10m"
+        case relativeHumidity2m = "relative_humidity_2m"
+    }
+}
+
+private struct ComplicationWeatherFetcher {
+
+    static func fetch() async throws -> WidgetData {
+        let coords = try loadCoords()
+        let url = buildURL(lat: coords.lat, lon: coords.lon)
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        let resp = try JSONDecoder().decode(ComplicationOMResponse.self, from: data)
+        return buildWidgetData(from: resp.current, coords: coords)
+    }
+
+    private static func loadCoords() throws -> ComplicationCoords {
+        let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName)
+        guard let json = defaults?.string(forKey: AppGroupKeys.lastCoordinates),
+              let data = json.data(using: .utf8) else {
+            throw URLError(.cannotFindHost)
+        }
+        return try JSONDecoder().decode(ComplicationCoords.self, from: data)
+    }
+
+    private static func buildURL(lat: Double, lon: Double) -> URL {
+        var c = URLComponents(string: "https://api.open-meteo.com/v1/forecast")!
+        c.queryItems = [
+            URLQueryItem(name: "latitude",   value: String(format: "%.6f", lat)),
+            URLQueryItem(name: "longitude",  value: String(format: "%.6f", lon)),
+            URLQueryItem(name: "current",    value: "temperature_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,relative_humidity_2m"),
+            URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
+            URLQueryItem(name: "wind_speed_unit",  value: "mph"),
+        ]
+        return c.url!
+    }
+
+    private static func buildWidgetData(from cur: ComplicationOMCurrent, coords: ComplicationCoords) -> WidgetData {
+        let condition = wmoCondition(code: cur.weatherCode)
+        let hour = Calendar.current.component(.hour, from: Date())
+        let isDay = hour >= 6 && hour < 20
+        let tier = warmthTier(feelsLike: cur.apparentTemperature, precipProb: cur.precipitationProbability, weatherCode: cur.weatherCode)
+
+        let snapshot = WidgetSnapshot(
+            temp: cur.temperature2m,
+            feelsLike: cur.apparentTemperature,
+            humidity: cur.relativeHumidity2m,
+            windSpeed: cur.windSpeed10m,
+            precipProb: cur.precipitationProbability,
+            aqiIndex: nil,
+            condition: condition,
+            weatherCode: cur.weatherCode,
+            isDay: isDay,
+            location: "\(String(format: "%.2f", coords.lat))°, \(String(format: "%.2f", coords.lon))°",
+            outfitLabel: outfitLabel(feelsLike: cur.apparentTemperature, precipProb: cur.precipitationProbability),
+            outfitDescription: "Based on current conditions.",
+            warmthTier: tier,
+            garmentTop: garmentTop(feelsLike: cur.apparentTemperature),
+            garmentBottom: nil,
+            umbrella: cur.precipitationProbability > 50,
+            sunglasses: isDay && condition == "clear",
+            scarf: cur.apparentTemperature < 45,
+            gloves: cur.apparentTemperature < 35,
+            beanie: cur.apparentTemperature < 32,
+            rainShell: cur.precipitationProbability > 60,
+            footwear: footwear(feelsLike: cur.apparentTemperature, condition: condition),
+            avatarCondition: condition,
+            updatedAt: ISO8601DateFormatter().string(from: Date())
+        )
+
+        let existing = WidgetData.load()
+        return WidgetData(
+            snapshot: snapshot,
+            hourly: existing.hourly,
+            daily: existing.daily,
+            timeline: existing.timeline,
+            commuteAlert: existing.commuteAlert,
+            accentColor: existing.accentColor,
+            thermalSensitivity: existing.thermalSensitivity
+        )
+    }
+
+    // MARK: - Helpers
+
+    private static func wmoCondition(code: Int) -> String {
+        switch code {
+        case 0, 1: return "clear"
+        case 2: return "partly_cloudy"
+        case 3: return "cloudy"
+        case 45, 48: return "foggy"
+        case 51, 53, 55: return "drizzle"
+        case 61, 63: return "rain"
+        case 65, 66, 67, 80, 81, 82: return "heavy_rain"
+        case 71, 73, 75, 77, 85, 86: return "snow"
+        case 95, 96, 99: return "thunderstorm"
+        default: return "clear"
+        }
+    }
+
+    private static func warmthTier(feelsLike: Double, precipProb: Double, weatherCode: Int) -> String {
+        if weatherCode >= 71 && weatherCode <= 77 { return "warmth_6_snow" }
+        let isRain = precipProb >= 40 || (weatherCode >= 51 && weatherCode <= 82)
+        if isRain {
+            if feelsLike >= 65 { return "warmth_1_rain" }
+            if feelsLike >= 50 { return "warmth_2_rain" }
+            return "warmth_3_rain"
+        }
+        if feelsLike >= 85 { return "warmth_1" }
+        if feelsLike >= 75 { return "warmth_2" }
+        if feelsLike >= 65 { return "warmth_3" }
+        if feelsLike >= 55 { return "warmth_4" }
+        if feelsLike >= 40 { return "warmth_5" }
+        return "warmth_6"
+    }
+
+    private static func outfitLabel(feelsLike: Double, precipProb: Double) -> String {
+        if feelsLike >= 85 { return precipProb > 50 ? "Rain Tee" : "Tank Top" }
+        if feelsLike >= 75 { return precipProb > 50 ? "Light Rainwear" : "T-Shirt" }
+        if feelsLike >= 65 { return precipProb > 50 ? "Rain Jacket" : "Light Jacket" }
+        if feelsLike >= 55 { return "Jacket" }
+        if feelsLike >= 40 { return "Heavy Jacket" }
+        return "Winter Coat"
+    }
+
+    private static func garmentTop(feelsLike: Double) -> String {
+        if feelsLike >= 85 { return "Tank Top" }
+        if feelsLike >= 75 { return "T-Shirt" }
+        if feelsLike >= 65 { return "Light Jacket" }
+        if feelsLike >= 55 { return "Jacket" }
+        if feelsLike >= 40 { return "Heavy Jacket" }
+        return "Winter Coat"
+    }
+
+    private static func footwear(feelsLike: Double, condition: String) -> String {
+        let isWet = ["rain", "heavy_rain", "drizzle", "snow"].contains(condition)
+        if feelsLike < 32 { return isWet ? "Winter Boots" : "Insulated Boots" }
+        if feelsLike < 50 { return isWet ? "Waterproof Boots" : "Boots" }
+        if isWet { return "Waterproof Sneakers" }
+        if feelsLike >= 80 { return "Sandals" }
+        return "Sneakers"
+    }
+}
+
+// MARK: - WeatherEntry
 
 struct WeatherEntry: TimelineEntry {
     let date: Date
@@ -41,16 +257,16 @@ struct WeatherEntry: TimelineEntry {
 
 private func wSymbol(_ condition: String, isDay: Bool) -> String {
     switch condition {
-    case "clear":        return isDay ? "sun.max.fill" : "moon.stars.fill"
+    case "clear":         return isDay ? "sun.max.fill" : "moon.stars.fill"
     case "partly_cloudy": return isDay ? "cloud.sun.fill" : "cloud.moon.fill"
-    case "cloudy":       return "cloud.fill"
-    case "foggy":        return "cloud.fog.fill"
-    case "drizzle":      return "cloud.drizzle.fill"
-    case "rain":         return "cloud.rain.fill"
-    case "heavy_rain":   return "cloud.heavyrain.fill"
-    case "snow":         return "cloud.snow.fill"
-    case "thunderstorm": return "cloud.bolt.rain.fill"
-    default:             return isDay ? "sun.max.fill" : "moon.stars.fill"
+    case "cloudy":        return "cloud.fill"
+    case "foggy":         return "cloud.fog.fill"
+    case "drizzle":       return "cloud.drizzle.fill"
+    case "rain":          return "cloud.rain.fill"
+    case "heavy_rain":    return "cloud.heavyrain.fill"
+    case "snow":          return "cloud.snow.fill"
+    case "thunderstorm":  return "cloud.bolt.rain.fill"
+    default:              return isDay ? "sun.max.fill" : "moon.stars.fill"
     }
 }
 
@@ -90,10 +306,6 @@ struct GraphicCircularView: View {
     private var tempNorm: Double { max(0, min(1, (snapshot.temp - 0) / 110)) }
 
     var body: some View {
-        // NOTE: minimumValueLabel and maximumValueLabel must return the SAME
-        // concrete View type because Gauge declares them both as () -> BoundsLabel.
-        // We wrap the Image in Text(Image:) so both labels are `Text` (with the
-        // same .font modifier), keeping the SF Symbol at the minimum position.
         Gauge(
             value: tempNorm,
             in: 0...1,
@@ -139,7 +351,6 @@ struct GraphicRectangularView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            // Line 1: Location
             HStack(spacing: 3) {
                 Image(systemName: "location.fill")
                     .font(.system(size: 8))
@@ -150,14 +361,12 @@ struct GraphicRectangularView: View {
                     .lineLimit(1)
             }
 
-            // Line 2: Outfit label
             Text(snapshot.outfitLabel)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .widgetAccentable()
 
-            // Line 3: Temp + condition
             HStack(spacing: 4) {
                 Text("\(Int(snapshot.temp.rounded()))°")
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
