@@ -34,7 +34,7 @@ import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import type { LocationData, OutfitFeedbackValue, NerdModeCardId, RainHistoryData } from "@/types";
+import type { LocationData, OutfitFeedbackValue, NerdModeCardId, RainHistoryData, HourlyForecast } from "@/types";
 import { RainAccumulationCard } from "@/components/weather/RainAccumulationCard";
 import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
 import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
@@ -72,6 +72,7 @@ export default function Home() {
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [scrubHour, setScrubHour] = useState<HourlyForecast | null>(null);
   const { eventType, styleHint } = useCalendarContext();
   const tempUnit = profile?.temp_unit ?? "F";
   const isDark = useDarkMode(profile?.theme_preference ?? null);
@@ -318,8 +319,36 @@ export default function Home() {
     }
   }
 
-  const skyColor = weather
-    ? getSkyColor(weather.current.condition, weather.current.isDay)
+  // Today's hourly data (midnight → 11 PM) for the scrubber
+  const hourlyToday = useMemo(() => {
+    if (!weather) return [];
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    return weather.hourly.filter(h => h.time >= startOfDay && h.time <= endOfDay);
+  }, [weather]);
+
+  // Reset scrubHour when weather data refreshes (new fetch = new "now")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleScrubChange = useCallback((hour: HourlyForecast | null) => setScrubHour(hour), []);
+
+  const effectiveCondition = scrubHour?.condition ?? weather?.current.condition;
+  const effectiveIsDay     = scrubHour?.isDay     ?? weather?.current.isDay ?? true;
+
+  // Golden hour detection (±45 min around sunrise/sunset)
+  const goldenHourType = useMemo((): "sunrise" | "sunset" | null => {
+    if (!scrubHour || !weather?.daily[0]) return null;
+    const timeMs     = scrubHour.time.getTime();
+    const sunriseMs  = weather.daily[0].sunrise.getTime();
+    const sunsetMs   = weather.daily[0].sunset.getTime();
+    const GOLDEN_MS  = 45 * 60 * 1000;
+    if (Math.abs(timeMs - sunriseMs) < GOLDEN_MS) return "sunrise";
+    if (Math.abs(timeMs - sunsetMs)  < GOLDEN_MS) return "sunset";
+    return null;
+  }, [scrubHour, weather]);
+
+  const skyColor = effectiveCondition
+    ? getSkyColor(effectiveCondition, effectiveIsDay)
     : "#1a1a2e";
 
   async function handleUnitChange(unit: "F" | "C") {
@@ -420,7 +449,7 @@ export default function Home() {
   }, [visibleCards, cardLayout, setCardLayout]);
 
   return (
-    <div style={{ minHeight: "100%", background: skyColor, display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100%", background: skyColor, transition: "background 0.45s ease", display: "flex", flexDirection: "column", position: "relative" }}>
 
       {/* Pull-to-refresh indicator */}
       {(pullDistance > 0 || isPullRefreshing) && (
@@ -566,6 +595,29 @@ export default function Home() {
                 zIndex: 1,
               }}
             />
+
+            {/* Golden hour overlay — fades in/out on scrub near sunrise/sunset */}
+            <AnimatePresence>
+              {goldenHourType && (
+                <motion.div
+                  key={goldenHourType}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: goldenHourType === "sunrise"
+                      ? "linear-gradient(180deg, rgba(255,100,40,0.55) 0%, rgba(255,165,60,0.3) 50%, transparent 100%)"
+                      : "linear-gradient(180deg, rgba(100,20,130,0.5) 0%, rgba(220,50,40,0.35) 40%, rgba(255,130,0,0.2) 70%, transparent 100%)",
+                    pointerEvents: "none",
+                    zIndex: 2,
+                  }}
+                />
+              )}
+            </AnimatePresence>
+
             <SkyHeader
               weather={weather.current}
               today={weather.daily[0] ?? null}
@@ -573,6 +625,9 @@ export default function Home() {
               isRefreshing={isLoadingWeather}
               onRefresh={handleRefresh}
               onLocationPress={handleOpenUpdateLocation}
+              hourlyToday={hourlyToday}
+              scrubHour={scrubHour}
+              onScrubChange={handleScrubChange}
             />
             <LocationPickerSheet
               open={locationPickerOpen}
@@ -594,10 +649,10 @@ export default function Home() {
               onAdd={handleOpenAddCity}
               onDelete={handleDeleteCity}
             />
-            <VectorLandscape skyColor={skyColor} isDay={weather.current.isDay} />
+            <VectorLandscape skyColor={skyColor} isDay={effectiveIsDay} />
             <WeatherAnimationLayer
-              condition={weather.current.condition}
-              isDay={weather.current.isDay}
+              condition={effectiveCondition ?? weather.current.condition}
+              isDay={effectiveIsDay}
             />
           </div>
 
