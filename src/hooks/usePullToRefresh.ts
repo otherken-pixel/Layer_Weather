@@ -10,7 +10,9 @@ export function usePullToRefresh(onRefresh: () => void, disabled = false) {
   const pulling = useRef(false);
   const pullDistanceRef = useRef(0);
   const onRefreshRef = useRef(onRefresh);
+  const disabledRef = useRef(disabled);
   useEffect(() => { onRefreshRef.current = onRefresh; }, [onRefresh]);
+  useEffect(() => { disabledRef.current = disabled; }, [disabled]);
 
   useEffect(() => {
     const scrollEl = document.querySelector<HTMLElement>("[data-scroll-container]");
@@ -48,7 +50,7 @@ export function usePullToRefresh(onRefresh: () => void, disabled = false) {
     function onTouchEnd() {
       if (!pulling.current) return;
       pulling.current = false;
-      if (!disabled && pullDistanceRef.current >= TRIGGER_DISTANCE) {
+      if (!disabledRef.current && pullDistanceRef.current >= TRIGGER_DISTANCE) {
         setIsRefreshing(true);
         setPullDistance(0);
         pullDistanceRef.current = 0;
