@@ -23,9 +23,18 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
   const [trackWidth, setTrackWidth] = useState(220);
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDraggingRef = useRef(false);
+  const scrubIndexRef = useRef<number | null>(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const nowMs = useMemo(() => Date.now(), []);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, [hourlyToday]);
 
   const currentIndex = useMemo(() => {
     if (hourlyToday.length === 0) return 0;
@@ -59,25 +68,27 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  scrubIndexRef.current = scrubIndex;
+
   // Sync thumb when currentIndex changes (new weather fetch) while not scrubbing
   useEffect(() => {
-    if (!isDraggingRef.current && scrubIndex === null && trackWidth > 0) {
+    if (!isDraggingRef.current && scrubIndexRef.current === null && trackWidth > 0) {
       thumbX.set(getXForIndex(currentIndex, trackWidth));
     }
-  }, [currentIndex, scrubIndex, trackWidth, getXForIndex, thumbX]);
+  }, [currentIndex, trackWidth, getXForIndex, thumbX]);
 
   // Update scrubIndex reactively while dragging
   useMotionValueEvent(thumbX, "change", (latest) => {
     if (!isDraggingRef.current) return;
     const idx = getIndexForX(latest, trackWidth);
-    setScrubIndex((prev) => {
-      if (idx !== prev) {
-        onScrubChange(hourlyToday[idx] ?? null);
-        return idx;
-      }
-      return prev;
-    });
+    setScrubIndex((prev) => (idx !== prev ? idx : prev));
   });
+
+  useEffect(() => {
+    if (scrubIndex !== null) {
+      onScrubChange(hourlyToday[scrubIndex] ?? null);
+    }
+  }, [scrubIndex, hourlyToday, onScrubChange]);
 
   const scheduleSnapBack = useCallback(() => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
