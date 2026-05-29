@@ -1,4 +1,3 @@
-import { buildLocationCacheKey } from "@/lib/location-cache-key";
 import type { LocationData } from "@/types";
 
 const PREF_KEY = "wt_saved_locations";
@@ -76,11 +75,11 @@ export async function addSavedLocation(loc: LocationData, userId?: string): Prom
   return updated;
 }
 
-/** Remove one saved place (matched by city + coordinates, not city name alone). */
+/** Remove one saved place (matched by city + region + country identity). */
 export async function removeSavedLocation(loc: LocationData, userId?: string): Promise<LocationData[]> {
   const existing = await getSavedLocations();
-  const key = buildLocationCacheKey(loc);
-  const updated = existing.filter((l) => buildLocationCacheKey(l) !== key);
+  const key = cityIdentityKey(loc);
+  const updated = existing.filter((l) => cityIdentityKey(l) !== key);
   await writeRaw(JSON.stringify(updated));
   if (userId) void syncToCloud(userId, updated);
   return updated;
