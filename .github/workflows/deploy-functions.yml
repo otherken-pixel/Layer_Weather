@@ -129,3 +129,16 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --no-verify-jwt \
             --use-api
+
+      - name: Deploy validate-apple-receipt function
+        run: |
+          supabase functions deploy validate-apple-receipt \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --use-api
+
+      - name: Deploy apple-notifications function
+        run: |
+          supabase functions deploy apple-notifications \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt \
+            --use-api

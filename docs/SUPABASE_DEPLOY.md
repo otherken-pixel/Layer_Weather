@@ -1,6 +1,6 @@
 # Supabase Edge Function deploy (GitHub Actions)
 
-The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/deploy-functions.yml) deploys `weather`, `weather-alerts`, and `packing-insights` when `supabase/functions/**` changes on `main`.
+The workflow [`.github/workflows/deploy-functions.yml`](../.github/workflows/deploy-functions.yml) deploys edge functions when `supabase/functions/**` changes on `main`, including subscription handlers `validate-apple-receipt` and `apple-notifications`.
 
 ## Required GitHub secrets
 
@@ -66,4 +66,19 @@ After saving secrets:
 export SUPABASE_ACCESS_TOKEN="your-token"
 export PROJECT_REF="your-project-ref"
 npx supabase functions deploy weather --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
+npx supabase functions deploy validate-apple-receipt --project-ref "$PROJECT_REF" --use-api
+npx supabase functions deploy apple-notifications --project-ref "$PROJECT_REF" --no-verify-jwt --use-api
 ```
+
+### In-app subscriptions (`validate-apple-receipt`)
+
+Purchases call `validate-apple-receipt` after StoreKit returns a signed transaction. If this function is not deployed, the paywall shows a generic purchase failure even when Apple accepts payment.
+
+After merging subscription changes, run **Actions → Deploy Edge Functions** (or deploy the commands above). In App Store Connect, set **App Store Server Notifications** (Version 2) to:
+
+`https://<project-ref>.supabase.co/functions/v1/apple-notifications`
+
+Subscription product IDs in the app (`src/lib/storekit.ts`):
+
+- `com.layerweather.app.pro.monthly.v2`
+- `com.layerweather.app.pro.annual.v2`
