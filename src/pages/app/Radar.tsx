@@ -323,7 +323,7 @@ export default function Radar() {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [location]);
 
   const seekFromPointer = (el: HTMLDivElement, clientX: number) => {
     if (allFrames.length === 0) return;
