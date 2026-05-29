@@ -1,9 +1,13 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import React, { useRef, useEffect, useState, useMemo, useCallback, forwardRef, useImperativeHandle } from "react";
 import { motion, useMotionValue, useMotionValueEvent, AnimatePresence, animate } from "framer-motion";
 import type { HourlyForecast, DailyForecast } from "@/types";
 
 const SNAP_BACK_DELAY_MS = 4000;
 const THUMB_SIZE = 22;
+
+export interface SunMoonScrubberRef {
+  snapBackNow: () => void;
+}
 
 interface Props {
   hourlyToday: HourlyForecast[];
@@ -15,7 +19,10 @@ function formatHour(date: Date): string {
   return date.toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" });
 }
 
-export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
+export const SunMoonScrubber = forwardRef<SunMoonScrubberRef, Props>(function SunMoonScrubber(
+  { hourlyToday, today, onScrubChange }: Props,
+  ref,
+) {
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbX = useMotionValue(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -58,6 +65,23 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
     return Math.round(ratio * (hourlyToday.length - 1));
   }, [hourlyToday.length]);
 
+  // Interpolate sun X between hourly positions based on actual current time (smooth tracking)
+  const continuousX = useMemo(() => {
+    if (hourlyToday.length <= 1 || trackWidth === 0) return getXForIndex(currentIndex, trackWidth);
+    const now = nowMs;
+    let lo = 0;
+    for (let i = 0; i < hourlyToday.length; i++) {
+      if (hourlyToday[i].time.getTime() <= now) lo = i;
+      else break;
+    }
+    const hi = Math.min(lo + 1, hourlyToday.length - 1);
+    const t0 = hourlyToday[lo].time.getTime();
+    const t1 = hourlyToday[hi].time.getTime();
+    if (t1 === t0) return getXForIndex(lo, trackWidth);
+    const frac = Math.max(0, Math.min(1, (now - t0) / (t1 - t0)));
+    return getXForIndex(lo, trackWidth) + frac * (getXForIndex(hi, trackWidth) - getXForIndex(lo, trackWidth));
+  }, [hourlyToday, nowMs, trackWidth, currentIndex, getXForIndex]);
+
   // Measure track and set initial thumb position
   useEffect(() => {
     if (!trackRef.current) return;
@@ -70,12 +94,12 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
 
   scrubIndexRef.current = scrubIndex;
 
-  // Sync thumb when currentIndex changes (new weather fetch) while not scrubbing
+  // Sync thumb to interpolated position while not scrubbing (smooth real-time tracking)
   useEffect(() => {
     if (!isDraggingRef.current && scrubIndexRef.current === null && trackWidth > 0) {
-      thumbX.set(getXForIndex(currentIndex, trackWidth));
+      thumbX.set(continuousX);
     }
-  }, [currentIndex, trackWidth, getXForIndex, thumbX]);
+  }, [continuousX, trackWidth, thumbX]);
 
   // Update scrubIndex reactively while dragging
   useMotionValueEvent(thumbX, "change", (latest) => {
@@ -93,12 +117,20 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
   const scheduleSnapBack = useCallback(() => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
     snapTimerRef.current = setTimeout(() => {
-      const targetX = getXForIndex(currentIndex, trackWidth);
-      void animate(thumbX, targetX, { type: "spring", stiffness: 180, damping: 22 });
+      void animate(thumbX, continuousX, { type: "spring", stiffness: 180, damping: 22 });
       setScrubIndex(null);
       onScrubChange(null);
     }, SNAP_BACK_DELAY_MS);
-  }, [currentIndex, trackWidth, getXForIndex, thumbX, onScrubChange]);
+  }, [continuousX, thumbX, onScrubChange]);
+
+  useImperativeHandle(ref, () => ({
+    snapBackNow: () => {
+      if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
+      void animate(thumbX, continuousX, { type: "spring", stiffness: 180, damping: 22 });
+      setScrubIndex(null);
+      onScrubChange(null);
+    },
+  }), [continuousX, thumbX, onScrubChange]);
 
   const handleDragStart = useCallback(() => {
     if (snapTimerRef.current) clearTimeout(snapTimerRef.current);
@@ -326,4 +358,4 @@ export function SunMoonScrubber({ hourlyToday, today, onScrubChange }: Props) {
       </motion.div>
     </div>
   );
-}
+});

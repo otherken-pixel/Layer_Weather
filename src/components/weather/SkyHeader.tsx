@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ArrowUp, ArrowDown, Sunrise, Sunset, Clock } from "lucide-react";
+import { MapPin, ArrowUp, ArrowDown, Sunrise, Sunset, Clock, X } from "lucide-react";
 import type { CurrentWeather, DailyForecast, HourlyForecast } from "@/types";
 import { CONDITION_LABEL } from "@/constants/colors";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
-import { SunMoonScrubber } from "@/components/weather/SunMoonScrubber";
+import { SunMoonScrubber, type SunMoonScrubberRef } from "@/components/weather/SunMoonScrubber";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -38,6 +38,7 @@ export function SkyHeader({
   onScrubChange,
 }: Props) {
   const isScrubbing = scrubHour !== null;
+  const scrubberRef = useRef<SunMoonScrubberRef>(null);
 
   const displayTemp = isScrubbing
     ? toUnit(scrubHour.temp, tempUnit)
@@ -226,8 +227,11 @@ export function SkyHeader({
       {/* H/L + sunrise/sunset pill  OR  scrubbed-time pill */}
       <AnimatePresence mode="wait">
         {isScrubbing ? (
-          <motion.div
+          <motion.button
             key="scrub-pill"
+            type="button"
+            onClick={() => scrubberRef.current?.snapBackNow()}
+            aria-label="Return to live weather"
             initial={{ opacity: 0, y: 6, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.95 }}
@@ -239,6 +243,7 @@ export function SkyHeader({
               display: "flex",
               alignItems: "center",
               gap: 8,
+              cursor: "pointer",
             }}
           >
             <Clock size={12} color="rgba(255,255,255,0.75)" strokeWidth={2.5} aria-hidden="true" />
@@ -249,7 +254,9 @@ export function SkyHeader({
             <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(255,255,255,0.65)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
               Forecast
             </span>
-          </motion.div>
+            <div style={{ width: 1, height: 14, background: "rgba(255,255,255,0.25)" }} />
+            <X size={11} color="rgba(255,255,255,0.65)" strokeWidth={2.5} aria-hidden="true" />
+          </motion.button>
         ) : (
           hiTemp !== null && loTemp !== null && (
             <motion.div
@@ -308,6 +315,7 @@ export function SkyHeader({
       {/* Interactive sun/moon scrubber */}
       {today && hourlyToday.length > 0 && (
         <SunMoonScrubber
+          ref={scrubberRef}
           hourlyToday={hourlyToday}
           today={today}
           onScrubChange={onScrubChange}
