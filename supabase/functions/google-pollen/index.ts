@@ -5,7 +5,7 @@
  * Google Pollen API (Universal Pollen Index, 0–5 scale mapped to
  * grain-equivalent values for compatibility with the existing PollenData type).
  *
- * Required secret: GOOGLE_MAPS_API_KEY
+ * Required secret: GOOGLE_MAPS_API
  */
 
 const CORS = {
@@ -54,9 +54,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "lat and lon required" }, 400);
     }
 
-    const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    const apiKey = Deno.env.get("GOOGLE_MAPS_API");
     if (!apiKey) {
-      return jsonResponse({ error: "GOOGLE_MAPS_API_KEY not configured" }, 503);
+      return jsonResponse({ error: "GOOGLE_MAPS_API not configured" }, 503);
     }
 
     const params = new URLSearchParams({

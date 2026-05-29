@@ -5,7 +5,7 @@
  * Returns the US EPA AQI (when available) or Universal AQI, plus a per-pollutant
  * breakdown with AQI values calculated from concentrations using EPA breakpoints.
  *
- * Required secret: GOOGLE_MAPS_API_KEY
+ * Required secret: GOOGLE_MAPS_API
  */
 
 const CORS = {
@@ -128,9 +128,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "lat and lon required" }, 400);
     }
 
-    const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    const apiKey = Deno.env.get("GOOGLE_MAPS_API");
     if (!apiKey) {
-      return jsonResponse({ error: "GOOGLE_MAPS_API_KEY not configured", aqi: null }, 503);
+      return jsonResponse({ error: "GOOGLE_MAPS_API not configured", aqi: null }, 503);
     }
 
     const res = await fetch(

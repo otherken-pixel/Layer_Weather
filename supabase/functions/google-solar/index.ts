@@ -5,7 +5,7 @@
  * (buildingInsights endpoint). Returns annual sunshine hours, average daily
  * peak sun hours, and carbon offset factor for the location.
  *
- * Required secret: GOOGLE_MAPS_API_KEY
+ * Required secret: GOOGLE_MAPS_API
  */
 
 const CORS = {
@@ -36,9 +36,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "lat and lon required" }, 400);
     }
 
-    const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    const apiKey = Deno.env.get("GOOGLE_MAPS_API");
     if (!apiKey) {
-      return jsonResponse({ error: "GOOGLE_MAPS_API_KEY not configured" }, 503);
+      return jsonResponse({ error: "GOOGLE_MAPS_API not configured" }, 503);
     }
 
     const params = new URLSearchParams({

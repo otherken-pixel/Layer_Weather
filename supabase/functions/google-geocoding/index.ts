@@ -8,7 +8,7 @@
  *   Forward: { type: "forward", query: string }
  *   Reverse: { type: "reverse", lat: number, lon: number }
  *
- * Required secret: GOOGLE_MAPS_API_KEY
+ * Required secret: GOOGLE_MAPS_API
  */
 
 const CORS = {
@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
         ? await req.json()
         : Object.fromEntries(new URL(req.url).searchParams);
 
-    const apiKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    const apiKey = Deno.env.get("GOOGLE_MAPS_API");
     if (!apiKey) {
-      return jsonResponse({ error: "GOOGLE_MAPS_API_KEY not configured" }, 503);
+      return jsonResponse({ error: "GOOGLE_MAPS_API not configured" }, 503);
     }
 
     const type = body.type;
