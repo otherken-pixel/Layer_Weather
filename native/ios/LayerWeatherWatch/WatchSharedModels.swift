@@ -152,6 +152,8 @@ struct DailyWidgetEntry: Codable, Identifiable {
     let precipProb: Double
     let condition: String
     let weatherCode: Int
+    var sunrise: String? = nil
+    var sunset: String? = nil
 
     var id: String { date }
 
