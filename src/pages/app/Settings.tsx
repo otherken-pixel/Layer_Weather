@@ -78,7 +78,6 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [localSavedLocations, setLocalSavedLocations] = useState<LocationData[]>(savedLocations);
   const [nerdModeEnabled, setNerdModeEnabled] = useState(profile?.nerd_mode_enabled ?? false);
   const [nerdModeCards, setNerdModeCards] = useState<NerdModeCardId[]>(profile?.nerd_mode_cards ?? []);
   const [signOutModalOpen, setSignOutModalOpen] = useState(false);
@@ -117,10 +116,7 @@ export default function Settings() {
   }, [location?.city, profile?.last_city]);
 
   useEffect(() => {
-    getSavedLocations().then((locs) => {
-      setLocalSavedLocations(locs);
-      setSavedLocations(locs);
-    }).catch(() => {});
+    getSavedLocations().then(setSavedLocations).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -381,7 +377,7 @@ export default function Settings() {
                   </button>
                 );
               })}
-              {localSavedLocations.map((loc) => {
+              {savedLocations.map((loc) => {
                 const key = buildLocationCacheKey(loc);
                 const active = widgetLocPref.mode === "saved" && widgetLocPref.savedKey === key;
                 return (
@@ -905,11 +901,11 @@ export default function Settings() {
         </Section>
 
         {/* Saved Locations */}
-        {localSavedLocations.length > 0 && (
+        {savedLocations.length > 0 && (
           <Section title="Saved Locations" labelColor={sectionLabelColor}>
             <ThemedCard cardBg={cardBg} cardBorder={cardBorder} cardShadow={cardShadow}>
-              {localSavedLocations.map((loc, i) => (
-                <div key={loc.city}>
+              {savedLocations.map((loc, i) => (
+                <div key={buildLocationCacheKey(loc)}>
                   {i > 0 && <Divider dividerColor={dividerColor} />}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -931,8 +927,7 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={async () => {
-                        const updated = await removeSavedLocation(loc, userId ?? undefined).catch(() => localSavedLocations);
-                        setLocalSavedLocations(updated);
+                        const updated = await removeSavedLocation(loc, userId ?? undefined).catch(() => savedLocations);
                         setSavedLocations(updated);
                       }}
                       aria-label={`Remove ${loc.city}`}
