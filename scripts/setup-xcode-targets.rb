@@ -232,23 +232,55 @@ else
 end
 
 # ── Patch Main.storyboard (Capacitor 6 custom bridge VC) ─────────────────
+# This is the single most fragile step in iOS setup: if the root view
+# controller is NOT LayerWeatherBridgeViewController, capacitorDidLoad() never
+# runs and NONE of the local plugins register — StoreKit and widgets both die
+# at runtime with "<Plugin> plugin is not implemented on ios". A silent miss
+# here ships a broken build, so we match defensively (any attribute order) and
+# ABORT loudly if the rewrite can't be verified.
 storyboard_path = APP_SRC / 'Base.lproj/Main.storyboard'
-if storyboard_path.exist?
-  sb = File.read(storyboard_path)
-  if sb.include?('LayerWeatherBridgeViewController')
-    puts "  ↩  Main.storyboard already uses LayerWeatherBridgeViewController"
-  elsif sb.include?('CAPBridgeViewController')
-    sb = sb.sub(
-      'customClass="CAPBridgeViewController" customModule="Capacitor"',
-      'customClass="LayerWeatherBridgeViewController" customModule="App"'
-    )
-    File.write(storyboard_path, sb)
-    puts "  +  Main.storyboard → LayerWeatherBridgeViewController (registers WidgetBridge)"
-  else
-    puts "  ⚠  Main.storyboard: expected CAPBridgeViewController — patch manually"
+unless storyboard_path.exist?
+  abort <<~MSG
+    ERROR: Main.storyboard not found at #{storyboard_path}.
+    Run `npm run ios:prepare` (which runs `npx cap add/sync ios`) first.
+    Without the bridge VC patch, StoreKit and widget plugins will not register
+    at runtime.
+  MSG
+end
+
+sb = File.read(storyboard_path)
+if sb.include?('LayerWeatherBridgeViewController')
+  puts "  ↩  Main.storyboard already uses LayerWeatherBridgeViewController"
+elsif sb =~ /customClass="CAPBridgeViewController"/
+  # Match regardless of attribute order/spacing. Capacitor's generated
+  # storyboard pairs customClass="CAPBridgeViewController" with
+  # customModule="Capacitor"; both must point at our app module so the bridge
+  # VC's capacitorDidLoad() (which registers StoreKitPlugin + WidgetBridgePlugin)
+  # actually runs.
+  sb = sb.gsub('customClass="CAPBridgeViewController"',
+               'customClass="LayerWeatherBridgeViewController"')
+  sb = sb.gsub('customModule="Capacitor"', 'customModule="App"')
+  File.write(storyboard_path, sb)
+
+  # Verify the rewrite took. A silent failure here is exactly the bug that has
+  # repeatedly killed subscriptions in TestFlight builds.
+  unless File.read(storyboard_path).include?('customClass="LayerWeatherBridgeViewController"')
+    abort <<~MSG
+      ERROR: failed to patch Main.storyboard root view controller.
+      Open #{storyboard_path} and set the root view controller's custom class to
+      LayerWeatherBridgeViewController (Module: App) manually, then re-run.
+    MSG
   end
+  puts "  +  Main.storyboard → LayerWeatherBridgeViewController (registers StoreKit + WidgetBridge)"
 else
-  puts "  ⚠  Main.storyboard not found — skipped bridge VC storyboard patch"
+  abort <<~MSG
+    ERROR: Main.storyboard contains neither CAPBridgeViewController nor
+    LayerWeatherBridgeViewController (#{storyboard_path}).
+    Capacitor's generated storyboard format may have changed. Set the root view
+    controller's custom class to LayerWeatherBridgeViewController (Module: App)
+    manually before archiving — otherwise StoreKit and widget plugins will not
+    register at runtime.
+  MSG
 end
 
 # ── AppDelegate: WatchConnectivity now starts in LayerWeatherBridgeViewController ─

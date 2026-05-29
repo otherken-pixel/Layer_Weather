@@ -40,7 +40,14 @@ export default function PaywallScreen() {
     purchase,
     restorePurchases,
     productsLoadedFromStore,
+    storeKitUnavailable,
   } = useSubscription();
+
+  const isNative = Capacitor.isNativePlatform();
+  // Only allow a purchase attempt once real App Store products are loaded.
+  // Otherwise the tap is guaranteed to fail (plugin missing or products not
+  // approved) and surfaces a raw error to the user.
+  const canPurchase = isNative && productsLoadedFromStore;
 
   const monthlyProduct = products.find((p) => p.id === PRODUCT_IDS.MONTHLY);
   const annualProduct  = products.find((p) => p.id === PRODUCT_IDS.ANNUAL);
@@ -211,11 +218,18 @@ export default function PaywallScreen() {
           </button>
         </motion.div>
 
-        {Capacitor.isNativePlatform() && !isLoadingProducts && !productsLoadedFromStore && (
-          <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
-            App Store plans are not loading. Subscriptions may still be awaiting Apple approval, or the
-            product IDs in the app may not match App Store Connect.
-          </p>
+        {isNative && !isLoadingProducts && !productsLoadedFromStore && (
+          storeKitUnavailable ? (
+            <p className="text-sm text-red-400/90 text-center px-4 max-w-sm">
+              In-app purchases aren&apos;t available in this build. Update Layer Weather to the latest
+              version from the App Store to subscribe.
+            </p>
+          ) : (
+            <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
+              App Store plans are not loading. Subscriptions may still be awaiting Apple approval, or the
+              product IDs in the app may not match App Store Connect.
+            </p>
+          )
         )}
 
         {/* Error message */}
@@ -241,7 +255,7 @@ export default function PaywallScreen() {
         >
           <button
             onClick={handleCTA}
-            disabled={isPurchasing || (!Capacitor.isNativePlatform() && true)}
+            disabled={isPurchasing || !canPurchase}
             className="w-full py-4 rounded-2xl text-base font-bold text-white transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
             style={{ background: "linear-gradient(135deg, #6C63FF, #4A3FDB)" }}
           >
