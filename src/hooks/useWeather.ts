@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { useAppStore, DEVICE_LOCATION_KEY } from "@/store";
 import type { CachedCityWeather } from "@/store";
 import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence, reverseGeocodePlace, fetchPollenData } from "@/lib/weather";
+import { fetchGoogleSolar } from "@/lib/googleSolarService";
 import { fetchLightningActivity } from "@/lib/swdiService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
@@ -106,11 +107,13 @@ function applyCachedEntry(
     setAqiBreakdown,
     setAqiForecast,
     setPollenData,
+    setSolarData,
   } = useAppStore.getState();
 
   setAqiBreakdown(null);
   setAqiForecast(null);
   setPollenData(null);
+  setSolarData(null);
   setWeatherError(
     `Offline — showing weather from ${formatCacheAge(entry.fetchedAt)}`,
   );
@@ -196,6 +199,7 @@ export function useWeather() {
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
     setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setAqiForecast, setPollenData,
+    setSolarData,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -216,6 +220,7 @@ export function useWeather() {
         setAqiBreakdown(null);
         setAqiForecast(null);
         setPollenData(null);
+        setSolarData(null);
         syncWidgetFromAppState().catch(() => {});
         return;
       }
@@ -268,7 +273,7 @@ export function useWeather() {
             }).catch(console.error);
           }
 
-          const [data, aqiResult, pollenResult] = await Promise.all([
+          const [data, aqiResult, pollenResult, solarResult] = await Promise.all([
             withTimeout(
               fetchWeatherData(latitude, longitude, { countryCode }),
               WEATHER_TIMEOUT_MS,
@@ -276,6 +281,7 @@ export function useWeather() {
             ),
             fetchAQIBestSource(latitude, longitude, countryCode),
             fetchPollenData(latitude, longitude),
+            fetchGoogleSolar(latitude, longitude),
           ]);
           if (generation !== refreshGeneration) return;
 
@@ -288,6 +294,7 @@ export function useWeather() {
               : null,
           );
           setPollenData(pollenResult);
+          setSolarData(solarResult);
           setWeather(data);
           const fetchedAt = new Date();
           setWeatherLastFetched(fetchedAt);

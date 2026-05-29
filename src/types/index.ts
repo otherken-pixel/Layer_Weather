@@ -34,16 +34,28 @@ export interface Profile {
 export type PollenLevel = "low" | "moderate" | "high" | "very_high";
 
 export interface PollenData {
-  tree: number | null;    // max of alder, birch, olive pollen (grains/m³)
+  tree: number | null;    // max of alder, birch, olive pollen (grains/m³), or UPI-equivalent when source is google
   grass: number | null;
   weed: number | null;    // max of mugwort, ragweed pollen
   dominant: "tree" | "grass" | "weed" | null;
   level: PollenLevel | null;  // overall worst level
+  source?: "open-meteo" | "google";
+}
+
+// ── Solar ─────────────────────────────────────────────────────────────────────
+
+export interface SolarData {
+  maxSunshineHoursPerYear: number;
+  avgDailyPeakSunHours: number | null;
+  carbonOffsetFactorKgPerMwh: number | null;
+  maxArrayAreaMeters2: number | null;
+  imageryDate: { year: number; month: number; day: number } | null;
+  imageryQuality: string | null;
 }
 
 // ── Nerd Mode ─────────────────────────────────────────────────────────────────
 
-export type NerdModeCardId = "rain_accumulation" | "moon_phases" | "seasonal_produce" | "pollen";
+export type NerdModeCardId = "rain_accumulation" | "moon_phases" | "seasonal_produce" | "pollen" | "solar";
 
 export interface NerdModeCardMeta {
   id: NerdModeCardId;
@@ -76,6 +88,12 @@ export const NERD_MODE_CARDS: NerdModeCardMeta[] = [
     label: "Pollen",
     emoji: "🌿",
     description: "Tree, grass, and weed pollen levels for your area.",
+  },
+  {
+    id: "solar",
+    label: "Solar Potential",
+    emoji: "☀️",
+    description: "Annual sunshine hours and peak sun data for your location.",
   },
 ];
 

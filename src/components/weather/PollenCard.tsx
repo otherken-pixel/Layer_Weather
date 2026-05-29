@@ -134,7 +134,7 @@ export function PollenCard({ data, isDark = false }: Props) {
       </div>
 
       <p style={{ fontSize: 11, color: labelColor, marginTop: 14, marginBottom: 0 }}>
-        Source: Open-Meteo Air Quality · {new Date().toLocaleDateString("en", { month: "short", day: "numeric" })}
+        Source: {data.source === "google" ? "Google Pollen API" : "Open-Meteo Air Quality"} · {new Date().toLocaleDateString("en", { month: "short", day: "numeric" })}
       </p>
     </div>
   );

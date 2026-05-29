@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity, EPAObservation, PollenData } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity, EPAObservation, PollenData, SolarData } from "@/types";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
 import { upsertProfile } from "@/lib/supabase";
@@ -59,6 +59,8 @@ interface AppState {
   aqiForecast: { aqi: number; category: string } | null;
   /** Pollen levels for tree, grass, and weed. Null when outside coverage or using cached data. */
   pollenData: PollenData | null;
+  /** Google Solar API data for the current location. Null when unavailable. */
+  solarData: SolarData | null;
   /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
   cityWeatherCache: Record<string, CachedCityWeather>;
 
@@ -112,6 +114,7 @@ interface AppState {
   setAqiBreakdown: (breakdown: EPAObservation[] | null) => void;
   setAqiForecast: (forecast: { aqi: number; category: string } | null) => void;
   setPollenData: (data: PollenData | null) => void;
+  setSolarData: (data: SolarData | null) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
   setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
@@ -144,6 +147,7 @@ const initialState = {
   aqiBreakdown: null as EPAObservation[] | null,
   aqiForecast: null as { aqi: number; category: string } | null,
   pollenData: null as PollenData | null,
+  solarData: null as SolarData | null,
   isLoadingWeather: false,
   weatherError: null,
   cityWeatherCache: {} as Record<string, CachedCityWeather>,
@@ -185,6 +189,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAqiBreakdown: (aqiBreakdown) => set({ aqiBreakdown }),
   setAqiForecast: (aqiForecast) => set({ aqiForecast }),
   setPollenData: (pollenData) => set({ pollenData }),
+  setSolarData: (solarData) => set({ solarData }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>
