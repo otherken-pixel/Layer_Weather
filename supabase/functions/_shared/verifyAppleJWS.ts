@@ -24,20 +24,20 @@ function derEquals(a: Uint8Array, b: Uint8Array): boolean {
   return true;
 }
 
-function verifyX5cChain(x5c: string[]): boolean {
+async function verifyX5cChain(x5c: string[]): Promise<boolean> {
   if (x5c.length < 2) return false;
 
   const certs = x5c.map((entry) => new X509Certificate(certDerFromX5c(entry)));
   const appleRoot = new X509Certificate(APPLE_ROOT_CA_G3_DER);
 
-  const chainRootDer = certs[certs.length - 1].rawData;
+  const chainRootDer = new Uint8Array(certs[certs.length - 1].rawData);
   if (derEquals(chainRootDer, APPLE_ROOT_CA_G3_DER)) {
     if (certs.length < 3) return false;
-    return certs[0].verify(certs[1]) && certs[1].verify(appleRoot);
+    return (await certs[0].verify(certs[1])) && (await certs[1].verify(appleRoot));
   }
 
   if (certs.length !== 2) return false;
-  return certs[0].verify(certs[1]) && certs[1].verify(appleRoot);
+  return (await certs[0].verify(certs[1])) && (await certs[1].verify(appleRoot));
 }
 
 /** Verifies Apple's ES256 JWS (x5c chain + signature) and returns the parsed payload. */
@@ -50,7 +50,7 @@ export async function verifyAppleJWS<T>(jws: string): Promise<T | null> {
     if (header.alg !== "ES256") return null;
 
     const x5c = header.x5c;
-    if (!x5c?.length || !verifyX5cChain(x5c)) return null;
+    if (!x5c?.length || !(await verifyX5cChain(x5c))) return null;
 
     const leafPem = `-----BEGIN CERTIFICATE-----\n${x5c[0]}\n-----END CERTIFICATE-----`;
     const key = await jose.importX509(leafPem, "ES256");
