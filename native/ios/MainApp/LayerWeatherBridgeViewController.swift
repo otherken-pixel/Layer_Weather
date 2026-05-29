@@ -8,6 +8,7 @@ class LayerWeatherBridgeViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(WidgetBridgePlugin())
+        bridge?.registerPluginInstance(StoreKitPlugin())
         WatchConnectivityHandler.shared.activate()
     }
 }
