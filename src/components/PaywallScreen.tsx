@@ -211,7 +211,7 @@ export default function PaywallScreen() {
           </button>
         </motion.div>
 
-        {!isLoadingProducts && !productsLoadedFromStore && (
+        {Capacitor.isNativePlatform() && !isLoadingProducts && !productsLoadedFromStore && (
           <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
             App Store plans are not loading. Subscriptions may still be awaiting Apple approval, or the
             product IDs in the app may not match App Store Connect.
