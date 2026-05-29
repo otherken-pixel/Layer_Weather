@@ -61,14 +61,16 @@ export function useSubscription(): UseSubscriptionReturn {
 
   // On mount: load products and sync entitlement from App Store
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || !StoreKit) return;
+    // Capture in a local const so TypeScript narrows non-null inside async callbacks
+    const sk = StoreKit;
+    if (!Capacitor.isNativePlatform() || !sk) return;
 
     let cancelled = false;
 
     const init = async () => {
       setIsLoadingProducts(true);
       try {
-        const { products: loaded } = await StoreKit.loadProducts({
+        const { products: loaded } = await sk.loadProducts({
           productIds: [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.ANNUAL],
         });
         if (!cancelled) setProducts(loaded);
@@ -80,7 +82,7 @@ export function useSubscription(): UseSubscriptionReturn {
 
       // Sync entitlement if Supabase profile doesn't show premium but App Store says so
       try {
-        const entitlement = await StoreKit.getCurrentEntitlement();
+        const entitlement = await sk.getCurrentEntitlement();
         if (entitlement.isActive && entitlement.jwsTransaction && !isPremium) {
           await validateWithServer(entitlement.jwsTransaction);
         }
@@ -92,7 +94,7 @@ export function useSubscription(): UseSubscriptionReturn {
     init();
 
     // Listen for background transaction updates (renewals, revocations)
-    StoreKit.addListener("transactionUpdated", async ({ jwsTransaction }) => {
+    sk.addListener("transactionUpdated", async ({ jwsTransaction }) => {
       try {
         await validateWithServer(jwsTransaction);
       } catch (e) {
