@@ -20,6 +20,16 @@ export interface UseSubscriptionReturn {
   purchase: (productId: string) => Promise<void>;
   restorePurchases: () => Promise<void>;
   productsLoadedFromStore: boolean;
+  /** True when the native StoreKit plugin itself is missing from the build
+   * (Capacitor "not implemented"), as opposed to products simply not loading
+   * because they aren't approved in App Store Connect yet. */
+  storeKitUnavailable: boolean;
+}
+
+/** Capacitor throws this when a registered JS plugin has no native counterpart
+ * in the running build — i.e. the bridge VC never registered StoreKitPlugin. */
+function isPluginUnimplemented(raw: string): boolean {
+  return raw.includes("not implemented") || raw.includes("UNIMPLEMENTED");
 }
 
 async function subscriptionErrorMessage(error: unknown): Promise<string> {
@@ -45,6 +55,9 @@ function friendlyPurchaseError(
   defaultMessage = "Purchase failed. Please try again.",
 ): string {
   if (raw === "USER_CANCELLED" || raw === "PENDING") return raw;
+  if (isPluginUnimplemented(raw)) {
+    return "In-app purchases aren't available in this build. Update Layer Weather to the latest version from the App Store, then try again.";
+  }
   if (raw.includes("PRODUCT_NOT_FOUND") || raw.includes("Product not found")) {
     return "Subscription products are not available yet. In App Store Connect, ensure both Pro plans are approved and linked to this app version.";
   }
@@ -65,6 +78,7 @@ export function useSubscription(): UseSubscriptionReturn {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [storeKitUnavailable, setStoreKitUnavailable] = useState(false);
   const listenerRef = useRef<{ remove: () => void } | null>(null);
 
   const subscriptionStatus: SubscriptionStatus = profile?.subscription_status ?? "none";
@@ -124,6 +138,8 @@ export function useSubscription(): UseSubscriptionReturn {
         if (!cancelled) setProducts(loaded);
       } catch (e) {
         console.error("StoreKit loadProducts failed:", e);
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!cancelled && isPluginUnimplemented(msg)) setStoreKitUnavailable(true);
       } finally {
         if (!cancelled) setIsLoadingProducts(false);
       }
@@ -213,5 +229,6 @@ export function useSubscription(): UseSubscriptionReturn {
     purchase,
     restorePurchases,
     productsLoadedFromStore: products.length > 0,
+    storeKitUnavailable,
   };
 }
