@@ -40,7 +40,10 @@ async function subscriptionErrorMessage(error: unknown): Promise<string> {
   return String(error);
 }
 
-function friendlyPurchaseError(raw: string): string {
+function friendlyPurchaseError(
+  raw: string,
+  defaultMessage = "Purchase failed. Please try again.",
+): string {
   if (raw === "USER_CANCELLED" || raw === "PENDING") return raw;
   if (raw.includes("Product not found")) {
     return "Subscription products are not available yet. In App Store Connect, ensure both Pro plans are approved and linked to this app version.";
@@ -53,7 +56,7 @@ function friendlyPurchaseError(raw: string): string {
   }
   if (raw.includes("Subscription service is unavailable")) return raw;
   if (raw.length > 120) return `${raw.slice(0, 120)}…`;
-  return raw || "Purchase failed. Please try again.";
+  return raw || defaultMessage;
 }
 
 export function useSubscription(): UseSubscriptionReturn {
@@ -188,7 +191,9 @@ export function useSubscription(): UseSubscriptionReturn {
       await validateWithServer(transactions[transactions.length - 1].jwsTransaction);
     } catch (e: unknown) {
       const msg = await subscriptionErrorMessage(e);
-      setPurchaseError(friendlyPurchaseError(msg) || "Restore failed. Please try again.");
+      if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
+        setPurchaseError(friendlyPurchaseError(msg, "Restore failed. Please try again."));
+      }
     } finally {
       setIsPurchasing(false);
     }
