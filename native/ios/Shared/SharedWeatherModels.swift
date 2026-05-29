@@ -149,6 +149,7 @@ struct DailyWidgetEntry: Codable, Identifiable {
         // Local-time string from Open-Meteo ("2024-01-14T07:21")
         let local = DateFormatter()
         local.locale = Locale(identifier: "en_US_POSIX")
+        local.timeZone = TimeZone(secondsFromGMT: 0)
         local.dateFormat = "yyyy-MM-dd'T'HH:mm"
         return local.date(from: str)
     }
