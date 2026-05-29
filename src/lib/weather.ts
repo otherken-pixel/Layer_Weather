@@ -504,7 +504,20 @@ export async function fetchAQIBestSource(
 ): Promise<{ aqi: number | null; breakdown: EPAObservation[]; forecastAqi: number | null; forecastCategory: string | null }> {
   // Try Google Air Quality first (global coverage, detailed pollutant breakdown)
   const googleResult = await fetchGoogleAirQuality(latitude, longitude);
-  if (googleResult.aqi !== null) return googleResult;
+  if (googleResult.aqi !== null) {
+    const cc = (countryCode ?? "").toUpperCase();
+    if (cc === "US" || cc === "") {
+      const epaForecast = await fetchEPAAQI(latitude, longitude);
+      if (epaForecast.forecastAqi != null) {
+        return {
+          ...googleResult,
+          forecastAqi: epaForecast.forecastAqi,
+          forecastCategory: epaForecast.forecastCategory,
+        };
+      }
+    }
+    return googleResult;
+  }
 
   // Fall back to EPA AirNow for US (includes tomorrow's forecast)
   const cc = (countryCode ?? "").toUpperCase();
