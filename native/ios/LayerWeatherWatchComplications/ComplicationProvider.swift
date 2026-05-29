@@ -31,7 +31,7 @@ struct WatchTimelineProvider: TimelineProvider {
         guard isOlderThanOneHour(updatedAt: existing.snapshot?.updatedAt) else { return existing }
         do {
             let fresh = try await ComplicationWeatherFetcher.fetch()
-            fresh.persistToAppGroup()
+            fresh.saveToAppGroup()
             return fresh
         } catch {
             return existing
