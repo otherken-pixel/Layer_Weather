@@ -4,6 +4,9 @@ export type StylePreference = "feminine" | "masculine" | "neutral";
 export type FormalityPreference = "activewear" | "casual" | "business";
 export type WeatherScenario = "hot" | "warm" | "mild" | "cool" | "cold" | "rainy" | "snowy";
 
+export type SubscriptionStatus = "none" | "trialing" | "active" | "expired" | "cancelled";
+export type SubscriptionTier = "monthly" | "annual";
+
 export interface Profile {
   id: string;
   email: string;
@@ -26,6 +29,11 @@ export interface Profile {
   nerd_mode_enabled: boolean;
   nerd_mode_cards: NerdModeCardId[];
   card_layout: Array<{ id: string; minimized: boolean }> | null;
+  subscription_status: SubscriptionStatus;
+  subscription_tier: SubscriptionTier | null;
+  subscription_expires_at: string | null;
+  trial_started_at: string | null;
+  original_transaction_id: string | null;
   updated_at: string;
 }
 

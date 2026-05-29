@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Layer Weather Pro – Paywall Screenshot</title>
+  <style>
+    /* Render at exactly 640×920 for App Store submission */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { width: 640px; height: 920px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }
+
+    .screen {
+      width: 640px; height: 920px;
+      background: linear-gradient(160deg, #0d1117 0%, #111827 50%, #1a1a2e 100%);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 64px 40px 32px;
+      gap: 24px; position: relative; overflow: hidden;
+    }
+
+    /* Stars */
+    .star { position: absolute; border-radius: 50%; background: white; }
+    .glow1 { position: absolute; top: -60px; left: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(108,99,255,0.18), transparent); }
+    .glow2 { position: absolute; top: 38%; right: -80px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(157,151,255,0.12), transparent); }
+
+    /* Logo */
+    .logo-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .logo-icon { width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #6C63FF, #4A3FDB); display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 30px; height: 30px; }
+    .brand-sub { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #9D97FF; }
+    .brand-title { font-size: 30px; font-weight: 900; color: #fff; letter-spacing: -0.5px; line-height: 1; }
+
+    /* Hero */
+    .hero { text-align: center; }
+    .hero h2 { font-size: 26px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .hero p { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+    /* Features */
+    .features-card {
+      width: 100%; border-radius: 16px; padding: 16px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .feature-row { display: flex; align-items: center; gap: 12px; }
+    .check-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(108,99,255,0.35); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .check-dot svg { width: 11px; height: 11px; }
+    .feature-text { font-size: 13px; color: rgba(255,255,255,0.82); }
+
+    /* Plans */
+    .plans { display: flex; gap: 12px; width: 100%; }
+    .plan {
+      flex: 1; border-radius: 16px; padding: 14px;
+      border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      text-align: left; position: relative;
+    }
+    .plan.selected {
+      background: rgba(108,99,255,0.2);
+      border-color: #6C63FF;
+    }
+    .plan-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 4px; }
+    .plan-price { font-size: 22px; font-weight: 800; color: #fff; }
+    .plan-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+    .save-badge {
+      position: absolute; top: 8px; right: 8px;
+      background: linear-gradient(90deg, #6C63FF, #9D97FF);
+      color: #fff; font-size: 10px; font-weight: 800;
+      padding: 2px 8px; border-radius: 99px;
+    }
+
+    /* CTA */
+    .cta-btn {
+      width: 100%; padding: 18px; border-radius: 16px;
+      background: linear-gradient(135deg, #6C63FF, #4A3FDB);
+      color: #fff; font-size: 16px; font-weight: 800;
+      text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;
+      border: none; cursor: pointer;
+    }
+    .cta-note { font-size: 11px; color: rgba(255,255,255,0.4); text-align: center; }
+    .restore-link { font-size: 13px; color: #9D97FF; text-align: center; margin-top: 2px; }
+    .legal { font-size: 10px; color: rgba(255,255,255,0.22); text-align: center; line-height: 1.5; padding: 0 8px; }
+  </style>
+</head>
+<body>
+<div class="screen">
+  <div class="glow1"></div>
+  <div class="glow2"></div>
+
+  <!-- Stars -->
+  <div class="star" style="width:2px;height:2px;top:8%;left:12%;opacity:0.35"></div>
+  <div class="star" style="width:1px;height:1px;top:14%;left:72%;opacity:0.25"></div>
+  <div class="star" style="width:2px;height:2px;top:22%;left:88%;opacity:0.3"></div>
+  <div class="star" style="width:1px;height:1px;top:6%;left:55%;opacity:0.2"></div>
+  <div class="star" style="width:2px;height:2px;top:18%;left:32%;opacity:0.28"></div>
+  <div class="star" style="width:1px;height:1px;top:5%;left:44%;opacity:0.22"></div>
+
+  <!-- Logo -->
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+      </svg>
+    </div>
+    <div>
+      <p class="brand-sub">Layer Weather</p>
+      <p class="brand-title">Pro</p>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h2>Start your 14-day<br>free trial</h2>
+    <p>Everything you need to dress for any weather</p>
+  </div>
+
+  <!-- Features -->
+  <div class="features-card">
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">AI-powered daily outfit recommendations</span></div>
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">7-day detailed weather forecast</span></div>
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">Live weather radar</span></div>
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">Smart AI packing lists</span></div>
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">Wardrobe management</span></div>
+    <div class="feature-row"><div class="check-dot"><svg viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="feature-text">Home screen widgets &amp; Apple Watch</span></div>
+  </div>
+
+  <!-- Plans -->
+  <div class="plans">
+    <div class="plan">
+      <p class="plan-label">Monthly</p>
+      <p class="plan-price">$1.99</p>
+      <p class="plan-sub">per month</p>
+    </div>
+    <div class="plan selected">
+      <div class="save-badge">Save 16%</div>
+      <p class="plan-label">Annual</p>
+      <p class="plan-price">$19.99</p>
+      <p class="plan-sub">$1.67/mo · billed yearly</p>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+    <button class="cta-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Start 14-Day Free Trial
+    </button>
+    <p class="cta-note">14-day free trial, then $19.99/year. Cancel anytime.</p>
+    <p class="restore-link">Restore Purchases</p>
+  </div>
+
+  <p class="legal">Payment charged to Apple ID at confirmation. Subscription auto-renews unless cancelled 24 hours before end of current period.</p>
+</div>
+</body>
+</html>

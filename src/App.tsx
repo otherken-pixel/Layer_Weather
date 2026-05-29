@@ -2,6 +2,9 @@ import React, { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSvgCatalog } from "@/hooks/useSvgCatalog";
+import { useAppStore } from "@/store";
+import { useSubscription } from "@/hooks/useSubscription";
+import PaywallScreen from "@/components/PaywallScreen";
 
 import Welcome from "@/pages/auth/Welcome";
 import Login from "@/pages/auth/Login";
@@ -31,6 +34,13 @@ function useHashError() {
     }
   }, []);
   return hashError;
+}
+
+function SubscriptionGate({ children }: { children: React.ReactNode }) {
+  const { isOnboarded } = useAppStore();
+  const { isPremium } = useSubscription();
+  if (isOnboarded && !isPremium) return <PaywallScreen />;
+  return <>{children}</>;
 }
 
 export default function App() {
@@ -87,7 +97,7 @@ export default function App() {
         ) : (
           <>
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route path="/app" element={<AppLayout />}>
+            <Route path="/app" element={<SubscriptionGate><AppLayout /></SubscriptionGate>}>
               <Route index element={<Navigate to="home" replace />} />
               <Route path="home" element={<Home />} />
               <Route path="forecast" element={<Suspense fallback={<div style={{ flex: 1, background: "#F2F2F7" }} />}><Forecast /></Suspense>} />
