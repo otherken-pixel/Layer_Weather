@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyAppleJWS } from "../_shared/verifyAppleJWS.ts";
 
 // Apple App Store Server Notifications V2
 // Configure this URL in App Store Connect → App Information → App Store Server Notifications
@@ -22,23 +23,6 @@ interface TransactionPayload {
   revocationDate?: number;
 }
 
-function base64UrlDecode(str: string): string {
-  str = str.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = str.length % 4;
-  if (pad) str += "=".repeat(4 - pad);
-  return atob(str);
-}
-
-function decodeJWSPayload<T>(jws: string): T | null {
-  try {
-    const parts = jws.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(base64UrlDecode(parts[1])) as T;
-  } catch {
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
@@ -51,10 +35,10 @@ serve(async (req) => {
     );
 
     const body = await req.json();
-    const notification = decodeJWSPayload<NotificationPayload>(body.signedPayload);
+    const notification = await verifyAppleJWS<NotificationPayload>(body.signedPayload);
     if (!notification) return new Response("Invalid payload", { status: 400 });
 
-    const transaction = decodeJWSPayload<TransactionPayload>(
+    const transaction = await verifyAppleJWS<TransactionPayload>(
       notification.data.signedTransactionInfo,
     );
     if (!transaction || transaction.bundleId !== "com.layerweather.app") {

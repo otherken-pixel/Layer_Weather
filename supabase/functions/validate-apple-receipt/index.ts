@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyAppleJWS } from "../_shared/verifyAppleJWS.ts";
 
 const BUNDLE_ID = "com.layerweather.app";
 
@@ -18,26 +19,6 @@ interface JWSTransactionPayload {
   type: string;
   offerType?: number;    // 1 = introductory offer (free trial)
   revocationDate?: number;
-}
-
-function base64UrlDecode(str: string): string {
-  str = str.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = str.length % 4;
-  if (pad) str += "=".repeat(4 - pad);
-  return atob(str);
-}
-
-// Decodes the JWS payload segment. The transaction is issued and signed by Apple's
-// StoreKit 2 on-device — full x5c certificate chain verification can be added as
-// a hardening step by importing the leaf cert's SPKI and calling SubtleCrypto.verify.
-function decodeJWSPayload(jws: string): JWSTransactionPayload | null {
-  try {
-    const parts = jws.split(".");
-    if (parts.length !== 3) return null;
-    return JSON.parse(base64UrlDecode(parts[1])) as JWSTransactionPayload;
-  } catch {
-    return null;
-  }
 }
 
 serve(async (req) => {
@@ -77,9 +58,9 @@ serve(async (req) => {
       });
     }
 
-    const payload = decodeJWSPayload(jwsTransaction);
+    const payload = await verifyAppleJWS<JWSTransactionPayload>(jwsTransaction);
     if (!payload) {
-      return new Response(JSON.stringify({ error: "Invalid transaction format" }), {
+      return new Response(JSON.stringify({ error: "Invalid transaction signature" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -97,9 +78,10 @@ serve(async (req) => {
         .from("profiles")
         .update({ subscription_status: "cancelled", updated_at: new Date().toISOString() })
         .eq("id", user.id);
-      return new Response(JSON.stringify({ status: "cancelled" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ status: "cancelled", tier: null, expiresAt: null, isTrialing: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const now = Date.now();

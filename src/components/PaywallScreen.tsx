@@ -19,6 +19,16 @@ const ANNUAL_PRICE  = "$19.99";
 const ANNUAL_PER_MONTH = "$1.67";
 const ANNUAL_SAVINGS = "Save 16%";
 
+const BACKGROUND_STARS = Array.from({ length: 18 }, () => ({
+  width: Math.random() * 2 + 1,
+  height: Math.random() * 2 + 1,
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 60}%`,
+  opacity: Math.random() * 0.4 + 0.1,
+  duration: Math.random() * 3 + 2,
+  delay: Math.random() * 2,
+}));
+
 export default function PaywallScreen() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("annual");
   const { products, isLoadingProducts, isPurchasing, purchaseError, clearPurchaseError, purchase, restorePurchases } =
@@ -59,19 +69,19 @@ export default function PaywallScreen() {
     >
       {/* Decorative background stars */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {[...Array(18)].map((_, i) => (
+        {BACKGROUND_STARS.map((star, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full bg-white"
             style={{
-              width:  Math.random() * 2 + 1,
-              height: Math.random() * 2 + 1,
-              left:   `${Math.random() * 100}%`,
-              top:    `${Math.random() * 60}%`,
-              opacity: Math.random() * 0.4 + 0.1,
+              width: star.width,
+              height: star.height,
+              left: star.left,
+              top: star.top,
+              opacity: star.opacity,
             }}
             animate={{ opacity: [0.1, 0.5, 0.1] }}
-            transition={{ duration: Math.random() * 3 + 2, repeat: Infinity, delay: Math.random() * 2 }}
+            transition={{ duration: star.duration, repeat: Infinity, delay: star.delay }}
           />
         ))}
         <motion.div

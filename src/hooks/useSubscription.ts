@@ -33,16 +33,22 @@ export function useSubscription(): UseSubscriptionReturn {
   const isTrialing = subscriptionStatus === "trialing";
 
   const applyValidationResult = useCallback(
-    (data: { status: SubscriptionStatus; tier: SubscriptionTier; expiresAt: string; isTrialing: boolean }) => {
-      if (!profile) return;
+    (data: {
+      status: SubscriptionStatus;
+      tier: SubscriptionTier | null;
+      expiresAt: string | null;
+      isTrialing: boolean;
+    }) => {
+      const currentProfile = useAppStore.getState().profile;
+      if (!currentProfile) return;
       setProfile({
-        ...profile,
+        ...currentProfile,
         subscription_status: data.status,
         subscription_tier: data.tier,
         subscription_expires_at: data.expiresAt,
       });
     },
-    [profile, setProfile],
+    [setProfile],
   );
 
   const validateWithServer = useCallback(
