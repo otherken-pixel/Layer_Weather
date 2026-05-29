@@ -257,9 +257,10 @@ elsif sb =~ /customClass="CAPBridgeViewController"/
   # customModule="Capacitor"; both must point at our app module so the bridge
   # VC's capacitorDidLoad() (which registers StoreKitPlugin + WidgetBridgePlugin)
   # actually runs.
-  sb = sb.gsub('customClass="CAPBridgeViewController"',
-               'customClass="LayerWeatherBridgeViewController"')
-  sb = sb.gsub('customModule="Capacitor"', 'customModule="App"')
+  sb = sb.gsub(/<[^>]*\bcustomClass="CAPBridgeViewController"[^>]*>/) do |tag|
+    tag.gsub('customClass="CAPBridgeViewController"', 'customClass="LayerWeatherBridgeViewController"')
+       .gsub('customModule="Capacitor"', 'customModule="App"')
+  end
   File.write(storyboard_path, sb)
 
   # Verify the rewrite took. A silent failure here is exactly the bug that has
