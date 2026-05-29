@@ -29,6 +29,22 @@ function sortAlpha(locs: LocationData[]): LocationData[] {
   );
 }
 
+function cityIdentityKey(loc: Pick<LocationData, "city" | "region" | "country">): string {
+  return [loc.city, loc.region, loc.country]
+    .map((s) => (s ?? "").trim().toLowerCase())
+    .join("|");
+}
+
+function deduplicateByCityIdentity(locs: LocationData[]): LocationData[] {
+  const seen = new Set<string>();
+  return locs.filter((loc) => {
+    const key = cityIdentityKey(loc);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function syncToCloud(userId: string, locations: LocationData[]): Promise<void> {
   try {
     const { upsertProfile } = await import("@/lib/supabase");
@@ -40,14 +56,20 @@ export async function getSavedLocations(): Promise<LocationData[]> {
   const raw = await readRaw();
   if (!raw) return [];
   try {
-    return sortAlpha(JSON.parse(raw) as LocationData[]);
+    const parsed = JSON.parse(raw) as LocationData[];
+    const deduped = deduplicateByCityIdentity(parsed);
+    const sorted = sortAlpha(deduped);
+    if (deduped.length < parsed.length) {
+      await writeRaw(JSON.stringify(sorted));
+    }
+    return sorted;
   } catch { return []; }
 }
 
 export async function addSavedLocation(loc: LocationData, userId?: string): Promise<LocationData[]> {
   const existing = await getSavedLocations();
-  const key = buildLocationCacheKey(loc);
-  const filtered = existing.filter((l) => buildLocationCacheKey(l) !== key);
+  const key = cityIdentityKey(loc);
+  const filtered = existing.filter((l) => cityIdentityKey(l) !== key);
   const updated = sortAlpha([loc, ...filtered].slice(0, MAX_LOCATIONS));
   await writeRaw(JSON.stringify(updated));
   if (userId) void syncToCloud(userId, updated);
@@ -74,7 +96,7 @@ export async function mergeFromCloud(cloudLocations: LocationData[]): Promise<Lo
   const seen = new Set<string>();
   const merged: LocationData[] = [];
   for (const loc of [...cloudLocations, ...local]) {
-    const key = buildLocationCacheKey(loc);
+    const key = cityIdentityKey(loc);
     if (!seen.has(key)) {
       seen.add(key);
       merged.push(loc);
