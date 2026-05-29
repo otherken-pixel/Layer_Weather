@@ -131,6 +131,8 @@ export async function saveWidgetSnapshot(
       precipProb: d.precipProb,
       condition: d.condition,
       weatherCode: d.weatherCode,
+      sunrise: d.sunrise instanceof Date ? d.sunrise.toISOString() : (d.sunrise ?? null),
+      sunset: d.sunset instanceof Date ? d.sunset.toISOString() : (d.sunset ?? null),
     }));
 
     const timelineEntries = timeline?.map((entry) => ({
