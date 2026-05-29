@@ -169,6 +169,7 @@ shared_grp   = find_or_add_group(native_group, 'Shared')
 
 add_source(main_target, main_grp, NATIVE / 'MainApp/LayerWeatherBridgeViewController.swift')
 add_source(main_target, main_grp, NATIVE / 'MainApp/WidgetBridgePlugin.swift')
+add_source(main_target, main_grp, NATIVE / 'MainApp/StoreKitPlugin.swift')
 add_source(main_target, main_grp, NATIVE / 'MainApp/WatchConnectivityHandler.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/AppGroupKeys.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/LastCoordinates.swift')

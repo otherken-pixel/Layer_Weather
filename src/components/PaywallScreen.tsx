@@ -31,8 +31,16 @@ const BACKGROUND_STARS = Array.from({ length: 18 }, () => ({
 
 export default function PaywallScreen() {
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("annual");
-  const { products, isLoadingProducts, isPurchasing, purchaseError, clearPurchaseError, purchase, restorePurchases } =
-    useSubscription();
+  const {
+    products,
+    isLoadingProducts,
+    isPurchasing,
+    purchaseError,
+    clearPurchaseError,
+    purchase,
+    restorePurchases,
+    productsLoadedFromStore,
+  } = useSubscription();
 
   const monthlyProduct = products.find((p) => p.id === PRODUCT_IDS.MONTHLY);
   const annualProduct  = products.find((p) => p.id === PRODUCT_IDS.ANNUAL);
@@ -202,6 +210,13 @@ export default function PaywallScreen() {
             <p className="text-xs text-white/50 mt-0.5">{ANNUAL_PER_MONTH}/mo · billed yearly</p>
           </button>
         </motion.div>
+
+        {!isLoadingProducts && !productsLoadedFromStore && (
+          <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
+            App Store plans are not loading. Subscriptions may still be awaiting Apple approval, or the
+            product IDs in the app may not match App Store Connect.
+          </p>
+        )}
 
         {/* Error message */}
         <AnimatePresence>

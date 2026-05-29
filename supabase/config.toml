@@ -48,3 +48,9 @@ verify_jwt = true
 
 [functions.google-solar]
 verify_jwt = true
+
+[functions.validate-apple-receipt]
+verify_jwt = true
+
+[functions.apple-notifications]
+verify_jwt = false
