@@ -45,7 +45,7 @@ function friendlyPurchaseError(
   defaultMessage = "Purchase failed. Please try again.",
 ): string {
   if (raw === "USER_CANCELLED" || raw === "PENDING") return raw;
-  if (raw.includes("Product not found")) {
+  if (raw.includes("PRODUCT_NOT_FOUND") || raw.includes("Product not found")) {
     return "Subscription products are not available yet. In App Store Connect, ensure both Pro plans are approved and linked to this app version.";
   }
   if (raw.includes("Not authenticated") || raw.includes("Unauthorized")) {

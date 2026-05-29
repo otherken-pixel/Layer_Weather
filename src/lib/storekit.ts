@@ -7,7 +7,7 @@ export interface StoreKitProduct {
   description: string;
   displayPrice: string;
   introductoryOffer: {
-    type: "freeTrial" | "introductoryPrice" | "none";
+    type: "freeTrial" | "introductoryPrice" | "payUpFront" | "unknown" | "none";
     periodUnit: "day" | "week" | "month" | "year";
     periodValue: number;
     displayPrice: string;
