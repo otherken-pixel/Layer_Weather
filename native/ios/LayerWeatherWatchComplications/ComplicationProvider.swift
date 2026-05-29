@@ -1,6 +1,25 @@
 import WidgetKit
 import SwiftUI
 
+// MARK: - WidgetData persistence (scoped to this target)
+
+private extension WidgetData {
+    func saveToAppGroup() {
+        guard let defaults = UserDefaults(suiteName: AppGroupKeys.suiteName) else { return }
+        let encoder = JSONEncoder()
+        func storeJSON<T: Encodable>(_ value: T?, forKey key: String) {
+            guard let v = value,
+                  let data = try? encoder.encode(v),
+                  let json = String(data: data, encoding: .utf8) else { return }
+            defaults.set(json, forKey: key)
+        }
+        storeJSON(snapshot, forKey: AppGroupKeys.snapshot)
+        if !hourly.isEmpty { storeJSON(hourly, forKey: AppGroupKeys.hourly) }
+        if !daily.isEmpty  { storeJSON(daily,  forKey: AppGroupKeys.daily) }
+        defaults.synchronize()
+    }
+}
+
 // MARK: - Watch Timeline Provider
 
 struct WatchTimelineProvider: TimelineProvider {
