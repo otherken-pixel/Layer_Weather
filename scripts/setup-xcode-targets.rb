@@ -301,6 +301,75 @@ else
 end
 
 # ══════════════════════════════════════════════════════════════════════════
+# PHASE 1.5 — Verify in-app plugin wiring + add auto-registration fallback
+# ══════════════════════════════════════════════════════════════════════════
+# StoreKit + WidgetBridge are Swift-only CAPBridgedPlugins. They reach the JS
+# layer ONLY if (a) their .swift files compile into the App target AND (b) they
+# get registered at runtime. A miss in either produces the silent
+# "<Plugin> plugin is not implemented on ios" error that has repeatedly broken
+# subscriptions. We hard-verify (a) and add a second, bridge-VC-independent
+# registration path for (b).
+puts "\n── Phase 1.5: Verify in-app plugins ─────────────────────────────────"
+
+# (a) Must be in the App target's Compile Sources or registration is impossible.
+%w[
+  LayerWeatherBridgeViewController.swift
+  WidgetBridgePlugin.swift
+  StoreKitPlugin.swift
+].each do |basename|
+  unless file_in_compile_phase?(main_target, basename)
+    abort <<~MSG
+      ERROR: #{basename} is not in the App target's Compile Sources.
+      In-app purchases / widgets will fail at runtime with
+      "<Plugin> plugin is not implemented on ios".
+      It should have been added above — confirm native/ios/MainApp/#{basename}
+      exists, then re-run. In Xcode: select the file → File Inspector →
+      Target Membership → check "App".
+    MSG
+  end
+  puts "  ✓  #{basename} in App compile sources"
+end
+
+# Confirm the bridge VC actually registers both plugins (guards against an
+# accidental edit dropping a registration line).
+bridge_vc_src = File.read(NATIVE / 'MainApp/LayerWeatherBridgeViewController.swift')
+%w[WidgetBridgePlugin StoreKitPlugin].each do |klass|
+  next if bridge_vc_src.include?("registerPluginInstance(#{klass}())")
+  abort <<~MSG
+    ERROR: LayerWeatherBridgeViewController.capacitorDidLoad() does not register
+    #{klass}. Add inside capacitorDidLoad():
+      bridge?.registerPluginInstance(#{klass}())
+    otherwise it will not be available to the JS layer.
+  MSG
+end
+puts "  ✓  bridge VC registers WidgetBridge + StoreKit"
+
+# (b) Belt-and-suspenders: add both classes to capacitor.config.json's
+#     packageClassList so Capacitor ALSO auto-registers them at bridge init via
+#     NSClassFromString. The @objc(<Name>) attribute exposes the bare class name
+#     to the ObjC runtime, so this works for app-local Swift plugins and makes
+#     registration survive even if the Main.storyboard bridge-VC patch is ever
+#     lost. Double-registration is harmless (Capacitor logs "Overriding existing
+#     registered plugin"); a missing/stale class resolves to nil and is skipped.
+require 'json'
+cap_config = APP_SRC / 'capacitor.config.json'
+if cap_config.exist?
+  config = JSON.parse(File.read(cap_config))
+  list = (config['packageClassList'] ||= [])
+  added = %w[WidgetBridgePlugin StoreKitPlugin].reject { |c| list.include?(c) }
+  if added.empty?
+    puts "  ↩  capacitor.config.json packageClassList already lists local plugins"
+  else
+    list.concat(added)
+    File.write(cap_config, JSON.pretty_generate(config))
+    puts "  +  capacitor.config.json packageClassList += #{added.join(', ')}"
+  end
+else
+  puts "  ⚠  capacitor.config.json not found at #{cap_config}"
+  puts "     Run `npx cap sync ios` first — skipped auto-register fallback."
+end
+
+# ══════════════════════════════════════════════════════════════════════════
 # Info.plist content for each extension target
 # ══════════════════════════════════════════════════════════════════════════
 
