@@ -552,6 +552,31 @@ end
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# PHASE 4.5 — Ensure shared sources on EXISTING targets (idempotent)
+# ══════════════════════════════════════════════════════════════════════════
+# The target-creation blocks above only run the first time (they're guarded by
+# `target_exists?`). Files added to native/ios/Shared after a target already
+# exists would otherwise never join that target's compile phase on re-run.
+# `add_source` is idempotent, so it's safe to (re)attach shared files here.
+puts "\n── Phase 4.5: Ensure shared sources on existing targets ─────────────"
+
+# Files every extension/watch target must compile. Keep in sync with the
+# add_source calls in the creation blocks above. AppGroupKeys is intentionally
+# excluded for watch targets (they get it from WatchSharedModels.swift).
+ENSURE_SHARED = [
+  NATIVE / 'Shared/WeatherSource.swift',
+].freeze
+
+%w[LayerWeatherWidgets LayerWeatherWatch LayerWeatherWatchComplications].each do |name|
+  target = project.targets.find { |t| t.name == name }
+  next unless target
+  top = find_or_add_group(project.main_group, name)
+  shared = find_or_add_group(top, 'Shared')
+  ENSURE_SHARED.each { |path| add_source(target, shared, path) }
+end
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # PHASE 5 — App Group entitlements (all targets)
 # ══════════════════════════════════════════════════════════════════════════
 puts "\n── Phase 5: App Group entitlements ──────────────────────────────────"
