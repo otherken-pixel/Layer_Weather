@@ -3,14 +3,17 @@ import StoreKit
 
 /// Capacitor plugin exposing StoreKit 2 subscription management to the React layer.
 /// Requires iOS 15+. Register in LayerWeatherBridgeViewController.capacitorDidLoad().
+///
+/// NOTE: All StoreKit types are fully qualified (StoreKit.Transaction, StoreKit.Product)
+/// to avoid the SwiftUI.Transaction name collision that Capacitor's UIKit stack introduces.
 @objc(StoreKitPlugin)
 public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StoreKitPlugin"
     public let jsName = "StoreKitPlugin"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "loadProducts",        returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "purchase",            returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "restorePurchases",    returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "loadProducts",          returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "purchase",              returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "restorePurchases",      returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getCurrentEntitlement", returnType: CAPPluginReturnPromise),
     ]
 
@@ -26,14 +29,15 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         updateListenerTask?.cancel()
     }
 
-    // Listens for StoreKit transaction updates (renewals, revocations) while the app
-    // is running and forwards the JWS transaction to the JS layer for server validation.
+    // Listens for background transaction updates (renewals, revocations) and forwards
+    // the signed JWS transaction to the JS layer for server-side validation.
     @available(iOS 15.0, *)
     private func startUpdateListener() {
         updateListenerTask = Task.detached { [weak self] in
-            for await result in Transaction.updates {
+            // Fully qualified to avoid resolution as SwiftUI.Transaction
+            for await result in StoreKit.Transaction.updates {
                 guard let self else { return }
-                if case .verified(let transaction) = result {
+                if case let .verified(transaction) = result {
                     await transaction.finish()
                     self.notifyListeners("transactionUpdated", data: [
                         "jwsTransaction": transaction.jwsRepresentation,
@@ -54,7 +58,7 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             do {
-                let products = try await Product.products(for: Set(ids))
+                let products = try await StoreKit.Product.products(for: Set(ids))
                 let mapped: [[String: Any]] = products.map { p in
                     var item: [String: Any] = [
                         "id":           p.id,
@@ -64,10 +68,13 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     ]
                     if let offer = p.subscription?.introductoryOffer {
                         var offerMap: [String: Any] = ["displayPrice": offer.displayPrice]
-                        switch offer.type {
-                        case .freeTrial:        offerMap["type"] = "freeTrial"
-                        case .introductoryPrice: offerMap["type"] = "introductoryPrice"
-                        default:                offerMap["type"] = "none"
+                        // offer.type is OfferType (.introductoryOffer/.promotionalOffer/.winBackOffer)
+                        // offer.paymentMode distinguishes free trial from discounted pricing
+                        switch offer.paymentMode {
+                        case .freeTrial:  offerMap["type"] = "freeTrial"
+                        case .payAsYouGo: offerMap["type"] = "introductoryPrice"
+                        case .payUpFront: offerMap["type"] = "payUpFront"
+                        default:          offerMap["type"] = "unknown"
                         }
                         switch offer.period.unit {
                         case .day:   offerMap["periodUnit"] = "day"
@@ -99,9 +106,9 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             do {
-                let products = try await Product.products(for: [productId])
+                let products = try await StoreKit.Product.products(for: [productId])
                 guard let product = products.first else {
-                    call.reject("Product not found: \(productId)")
+                    call.reject("PRODUCT_NOT_FOUND: \(productId)")
                     return
                 }
                 let result = try await product.purchase()
@@ -112,17 +119,17 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                         await transaction.finish()
                         call.resolve(["jwsTransaction": transaction.jwsRepresentation])
                     case .unverified(_, let err):
-                        call.reject("Transaction unverified: \(err.localizedDescription)")
+                        call.reject("UNVERIFIED: \(err.localizedDescription)")
                     }
                 case .userCancelled:
                     call.reject("USER_CANCELLED")
                 case .pending:
                     call.reject("PENDING")
                 @unknown default:
-                    call.reject("Unknown purchase result")
+                    call.reject("UNKNOWN_RESULT")
                 }
             } catch {
-                call.reject("Purchase failed: \(error.localizedDescription)")
+                call.reject("PURCHASE_ERROR: \(error.localizedDescription)")
             }
         }
     }
@@ -134,8 +141,8 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             var transactions: [[String: Any]] = []
-            for await result in Transaction.currentEntitlements {
-                if case .verified(let tx) = result {
+            for await result in StoreKit.Transaction.currentEntitlements {
+                if case let .verified(tx) = result {
                     transactions.append(["jwsTransaction": tx.jwsRepresentation])
                 }
             }
@@ -149,10 +156,12 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         Task {
-            for await result in Transaction.currentEntitlements {
-                if case .verified(let tx) = result, tx.productType == .autoRenewable {
+            for await result in StoreKit.Transaction.currentEntitlements {
+                if case let .verified(tx) = result,
+                   tx.productType == StoreKit.Product.ProductType.autoRenewable {
                     let tier = tx.productID.contains("monthly") ? "monthly" : "annual"
-                    let isTrialing = tx.offerType == .introductoryOffer
+                    // tx.offerType is StoreKit.Transaction.OfferType? — unwrap before comparing
+                    let isTrialing = tx.offerType == StoreKit.Transaction.OfferType.introductoryOffer
                     let expiresAt = tx.expirationDate.map {
                         ISO8601DateFormatter().string(from: $0)
                     } ?? ""
