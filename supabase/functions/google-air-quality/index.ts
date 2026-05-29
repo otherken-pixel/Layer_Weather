@@ -166,11 +166,9 @@ Deno.serve(async (req) => {
 
     if (Array.isArray(indexes)) {
       const epa = indexes.find((i) => i.code === "usa_epa");
-      const uaqi = indexes.find((i) => i.code === "uaqi");
-      const chosen = epa ?? uaqi;
-      if (chosen) {
-        mainAqi = typeof chosen.aqi === "number" ? chosen.aqi : null;
-        mainCategory = chosen.category ?? null;
+      if (epa && typeof epa.aqi === "number") {
+        mainAqi = epa.aqi;
+        mainCategory = epa.category ?? null;
       }
     }
 
@@ -191,6 +189,13 @@ Deno.serve(async (req) => {
       }
       // Sort by AQI descending so worst pollutant appears first
       breakdown.sort((a, b) => b.aqi - a.aqi);
+    }
+
+    // When usa_epa index is unavailable (non-US), derive EPA-scale AQI from concentrations.
+    // Do not use UAQI (0–100, higher is better) — it inverts EPA semantics.
+    if (mainAqi == null && breakdown.length > 0) {
+      mainAqi = breakdown[0].aqi;
+      mainCategory = breakdown[0].category;
     }
 
     return jsonResponse({
