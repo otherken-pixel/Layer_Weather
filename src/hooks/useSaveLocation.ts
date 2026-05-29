@@ -125,5 +125,23 @@ export function useSaveLocation() {
     }
   }, [persist]);
 
-  return { saveFromCity, saveFromDevice, saving, error, setError };
+  const saveFromCoords = useCallback(
+    async (coords: { latitude: number; longitude: number; city: string }): Promise<{ ok: true } | { ok: false; message: string }> => {
+      setSaving(true);
+      setError("");
+      try {
+        await persist(coords);
+        return { ok: true };
+      } catch {
+        const message = "Could not save location. Check your connection.";
+        setError(message);
+        return { ok: false, message };
+      } finally {
+        setSaving(false);
+      }
+    },
+    [persist],
+  );
+
+  return { saveFromCity, saveFromCoords, saveFromDevice, saving, error, setError };
 }

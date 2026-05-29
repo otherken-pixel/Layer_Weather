@@ -6,6 +6,13 @@ export interface ReverseGeocodeResult {
   countryCode: string;
 }
 
+export interface PlaceSuggestion {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+}
+
 export async function geocodeCityGoogle(query: string): Promise<GeocodedPlace | null> {
   try {
     const { data, error } = await supabase.functions.invoke("google-geocoding", {
@@ -39,6 +46,37 @@ export async function reverseGeocodeGoogle(
     const countryCode = typeof rec.countryCode === "string" ? rec.countryCode : null;
     if (!city || !countryCode) return null;
     return { city, countryCode };
+  } catch {
+    return null;
+  }
+}
+
+export async function getPlaceSuggestions(query: string): Promise<PlaceSuggestion[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-geocoding", {
+      body: { type: "autocomplete", query },
+    });
+    if (error || !data || typeof data !== "object") return [];
+    const suggestions = (data as Record<string, unknown>).suggestions;
+    return Array.isArray(suggestions) ? (suggestions as PlaceSuggestion[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getPlaceDetails(placeId: string): Promise<GeocodedPlace | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("google-geocoding", {
+      body: { type: "place_details", placeId },
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const rec = (data as Record<string, unknown>).result as Record<string, unknown> | null;
+    if (!rec) return null;
+    const lat = typeof rec.latitude === "number" ? rec.latitude : null;
+    const lng = typeof rec.longitude === "number" ? rec.longitude : null;
+    const city = typeof rec.city === "string" ? rec.city : null;
+    if (lat == null || lng == null || !city) return null;
+    return { latitude: lat, longitude: lng, city };
   } catch {
     return null;
   }

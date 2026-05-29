@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSaveLocation } from "@/hooks/useSaveLocation";
 import { useAppStore } from "@/store";
 import { useIsDark } from "@/hooks/useDarkMode";
 import { addSavedLocation } from "@/lib/saved-locations";
+import { getPlaceSuggestions, getPlaceDetails, type PlaceSuggestion } from "@/lib/googleGeocodingService";
 
 interface LocationPickerSheetProps {
   open: boolean;
@@ -28,15 +29,38 @@ export function LocationPickerSheet({
   const userId = useAppStore((s) => s.userId);
   const setSavedLocations = useAppStore((s) => s.setSavedLocations);
   const [cityQuery, setCityQuery] = useState("");
-  const { saveFromCity, saveFromDevice, saving, error, setError } = useSaveLocation();
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { saveFromCity, saveFromCoords, saveFromDevice, saving, error, setError } = useSaveLocation();
   const isDark = useIsDark();
 
   useEffect(() => {
     if (open) {
       setCityQuery(mode === "add" ? "" : (location?.city || profile?.last_city || ""));
+      setSuggestions([]);
       setError("");
     }
   }, [open, mode, location?.city, profile?.last_city, setError]);
+
+  // Debounced autocomplete
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = cityQuery.trim();
+    if (trimmed.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    setSuggestionsLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      const results = await getPlaceSuggestions(trimmed);
+      setSuggestions(results);
+      setSuggestionsLoading(false);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [cityQuery]);
 
   const isSky = variant === "sky";
 
@@ -48,7 +72,27 @@ export function LocationPickerSheet({
     }
   }
 
+  async function handleSuggestionSelect(suggestion: PlaceSuggestion) {
+    setSuggestions([]);
+    setSuggestionsLoading(false);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setCityQuery(suggestion.mainText);
+
+    const place = await getPlaceDetails(suggestion.placeId);
+    if (!place) {
+      setError("Could not get location details. Try again.");
+      return;
+    }
+    const result = await saveFromCoords(place);
+    if (result.ok) {
+      await persistToSavedList();
+      await onSaved?.({ fromCitySave: true });
+      onClose();
+    }
+  }
+
   async function handleCitySave() {
+    setSuggestions([]);
     const result = await saveFromCity(cityQuery);
     if (result.ok) {
       await persistToSavedList();
@@ -58,6 +102,7 @@ export function LocationPickerSheet({
   }
 
   async function handleGpsSave() {
+    setSuggestions([]);
     const result = await saveFromDevice();
     if (result.ok) {
       await persistToSavedList();
@@ -66,7 +111,6 @@ export function LocationPickerSheet({
     }
   }
 
-  // Sheet background adapts to dark mode; sky variant stays near-white in light mode
   const sheetBg = isDark
     ? "#2C2C2E"
     : isSky ? "rgba(255,255,255,0.98)" : "#FFFFFF";
@@ -81,6 +125,10 @@ export function LocationPickerSheet({
   const secondaryBtnText = isDark ? "#F4F4F5" : "#111827";
   const cancelText = isDark ? "#9BA4B4" : "#6B7280";
   const sheetBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const suggestionDivider = isDark ? "rgba(255,255,255,0.07)" : "#F3F4F6";
+  const suggestionHover = isDark ? "rgba(255,255,255,0.05)" : "#F9FAFB";
+
+  const showSuggestions = suggestions.length > 0 && !saving;
 
   return (
     <AnimatePresence>
@@ -123,22 +171,78 @@ export function LocationPickerSheet({
             <p className="text-sm text-center mb-4" style={{ color: subtitleColor }}>
               {mode === "add"
                 ? "Search for a city to add to your list."
-                : "Use your phone’s location or search for a city."}
+                : "Use your phone's location or search for a city."}
             </p>
 
+            {/* Search input */}
             <input
               type="text"
               value={cityQuery}
               onChange={(e) => setCityQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !showSuggestions) handleCitySave(); }}
               placeholder="e.g. Seattle, WA"
-              className="w-full rounded-2xl px-4 py-3 text-base font-semibold mb-2"
+              className="w-full rounded-2xl px-4 py-3 text-base font-semibold"
               style={{
                 background: inputBg,
                 border: `1.5px solid ${inputBorder}`,
                 color: inputText,
                 outline: "none",
+                borderRadius: showSuggestions ? "16px 16px 0 0" : undefined,
+                marginBottom: showSuggestions ? 0 : 8,
               }}
             />
+
+            {/* Autocomplete suggestions */}
+            {showSuggestions && (
+              <div style={{
+                background: inputBg,
+                border: `1.5px solid ${inputBorder}`,
+                borderTop: "none",
+                borderRadius: "0 0 16px 16px",
+                overflow: "hidden",
+                marginBottom: 8,
+              }}>
+                {suggestions.map((s, i) => (
+                  <button
+                    key={s.placeId}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleSuggestionSelect(s)}
+                    style={{
+                      width: "100%",
+                      padding: "11px 16px",
+                      background: "transparent",
+                      border: "none",
+                      borderTop: i > 0 ? `1px solid ${suggestionDivider}` : "none",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = suggestionHover; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  >
+                    <span style={{ fontSize: 15, fontWeight: 600, color: inputText, lineHeight: 1.3 }}>
+                      {s.mainText}
+                    </span>
+                    {s.secondaryText && (
+                      <span style={{ fontSize: 12, color: subtitleColor, lineHeight: 1.3 }}>
+                        {s.secondaryText}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {suggestionsLoading && cityQuery.trim().length >= 2 && suggestions.length === 0 && (
+              <p style={{ fontSize: 12, color: subtitleColor, textAlign: "center", marginBottom: 8 }}>
+                Searching…
+              </p>
+            )}
+
             {error && (
               <p className="text-sm mb-2" style={{ color: "#EF4444" }}>
                 {error}
