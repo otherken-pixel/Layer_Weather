@@ -134,8 +134,32 @@ struct DailyWidgetEntry: Codable, Identifiable {
     let precipProb: Double
     let condition: String
     let weatherCode: Int
+    var sunrise: String? = nil
+    var sunset: String? = nil
 
     var id: String { date }
+
+    private static func parseSolarTime(_ str: String) -> Date? {
+        // ISO 8601 with timezone (from JS .toISOString())
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = iso.date(from: str) { return d }
+        let iso2 = ISO8601DateFormatter()
+        if let d = iso2.date(from: str) { return d }
+        // Local-time string from Open-Meteo ("2024-01-14T07:21")
+        let local = DateFormatter()
+        local.locale = Locale(identifier: "en_US_POSIX")
+        local.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        return local.date(from: str)
+    }
+
+    var sunriseDate: Date? {
+        sunrise.flatMap { Self.parseSolarTime($0) }
+    }
+
+    var sunsetDate: Date? {
+        sunset.flatMap { Self.parseSolarTime($0) }
+    }
 
     var dayDate: Date? {
         let formatter = ISO8601DateFormatter()

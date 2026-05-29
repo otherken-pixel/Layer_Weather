@@ -117,6 +117,8 @@ private struct WidgetOMDaily: Decodable {
     let temperature2mMax: [Double]
     let precipitationProbabilityMax: [Double]
     let weatherCode: [Int]
+    let sunrise: [String]
+    let sunset: [String]
 
     enum CodingKeys: String, CodingKey {
         case time
@@ -124,6 +126,8 @@ private struct WidgetOMDaily: Decodable {
         case temperature2mMax = "temperature_2m_max"
         case precipitationProbabilityMax = "precipitation_probability_max"
         case weatherCode = "weather_code"
+        case sunrise
+        case sunset
     }
 }
 
@@ -159,7 +163,7 @@ private struct WidgetWeatherFetcher {
             URLQueryItem(name: "longitude",  value: String(format: "%.6f", lon)),
             URLQueryItem(name: "current",    value: "temperature_2m,apparent_temperature,precipitation_probability,weather_code,wind_speed_10m,relative_humidity_2m"),
             URLQueryItem(name: "hourly",     value: "temperature_2m,apparent_temperature,precipitation_probability,weather_code,is_day"),
-            URLQueryItem(name: "daily",      value: "temperature_2m_min,temperature_2m_max,precipitation_probability_max,weather_code"),
+            URLQueryItem(name: "daily",      value: "temperature_2m_min,temperature_2m_max,precipitation_probability_max,weather_code,sunrise,sunset"),
             URLQueryItem(name: "temperature_unit", value: "fahrenheit"),
             URLQueryItem(name: "wind_speed_unit",  value: "mph"),
             URLQueryItem(name: "forecast_days",    value: "7"),
@@ -233,13 +237,17 @@ private struct WidgetWeatherFetcher {
                   i < resp.daily.temperature2mMax.count,
                   i < resp.daily.weatherCode.count else { return nil }
             let precip = i < resp.daily.precipitationProbabilityMax.count ? resp.daily.precipitationProbabilityMax[i] : 0
+            let rise = i < resp.daily.sunrise.count ? resp.daily.sunrise[i] : nil
+            let set  = i < resp.daily.sunset.count  ? resp.daily.sunset[i]  : nil
             return DailyWidgetEntry(
                 date: dateStr,
                 tempMin: resp.daily.temperature2mMin[i],
                 tempMax: resp.daily.temperature2mMax[i],
                 precipProb: precip,
                 condition: wmoCondition(code: resp.daily.weatherCode[i]),
-                weatherCode: resp.daily.weatherCode[i]
+                weatherCode: resp.daily.weatherCode[i],
+                sunrise: rise,
+                sunset: set
             )
         }
 

@@ -69,16 +69,36 @@ func conditionSFSymbol(condition: String, isDay: Bool) -> String {
     }
 }
 
-// MARK: - TierBar
+// MARK: - SunBar
 
-struct TierBar: View {
-    let tier: String
-    let color: Color
+struct SunBar: View {
+    let sunrise: Date?
+    let sunset: Date?
+    var now: Date = Date()
+
+    private var progress: Double {
+        guard let rise = sunrise, let set = sunset else { return 0.5 }
+        let span = set.timeIntervalSince(rise)
+        guard span > 0 else { return 0.5 }
+        return max(0, min(1, now.timeIntervalSince(rise) / span))
+    }
 
     var body: some View {
-        Capsule()
-            .fill(color)
-            .frame(height: 4)
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(.white.opacity(0.18))
+                    .frame(height: 4)
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [Color(hex: "#FFB300"), Color(hex: "#FF6B00")],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ))
+                    .frame(width: max(6, geo.size.width * progress), height: 4)
+            }
+        }
+        .frame(height: 4)
     }
 }
 

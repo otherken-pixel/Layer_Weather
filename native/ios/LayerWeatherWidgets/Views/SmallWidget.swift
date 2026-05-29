@@ -10,8 +10,8 @@ struct SmallWidgetView: View {
         entry.widgetData.snapshot ?? .placeholder
     }
 
-    private var tierColor: Color {
-        SkyGradient.tierColor(warmthTier: snapshot.warmthTier)
+    private var today: DailyWidgetEntry? {
+        entry.widgetData.daily.first
     }
 
     var body: some View {
@@ -61,8 +61,8 @@ struct SmallWidgetView: View {
 
                 Spacer(minLength: 6)
 
-                // Tier color bar at bottom
-                TierBar(tier: snapshot.warmthTier, color: tierColor)
+                // Sun progress bar
+                SunBar(sunrise: today?.sunriseDate, sunset: today?.sunsetDate)
             }
             .padding(12)
         }

@@ -14,8 +14,8 @@ struct MediumWidgetView: View {
         entry.widgetData.hourly
     }
 
-    private var tierColor: Color {
-        SkyGradient.tierColor(warmthTier: snapshot.warmthTier)
+    private var today: DailyWidgetEntry? {
+        entry.widgetData.daily.first
     }
 
     var body: some View {
@@ -92,9 +92,8 @@ struct MediumWidgetView: View {
                 }
             }
 
-            // Tier bar
-            TierBar(tier: snapshot.warmthTier, color: tierColor)
-                .frame(width: 44)
+            // Sun progress bar
+            SunBar(sunrise: today?.sunriseDate, sunset: today?.sunsetDate)
         }
     }
 
