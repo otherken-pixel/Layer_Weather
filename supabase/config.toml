@@ -36,3 +36,15 @@ verify_jwt = true
 
 [functions.packing-insights]
 verify_jwt = true
+
+[functions.google-pollen]
+verify_jwt = true
+
+[functions.google-air-quality]
+verify_jwt = true
+
+[functions.google-geocoding]
+verify_jwt = true
+
+[functions.google-solar]
+verify_jwt = true

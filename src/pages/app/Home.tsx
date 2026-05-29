@@ -39,6 +39,7 @@ import { RainAccumulationCard } from "@/components/weather/RainAccumulationCard"
 import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
 import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
 import { PollenCard } from "@/components/weather/PollenCard";
+import { SolarCard, SolarUnavailableCard } from "@/components/weather/SolarCard";
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -68,6 +69,7 @@ export default function Home() {
     aqiBreakdown,
     aqiForecast,
     pollenData,
+    solarData,
     nwsAlerts,
     cardLayout, setCardLayout, toggleCardMinimized,
   } = useAppStore();
@@ -882,6 +884,7 @@ export default function Home() {
                         tempUnit={tempUnit}
                         latitude={location?.latitude ?? profile?.last_latitude ?? 40}
                         pollenData={pollenData}
+                        solarData={solarData}
                         isDark={isDark}
                       />
                     ))}
@@ -1021,7 +1024,7 @@ function PollenUnavailableCard({ isDark }: { isDark: boolean }) {
 // ── Nerd Card Renderer ────────────────────────────────────────────────────────
 
 function NerdCardRenderer({
-  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, pollenData, isDark,
+  cardId, rainHistory, rainHistoryLoading, tempUnit, latitude, pollenData, solarData, isDark,
 }: {
   cardId: NerdModeCardId;
   rainHistory: RainHistoryData | null;
@@ -1029,6 +1032,7 @@ function NerdCardRenderer({
   tempUnit: "F" | "C";
   latitude: number;
   pollenData: import("@/types").PollenData | null;
+  solarData: import("@/types").SolarData | null;
   isDark: boolean;
 }) {
   if (cardId === "rain_accumulation") {
@@ -1051,6 +1055,10 @@ function NerdCardRenderer({
     if (!pollenData) return <PollenUnavailableCard isDark={isDark} />;
     return <PollenCard data={pollenData} isDark={isDark} />;
   }
+  if (cardId === "solar") {
+    if (!solarData) return <SolarUnavailableCard isDark={isDark} />;
+    return <SolarCard data={solarData} isDark={isDark} />;
+  }
   return null;
 }
 
@@ -1059,6 +1067,7 @@ const NERD_CARD_LABELS: Record<NerdModeCardId, { emoji: string; label: string }>
   moon_phases: { emoji: "🌕", label: "Moon Phases" },
   seasonal_produce: { emoji: "🥦", label: "In Season" },
   pollen: { emoji: "🌿", label: "Pollen" },
+  solar: { emoji: "☀️", label: "Solar Potential" },
 };
 
 function NerdCardEditRow({ cardId, isDark }: { cardId: NerdModeCardId; isDark: boolean }) {

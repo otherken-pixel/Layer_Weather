@@ -2,6 +2,9 @@ import { supabase } from "./supabase";
 import { NOMINATIM_HEADERS } from "@/lib/nominatim";
 import { invokeNWSWeather } from "./nwsService";
 import { fetchEPAAQI } from "./epaService";
+import { fetchGooglePollen } from "./googlePollenService";
+import { fetchGoogleAirQuality } from "./googleAirQualityService";
+import { reverseGeocodeGoogle } from "./googleGeocodingService";
 import type {
   WeatherData,
   CurrentWeather,
@@ -349,11 +352,16 @@ async function fetchFromOpenMeteo(
   return { current, hourly: hourlyFiltered, daily: dailyData, nextHourPrecip: null, _source: "open-meteo" };
 }
 
-// ── Pollen Data (Open-Meteo Air Quality API) ──────────────────────────────────
+// ── Pollen Data (Google Pollen API primary, Open-Meteo fallback) ──────────────
 export async function fetchPollenData(
   latitude: number,
   longitude: number,
 ): Promise<import("@/types").PollenData | null> {
+  // Try Google Pollen API first (better US coverage, especially SE US)
+  const googleResult = await fetchGooglePollen(latitude, longitude);
+  if (googleResult !== null) return googleResult;
+
+  // Fall back to Open-Meteo (free, global, better for non-US regions)
   try {
     const params = new URLSearchParams({
       latitude: latitude.toString(),
@@ -375,7 +383,6 @@ export async function fetchPollenData(
     const h = json?.hourly as Record<string, (number | null)[]> | undefined;
     if (!h) return null;
 
-    // Find the current hour index
     const times = h.time as unknown as string[] | undefined;
     if (!times || times.length === 0) return null;
     const nowMs = Date.now();
@@ -404,18 +411,15 @@ export async function fetchPollenData(
     const mugwort = curVal("mugwort_pollen");
     const ragweed = curVal("ragweed_pollen");
 
-    // Determine whether each group has any API reading (null = no coverage, 0 = none detected)
     const hasTree = alder !== null || birch !== null || olive !== null;
     const hasGrass = grass !== null;
     const hasWeed = mugwort !== null || ragweed !== null;
 
-    // Return null only when the API provided no readings at all (outside coverage area)
     if (!hasTree && !hasGrass && !hasWeed) return null;
 
     const tree = hasTree ? Math.max(alder ?? 0, birch ?? 0, olive ?? 0) : null;
     const weed = hasWeed ? Math.max(mugwort ?? 0, ragweed ?? 0) : null;
 
-    // Dominant type = highest non-zero count; null when everything is 0
     const withReading: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
     if (tree !== null) withReading.push({ type: "tree", val: tree });
     if (grass !== null) withReading.push({ type: "grass", val: grass });
@@ -428,7 +432,7 @@ export async function fetchPollenData(
     const ORDER: Array<import("@/types").PollenLevel> = ["very_high", "high", "moderate", "low"];
     const level = ORDER.find((l) => levels.includes(l)) ?? null;
 
-    return { tree, grass, weed, dominant, level };
+    return { tree, grass, weed, dominant, level, source: "open-meteo" };
   } catch {
     return null;
   }
@@ -490,7 +494,7 @@ export function degreesToCardinal(deg: number): string {
 }
 
 /**
- * AQI with source preference: EPA AirNow (US primary) → Open-Meteo AQ fallback.
+ * AQI with source preference: Google Air Quality (global) → EPA AirNow (US) → Open-Meteo fallback.
  * Always resolves — returns null aqi when no data is available.
  */
 export async function fetchAQIBestSource(
@@ -498,11 +502,18 @@ export async function fetchAQIBestSource(
   longitude: number,
   countryCode?: string,
 ): Promise<{ aqi: number | null; breakdown: EPAObservation[]; forecastAqi: number | null; forecastCategory: string | null }> {
+  // Try Google Air Quality first (global coverage, detailed pollutant breakdown)
+  const googleResult = await fetchGoogleAirQuality(latitude, longitude);
+  if (googleResult.aqi !== null) return googleResult;
+
+  // Fall back to EPA AirNow for US (includes tomorrow's forecast)
   const cc = (countryCode ?? "").toUpperCase();
   if (cc === "US" || cc === "") {
-    const result = await fetchEPAAQI(latitude, longitude);
-    if (result.aqi !== null) return result;
+    const epaResult = await fetchEPAAQI(latitude, longitude);
+    if (epaResult.aqi !== null) return epaResult;
   }
+
+  // Last resort: Open-Meteo (free, no key required)
   const aqi = await fetchAQIIndex(latitude, longitude);
   return { aqi, breakdown: [], forecastAqi: null, forecastCategory: null };
 }
@@ -560,8 +571,13 @@ export async function fetchWeatherForDateRange(
   return { forecasts, isForecastComplete: forecasts.length >= expectedDays };
 }
 
-// ── Reverse geocode via Nominatim ─────────────────────────────────────────────
+// ── Reverse geocode (Google primary, Nominatim fallback) ──────────────────────
 export async function reverseGeocodePlace(lat: number, lon: number): Promise<ReverseGeocodePlace> {
+  // Try Google Geocoding first (more accurate city names)
+  const googleResult = await reverseGeocodeGoogle(lat, lon);
+  if (googleResult) return googleResult;
+
+  // Fall back to Nominatim
   try {
     const res = await fetchWithTimeout(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
