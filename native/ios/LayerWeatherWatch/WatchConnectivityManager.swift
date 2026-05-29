@@ -79,12 +79,27 @@ final class WatchConnectivityManager: NSObject, ObservableObject {
 
     // MARK: - Direct Fetch Fallback
 
-    /// Fetches weather directly from Open-Meteo when the paired iPhone is not reachable.
+    /// Fetches weather directly (WeatherKit edge → Open-Meteo) when the paired
+    /// iPhone is not reachable.
     private func fetchDirectlyIfStale() {
         guard widgetData?.snapshot?.isStale != false else { return }
+        fetchLive()
+    }
+
+    /// Fetches live weather on its own (independent of the phone) whenever the
+    /// cached snapshot is older than the shared freshness window. Called on
+    /// foreground so the watch shows current conditions even when the phone is
+    /// reachable but holding a stale snapshot.
+    func refreshLiveIfStale() {
+        guard isOlderThanOneHour(updatedAt: widgetData?.snapshot?.updatedAt) else { return }
+        fetchLive()
+    }
+
+    private func fetchLive() {
         Task {
             do {
                 let fresh = try await WatchWeatherService.shared.fetchWeather()
+                guard fresh.hasDisplayableWeather else { return }
                 await MainActor.run {
                     fresh.persistToAppGroup()
                     self.widgetData = fresh

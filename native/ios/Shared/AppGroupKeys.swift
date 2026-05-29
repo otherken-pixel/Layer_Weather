@@ -13,4 +13,6 @@ enum AppGroupKeys {
     static let feedbackTimestamp = "widget_feedback_timestamp"
     static let lastCoordinates = "widget_last_coordinates"
     static let locationPreference = "widget_location_preference"
+    static let supabaseURL = "widget_supabase_url"
+    static let supabaseAnonKey = "widget_supabase_anon_key"
 }

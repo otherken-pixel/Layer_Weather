@@ -24,7 +24,7 @@ import {
   isWeatherCacheFresh,
   loadCityWeatherCache,
 } from "@/lib/cache";
-import { saveWidgetSnapshot } from "@/lib/widget";
+import { saveWidgetSnapshot, syncSupabaseConfigToAppGroup } from "@/lib/widget";
 
 export type { WidgetLocationMode, WidgetLocationPreference };
 
@@ -237,6 +237,10 @@ export async function syncWidgetFromAppState(options?: {
   forceFetch?: boolean;
 }): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
+
+  // Ensure the extensions always have the credentials to fetch on their own,
+  // even if no weather target resolves below.
+  await syncSupabaseConfigToAppGroup();
 
   const state = useAppStore.getState();
   const pref = await loadWidgetLocationPreference();

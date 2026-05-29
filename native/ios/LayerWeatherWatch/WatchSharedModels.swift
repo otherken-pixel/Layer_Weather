@@ -38,7 +38,7 @@ struct WidgetSnapshot: Codable {
             date = fallback.date(from: updatedAt)
         }
         guard let updated = date else { return true }
-        return Date().timeIntervalSince(updated) > 7200
+        return Date().timeIntervalSince(updated) > weatherFreshnessInterval
     }
 
     var timeSinceUpdate: String {
@@ -416,6 +416,8 @@ enum AppGroupKeys {
     static let feedbackAction = "widget_feedback_action"
     static let feedbackTimestamp = "widget_feedback_timestamp"
     static let lastCoordinates = "widget_last_coordinates"
+    static let supabaseURL = "widget_supabase_url"
+    static let supabaseAnonKey = "widget_supabase_anon_key"
 }
 
 // MARK: - Color Extension (Watch)

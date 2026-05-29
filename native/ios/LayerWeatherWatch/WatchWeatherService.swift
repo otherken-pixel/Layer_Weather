@@ -55,10 +55,19 @@ final class WatchWeatherService {
 
     // MARK: - Fetch Weather
 
-    /// Fetches current + hourly weather from Open-Meteo using saved coordinates.
+    /// Fetches current + hourly weather using saved coordinates.
+    /// Primary: Apple WeatherKit via the Supabase edge function (matches the app).
+    /// Fallback: Open-Meteo if the edge function is unavailable.
     /// Returns an updated WidgetData on success.
     func fetchWeather() async throws -> WidgetData {
         let coords = try loadCoordinates()
+        if let resp = try? await EdgeWeatherClient.fetch(coords: coords) {
+            return resp.toWidgetData(coords: coords, existing: WidgetData.load())
+        }
+        return try await fetchOpenMeteo(coords: coords)
+    }
+
+    private func fetchOpenMeteo(coords: LastCoordinates) async throws -> WidgetData {
         let url = buildURL(lat: coords.lat, lon: coords.lon)
 
         let (data, response) = try await URLSession.shared.data(from: url)

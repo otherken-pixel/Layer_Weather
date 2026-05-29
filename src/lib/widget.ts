@@ -19,9 +19,34 @@ const KEYS = {
   thermalSensitivity: "widget_thermal_sensitivity",
   feedbackAction: "widget_feedback_action",
   lastCoordinates: "widget_last_coordinates",
+  supabaseUrl: "widget_supabase_url",
+  supabaseAnonKey: "widget_supabase_anon_key",
 } as const;
 
 const APP_GROUP_KEY_PREFIX = "widget_";
+
+// Supabase credentials the widget/watch need to call the `weather` edge
+// function (WeatherKit) on their own. Baked into the web bundle at build time;
+// mirrored into the App Group so the native extensions can read them.
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? "";
+const SUPABASE_ANON_KEY =
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() ?? "";
+
+/**
+ * Mirrors the Supabase URL + anon key into the App Group so the widget, watch,
+ * and complication can fetch live WeatherKit data independently of the app.
+ * Idempotent and cheap; safe to call on every sync.
+ */
+export async function syncSupabaseConfigToAppGroup(): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  await Promise.all([
+    SUPABASE_URL ? writeKey(KEYS.supabaseUrl, SUPABASE_URL) : Promise.resolve(),
+    SUPABASE_ANON_KEY
+      ? writeKey(KEYS.supabaseAnonKey, SUPABASE_ANON_KEY)
+      : Promise.resolve(),
+  ]);
+}
 
 async function writeKey(key: string, value: string): Promise<void> {
   const isAppGroupKey = key.startsWith(APP_GROUP_KEY_PREFIX);
@@ -170,6 +195,10 @@ export async function saveWidgetSnapshot(
         : Promise.resolve(),
       coordinates
         ? writeKey(KEYS.lastCoordinates, JSON.stringify(coordinates))
+        : Promise.resolve(),
+      SUPABASE_URL ? writeKey(KEYS.supabaseUrl, SUPABASE_URL) : Promise.resolve(),
+      SUPABASE_ANON_KEY
+        ? writeKey(KEYS.supabaseAnonKey, SUPABASE_ANON_KEY)
         : Promise.resolve(),
     ]);
 

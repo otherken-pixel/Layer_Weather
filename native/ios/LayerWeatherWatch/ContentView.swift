@@ -26,6 +26,7 @@ struct ContentView: View {
         }
         .onAppear {
             connectivity.requestUpdate()
+            connectivity.refreshLiveIfStale()
         }
     }
 
@@ -150,38 +151,40 @@ struct ContentView: View {
         refreshError = nil
         HapticManager.shared.playClick()
 
+        // Ask the phone in the background, but prefer a live fetch so the watch
+        // shows current conditions rather than a stale phone snapshot.
         connectivity.requestUpdate()
 
         Task {
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            await MainActor.run {
-                if widgetData.hasDisplayableWeather {
-                    isRefreshing = false
-                    HapticManager.shared.playSuccess()
-                    return
-                }
-            }
-
             do {
                 let data = try await WatchWeatherService.shared.fetchWeather()
                 await MainActor.run {
                     if data.hasDisplayableWeather {
                         data.persistToAppGroup()
-                    }
-                    connectivity.widgetData = data
-                    isRefreshing = false
-                    if data.hasDisplayableWeather {
+                        connectivity.widgetData = data
+                        isRefreshing = false
+                        HapticManager.shared.playSuccess()
+                    } else if widgetData.hasDisplayableWeather {
+                        // Live fetch returned nothing usable, but phone data exists.
+                        isRefreshing = false
                         HapticManager.shared.playSuccess()
                     } else {
                         refreshError = "Could not load weather. Open the iPhone app first."
+                        isRefreshing = false
                         HapticManager.shared.playWarning()
                     }
                 }
             } catch {
                 await MainActor.run {
-                    refreshError = error.localizedDescription
-                    isRefreshing = false
-                    HapticManager.shared.playWarning()
+                    if widgetData.hasDisplayableWeather {
+                        // Keep showing whatever the phone already delivered.
+                        isRefreshing = false
+                        HapticManager.shared.playSuccess()
+                    } else {
+                        refreshError = error.localizedDescription
+                        isRefreshing = false
+                        HapticManager.shared.playWarning()
+                    }
                 }
             }
         }

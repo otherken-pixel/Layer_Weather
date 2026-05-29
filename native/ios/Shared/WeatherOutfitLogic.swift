@@ -2,7 +2,12 @@ import Foundation
 
 // MARK: - Snapshot freshness
 
-/// Returns true when cached snapshot data should be refreshed (>55 minutes old).
+/// Self-refresh cadence for the widget, watch, and complication (45 minutes).
+/// Shared by every staleness check so all surfaces agree on "fresh".
+let weatherFreshnessInterval: TimeInterval = 45 * 60
+
+/// Returns true when cached snapshot data should be refreshed (older than the
+/// shared freshness window).
 func isOlderThanOneHour(updatedAt: String?) -> Bool {
     guard let updatedAt else { return true }
     let formatter = ISO8601DateFormatter()
@@ -10,7 +15,7 @@ func isOlderThanOneHour(updatedAt: String?) -> Bool {
     var date = formatter.date(from: updatedAt)
     if date == nil { date = ISO8601DateFormatter().date(from: updatedAt) }
     guard let updated = date else { return true }
-    return Date().timeIntervalSince(updated) > 3300 // 55 minutes
+    return Date().timeIntervalSince(updated) > weatherFreshnessInterval
 }
 
 // MARK: - WMO / outfit helpers (matches `src/lib/widget.ts`)

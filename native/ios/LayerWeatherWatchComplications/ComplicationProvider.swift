@@ -21,7 +21,7 @@ struct WatchTimelineProvider: TimelineProvider {
         Task {
             let data = await loadFreshData()
             let entry = WeatherEntry(date: Date(), widgetData: data, accentColor: Color(hex: data.accentColor))
-            let refresh = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+            let refresh = Date().addingTimeInterval(weatherFreshnessInterval)
             completion(Timeline(entries: [entry], policy: .after(refresh)))
         }
     }
@@ -66,8 +66,17 @@ private struct ComplicationOMCurrent: Decodable {
 
 private struct ComplicationWeatherFetcher {
 
+    /// Primary: Apple WeatherKit via the Supabase edge function (matches the app).
+    /// Fallback: Open-Meteo if the edge function is unavailable.
     static func fetch() async throws -> WidgetData {
         let coords = try loadCoords()
+        if let resp = try? await EdgeWeatherClient.fetch(coords: coords) {
+            return resp.toWidgetData(coords: coords, existing: WidgetData.load())
+        }
+        return try await fetchOpenMeteo(coords: coords)
+    }
+
+    private static func fetchOpenMeteo(coords: LastCoordinates) async throws -> WidgetData {
         let url = buildURL(lat: coords.lat, lon: coords.lon)
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
