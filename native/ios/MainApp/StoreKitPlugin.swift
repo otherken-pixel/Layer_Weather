@@ -4,8 +4,9 @@ import StoreKit
 /// Capacitor plugin exposing StoreKit 2 subscription management to the React layer.
 /// Requires iOS 15+. Register in LayerWeatherBridgeViewController.capacitorDidLoad().
 ///
-/// NOTE: All StoreKit types are fully qualified (StoreKit.Transaction, StoreKit.Product)
-/// to avoid the SwiftUI.Transaction name collision that Capacitor's UIKit stack introduces.
+/// Notes:
+/// - All StoreKit types are fully qualified to avoid the SwiftUI.Transaction collision.
+/// - jwsRepresentation lives on VerificationResult<Transaction>, not on Transaction itself.
 @objc(StoreKitPlugin)
 public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StoreKitPlugin"
@@ -29,18 +30,18 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         updateListenerTask?.cancel()
     }
 
-    // Listens for background transaction updates (renewals, revocations) and forwards
-    // the signed JWS transaction to the JS layer for server-side validation.
     @available(iOS 15.0, *)
     private func startUpdateListener() {
         updateListenerTask = Task.detached { [weak self] in
-            // Fully qualified to avoid resolution as SwiftUI.Transaction
-            for await result in StoreKit.Transaction.updates {
+            // Explicit type annotation forces StoreKit.Transaction resolution.
+            // jwsRepresentation is on VerificationResult, not on the unwrapped Transaction.
+            for await verificationResult: VerificationResult<StoreKit.Transaction>
+                    in StoreKit.Transaction.updates {
                 guard let self else { return }
-                if case let .verified(transaction) = result {
+                if case let .verified(transaction) = verificationResult {
                     await transaction.finish()
                     self.notifyListeners("transactionUpdated", data: [
-                        "jwsTransaction": transaction.jwsRepresentation,
+                        "jwsTransaction": verificationResult.jwsRepresentation,
                     ])
                 }
             }
@@ -68,8 +69,7 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     ]
                     if let offer = p.subscription?.introductoryOffer {
                         var offerMap: [String: Any] = ["displayPrice": offer.displayPrice]
-                        // offer.type is OfferType (.introductoryOffer/.promotionalOffer/.winBackOffer)
-                        // offer.paymentMode distinguishes free trial from discounted pricing
+                        // paymentMode distinguishes free trial from discounted pricing
                         switch offer.paymentMode {
                         case .freeTrial:  offerMap["type"] = "freeTrial"
                         case .payAsYouGo: offerMap["type"] = "introductoryPrice"
@@ -111,13 +111,14 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     call.reject("PRODUCT_NOT_FOUND: \(productId)")
                     return
                 }
-                let result = try await product.purchase()
-                switch result {
-                case .success(let verification):
-                    switch verification {
+                let purchaseResult = try await product.purchase()
+                switch purchaseResult {
+                case .success(let verificationResult):
+                    switch verificationResult {
                     case .verified(let transaction):
                         await transaction.finish()
-                        call.resolve(["jwsTransaction": transaction.jwsRepresentation])
+                        // jwsRepresentation is on the VerificationResult envelope
+                        call.resolve(["jwsTransaction": verificationResult.jwsRepresentation])
                     case .unverified(_, let err):
                         call.reject("UNVERIFIED: \(err.localizedDescription)")
                     }
@@ -141,9 +142,10 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         Task {
             var transactions: [[String: Any]] = []
-            for await result in StoreKit.Transaction.currentEntitlements {
-                if case let .verified(tx) = result {
-                    transactions.append(["jwsTransaction": tx.jwsRepresentation])
+            for await verificationResult: VerificationResult<StoreKit.Transaction>
+                    in StoreKit.Transaction.currentEntitlements {
+                if case .verified = verificationResult {
+                    transactions.append(["jwsTransaction": verificationResult.jwsRepresentation])
                 }
             }
             call.resolve(["transactions": transactions])
@@ -156,18 +158,19 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         Task {
-            for await result in StoreKit.Transaction.currentEntitlements {
-                if case let .verified(tx) = result,
+            for await verificationResult: VerificationResult<StoreKit.Transaction>
+                    in StoreKit.Transaction.currentEntitlements {
+                if case let .verified(tx) = verificationResult,
                    tx.productType == StoreKit.Product.ProductType.autoRenewable {
                     let tier = tx.productID.contains("monthly") ? "monthly" : "annual"
-                    // tx.offerType is StoreKit.Transaction.OfferType? — unwrap before comparing
+                    // tx is unambiguously StoreKit.Transaction here, so OfferType resolves correctly
                     let isTrialing = tx.offerType == StoreKit.Transaction.OfferType.introductoryOffer
                     let expiresAt = tx.expirationDate.map {
                         ISO8601DateFormatter().string(from: $0)
                     } ?? ""
                     call.resolve([
                         "isActive":              true,
-                        "jwsTransaction":        tx.jwsRepresentation,
+                        "jwsTransaction":        verificationResult.jwsRepresentation,
                         "productId":             tx.productID,
                         "tier":                  tier,
                         "expiresAt":             expiresAt,
