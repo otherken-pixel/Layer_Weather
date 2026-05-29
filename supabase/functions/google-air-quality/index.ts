@@ -66,6 +66,17 @@ const SO2_BPS: Array<[number, number, number, number]> = [
   [305, 604, 201, 300],
 ];
 
+// EPA NO2 breakpoints (1-hr avg, ppb)
+const NO2_BPS: Array<[number, number, number, number]> = [
+  [0, 53, 0, 50],
+  [54, 100, 51, 100],
+  [101, 360, 101, 150],
+  [361, 649, 151, 200],
+  [650, 1249, 201, 300],
+  [1250, 1649, 301, 400],
+  [1650, 2049, 401, 500],
+];
+
 // EPA CO breakpoints (8-hr avg, ppm): Google returns ppb, divide by 1000
 const CO_BPS: Array<[number, number, number, number]> = [
   [0.0, 4.4, 0, 50],
@@ -101,6 +112,7 @@ function pollutantToAqi(p: GooglePollutant): number | null {
   if (code === "pm10") return aqiFromBp(Math.floor(val), PM10_BPS);
   if (code === "o3") return aqiFromBp(Math.floor((val / 1000) * 1000) / 1000, O3_8HR_BPS);
   if (code === "so2") return aqiFromBp(Math.floor(val), SO2_BPS);
+  if (code === "no2") return aqiFromBp(Math.floor(val), NO2_BPS);
   if (code === "co") return aqiFromBp(Math.floor((val / 1000) * 10) / 10, CO_BPS);
   return null;
 }
