@@ -163,8 +163,8 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 if case let .verified(tx) = verificationResult,
                    tx.productType == StoreKit.Product.ProductType.autoRenewable {
                     let tier = tx.productID.contains("monthly") ? "monthly" : "annual"
-                    // tx is unambiguously StoreKit.Transaction here, so OfferType resolves correctly
-                    let isTrialing = tx.offerType == StoreKit.Transaction.OfferType.introductoryOffer
+                    // rawValue 1 == OfferType.introductoryOffer; avoids nested-type lookup collision
+                    let isTrialing = tx.offerType?.rawValue == 1
                     let expiresAt = tx.expirationDate.map {
                         ISO8601DateFormatter().string(from: $0)
                     } ?? ""
