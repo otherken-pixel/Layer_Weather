@@ -30,7 +30,7 @@ struct WeatherTimelineProvider: TimelineProvider {
             let now = Date()
 
             let entry = WeatherEntry(date: now, widgetData: data, accentColor: accentColor)
-            let refreshDate = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now
+            let refreshDate = now.addingTimeInterval(weatherFreshnessInterval)
 
             var entries: [WeatherEntry] = [entry]
             if isWithinCommuteWindow(data: data, date: now) {
@@ -135,8 +135,18 @@ private struct WidgetOMDaily: Decodable {
 
 private struct WidgetWeatherFetcher {
 
+    /// Primary: Apple WeatherKit via the Supabase edge function (matches the app).
+    /// Fallback: Open-Meteo if the edge function is unavailable.
     static func fetch() async throws -> WidgetData {
         let coords = try loadCoords()
+        let existing = WidgetData.load()
+        if let resp = try? await EdgeWeatherClient.fetch(coords: coords) {
+            return resp.toWidgetData(coords: coords, existing: existing)
+        }
+        return try await fetchOpenMeteo(coords: coords)
+    }
+
+    private static func fetchOpenMeteo(coords: LastCoordinates) async throws -> WidgetData {
         let url = buildURL(lat: coords.lat, lon: coords.lon)
         let (data, response) = try await URLSession.shared.data(from: url)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {

@@ -29,7 +29,7 @@ struct WidgetSnapshot: Codable {
     let avatarCondition: String
     let updatedAt: String
 
-    /// Returns true if data is older than 2 hours
+    /// Returns true once data is older than the shared freshness window.
     var isStale: Bool {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -39,7 +39,7 @@ struct WidgetSnapshot: Codable {
             date = fallback.date(from: updatedAt)
         }
         guard let updated = date else { return true }
-        return Date().timeIntervalSince(updated) > 7200
+        return Date().timeIntervalSince(updated) > weatherFreshnessInterval
     }
 
     static var placeholder: WidgetSnapshot {

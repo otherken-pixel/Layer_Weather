@@ -174,6 +174,7 @@ add_source(main_target, shared_grp, NATIVE / 'Shared/AppGroupKeys.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/LastCoordinates.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/SharedWeatherModels.swift')
 add_source(main_target, shared_grp, NATIVE / 'Shared/WeatherOutfitLogic.swift')
+add_source(main_target, shared_grp, NATIVE / 'Shared/WeatherSource.swift')
 
 add_system_framework(project, main_target, 'WatchConnectivity')
 add_system_framework(project, main_target, 'WidgetKit')
@@ -396,6 +397,7 @@ else
   add_source(wt, wg_sh, NATIVE / 'Shared/LastCoordinates.swift')
   add_source(wt, wg_sh, NATIVE / 'Shared/SharedWeatherModels.swift')
   add_source(wt, wg_sh, NATIVE / 'Shared/WeatherOutfitLogic.swift')
+  add_source(wt, wg_sh, NATIVE / 'Shared/WeatherSource.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/LayerWeatherWidgets.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/SkyGradient.swift')
   add_source(wt, wg,   NATIVE / 'LayerWeatherWidgets/WidgetDataProvider.swift')
@@ -407,7 +409,7 @@ else
   add_source(wt, wg_v, NATIVE / 'LayerWeatherWidgets/Views/LockScreenWidgets.swift')
   add_source(wt, wg_v, NATIVE / 'LayerWeatherWidgets/Views/InteractiveWidget.swift')
 
-  puts "  ✓  LayerWeatherWidgets target created (14 source files)"
+  puts "  ✓  LayerWeatherWidgets target created (15 source files)"
 end
 
 if (wt = project.targets.find { |t| t.name == 'LayerWeatherWidgets' })
@@ -470,6 +472,7 @@ else
   # AppGroupKeys comes from WatchSharedModels.swift (avoid duplicate with Shared/AppGroupKeys.swift)
   add_source(wwatch, wg_sh, NATIVE / 'Shared/LastCoordinates.swift')
   add_source(wwatch, wg_sh, NATIVE / 'Shared/WeatherOutfitLogic.swift')
+  add_source(wwatch, wg_sh, NATIVE / 'Shared/WeatherSource.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/LayerWeatherWatchApp.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/ContentView.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/HairForecastView.swift')
@@ -481,7 +484,7 @@ else
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
   add_source(wwatch, wg, NATIVE / 'LayerWeatherWatch/WatchWeatherService.swift')
 
-  puts "  ✓  LayerWeatherWatch target created (12 source files)"
+  puts "  ✓  LayerWeatherWatch target created (13 source files)"
 end
 
 # NOTE: To make the watch app ship inside the iOS App Store upload (the
@@ -530,13 +533,14 @@ else
   add_source(ct, cg,   NATIVE / 'LayerWeatherWatchComplications/ComplicationProvider.swift')
   add_source(ct, cg_sh, NATIVE / 'Shared/LastCoordinates.swift')
   add_source(ct, cg_sh, NATIVE / 'Shared/WeatherOutfitLogic.swift')
+  add_source(ct, cg_sh, NATIVE / 'Shared/WeatherSource.swift')
   add_source(ct, cg_sh, NATIVE / 'LayerWeatherWatch/WatchSharedModels.swift')
 
   watch_host = project.targets.find { |t| t.name == 'LayerWeatherWatch' }
   abort "ERROR: 'LayerWeatherWatch' target not found." unless watch_host
   embed_app_extension(watch_host, ct)
 
-  puts "  ✓  LayerWeatherWatchComplications target created (4 source files)"
+  puts "  ✓  LayerWeatherWatchComplications target created (5 source files)"
 end
 
 wwatch = project.targets.find { |t| t.name == 'LayerWeatherWatch' }

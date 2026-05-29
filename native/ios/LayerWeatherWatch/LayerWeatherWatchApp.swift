@@ -25,7 +25,7 @@ struct LayerWeatherWatchApp: App {
 
     private func scheduleHourlyRefresh() {
         WKApplication.shared().scheduleBackgroundRefresh(
-            withPreferredDate: Date().addingTimeInterval(3600),
+            withPreferredDate: Date().addingTimeInterval(weatherFreshnessInterval),
             userInfo: nil
         ) { _ in }
     }

@@ -66,6 +66,8 @@ Open **`ios/App/App.xcworkspace`**, not `App.xcodeproj`. Run `npm run ios:pods` 
 
 The iPhone **widget extension** shares an App Group with the main app on the **phone**. The **watch app runs on a separate device** with its own App Group container — it does **not** read the phone’s UserDefaults directly. Weather reaches the watch via **WatchConnectivity** (`updateApplicationContext` + `transferUserInfo`) when the phone saves widget data (`reloadTimelines` → `syncWidgetPayloadToWatch`).
 
+> **Live self-refresh.** The widget, watch, and complication also fetch live weather **on their own** every ~45 minutes (and the watch on open / manual refresh) using the same source as the app: Apple **WeatherKit** via the Supabase `weather` edge function (`Shared/WeatherSource.swift`), falling back to Open-Meteo if it’s unreachable. The app mirrors `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` into the App Group (`widget_supabase_url`, `widget_supabase_anon_key`) so the extensions can call the function without the JS bundle. `.env` must therefore be present at build time (see above).
+
 1. Open the **iPhone app** and load Today (so widget data is saved).
 2. Open the **watch app** and tap **Refresh**, or keep the phone app in the foreground briefly.
 3. Confirm the phone target has **Watch Connectivity** and the watch app is installed on a paired Watch.
@@ -159,6 +161,7 @@ native/ios/Shared/AppGroupKeys.swift
 native/ios/Shared/LastCoordinates.swift
 native/ios/Shared/SharedWeatherModels.swift
 native/ios/Shared/WeatherOutfitLogic.swift
+native/ios/Shared/WeatherSource.swift
 native/ios/LayerWeatherWidgets/SkyGradient.swift
 native/ios/LayerWeatherWidgets/WidgetModels.swift
 native/ios/LayerWeatherWidgets/WidgetDataProvider.swift
@@ -195,6 +198,7 @@ When Xcode prompts for target membership, check only **LayerWeatherWidgets** (no
 ```
 native/ios/Shared/LastCoordinates.swift
 native/ios/Shared/WeatherOutfitLogic.swift
+native/ios/Shared/WeatherSource.swift
 native/ios/LayerWeatherWatch/WatchSharedModels.swift
 native/ios/LayerWeatherWatch/HapticManager.swift
 native/ios/LayerWeatherWatch/WatchConnectivityManager.swift
@@ -229,6 +233,7 @@ Complications in watchOS 9+ use WidgetKit inside a separate Watch Widget Extensi
 native/ios/LayerWeatherWatchComplications/ComplicationProvider.swift
 native/ios/Shared/LastCoordinates.swift
 native/ios/Shared/WeatherOutfitLogic.swift
+native/ios/Shared/WeatherSource.swift
 native/ios/LayerWeatherWatch/WatchSharedModels.swift   ← shared with Watch App target
 ```
 
