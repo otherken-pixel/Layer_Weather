@@ -61,6 +61,15 @@ interface RVManifest {
   radar: { past: RVFrame[]; nowcast: RVFrame[] };
 }
 
+const RADAR_LEGEND = [
+  { color: "#90d0f0", label: "Drizzle" },
+  { color: "#40b840", label: "Light" },
+  { color: "#f0f040", label: "Moderate" },
+  { color: "#e08820", label: "Heavy" },
+  { color: "#d82020", label: "Intense" },
+  { color: "#a000b0", label: "Extreme" },
+] as const;
+
 function ZoomControls({ isDark }: { isDark: boolean }) {
   const map = useMap();
   const badgeBg = isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)";
@@ -257,6 +266,12 @@ export default function Radar() {
   const [fetchError, setFetchError] = useState(false);
   const [radarSource, setRadarSource] = useState<"rainviewer" | "ncep">("rainviewer");
 
+  // Scrubber
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [trackWidth, setTrackWidth] = useState(300);
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const isScrubbingRef = useRef(false);
+
   useEffect(() => {
     fetch("https://api.rainviewer.com/public/weather-maps.json")
       .then((r) => {
@@ -299,6 +314,42 @@ export default function Radar() {
     };
   }, [playing, allFrames.length]);
 
+  // Measure track width for thumb positioning
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const measure = () => setTrackWidth(el.getBoundingClientRect().width);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const seekFromPointer = (el: HTMLDivElement, clientX: number) => {
+    if (allFrames.length === 0) return;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setFrameIdx(Math.round(ratio * (allFrames.length - 1)));
+  };
+
+  const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    isScrubbingRef.current = true;
+    setIsScrubbing(true);
+    setPlaying(false);
+    seekFromPointer(e.currentTarget, e.clientX);
+  };
+
+  const handleTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isScrubbingRef.current) return;
+    seekFromPointer(e.currentTarget, e.clientX);
+  };
+
+  const handleTrackPointerUp = () => {
+    isScrubbingRef.current = false;
+    setIsScrubbing(false);
+  };
+
   const currentFrame = allFrames[frameIdx];
   const tileUrl =
     manifest && currentFrame
@@ -315,6 +366,11 @@ export default function Radar() {
         minute: "2-digit",
       })
     : "Now";
+
+  // Playhead position
+  const thumbPct = allFrames.length <= 1 ? 0 : frameIdx / (allFrames.length - 1);
+  const THUMB_W = 4;
+  const thumbLeft = trackWidth > THUMB_W ? thumbPct * (trackWidth - THUMB_W) : 0;
 
   const lat = location?.latitude;
   const lng = location?.longitude;
@@ -358,6 +414,10 @@ export default function Radar() {
   const attributionColor = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
   const loadingBg = isDark ? "rgba(13,17,23,0.7)" : "rgba(240,242,245,0.85)";
   const loadingText = isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)";
+  const legendBg = isDark ? "rgba(0,0,0,0.62)" : "rgba(255,255,255,0.88)";
+  const legendBorder = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const legendLabel = isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.65)";
+  const legendHeader = isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.38)";
 
   if (!location) {
     return (
@@ -425,6 +485,36 @@ export default function Radar() {
         )}
       </MapContainer>
 
+      {/* Color legend */}
+      <div
+        style={{
+          position: "absolute",
+          top: 8,
+          left: 8,
+          zIndex: 1001,
+          background: legendBg,
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          borderRadius: 10,
+          padding: "6px 10px",
+          border: `1px solid ${legendBorder}`,
+          pointerEvents: "none",
+        }}
+      >
+        <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          Precipitation
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {RADAR_LEGEND.map(({ color, label }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+              <span style={{ fontSize: 10, color: legendLabel, fontWeight: 500 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom controls overlay */}
       <div
         style={{
           position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1000,
@@ -433,6 +523,7 @@ export default function Radar() {
           pointerEvents: "none",
         }}
       >
+        {/* Time badge */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
           <div
             style={{
@@ -442,47 +533,77 @@ export default function Radar() {
             }}
           >
             <span style={{ color: isPast ? badgeText : "white", fontSize: 13, fontWeight: 600 }}>
-              {isPast ? "⏪" : "🔮"} {timeLabel}
+              {isPast ? timeLabel : `Forecast · ${timeLabel}`}
             </span>
           </div>
         </div>
 
+        {/* Timeline scrubber */}
         <div
+          ref={trackRef}
+          aria-label="Radar timeline"
+          role="slider"
+          aria-valuenow={frameIdx}
+          aria-valuemin={0}
+          aria-valuemax={Math.max(0, allFrames.length - 1)}
           style={{
-            display: "flex", gap: 3, alignItems: "flex-end", height: 28,
-            marginBottom: 12, pointerEvents: "auto",
+            position: "relative",
+            height: 44,
+            marginBottom: 8,
+            touchAction: "none",
+            cursor: "ew-resize",
+            pointerEvents: "auto",
+            userSelect: "none",
           }}
+          onPointerDown={handleTrackPointerDown}
+          onPointerMove={handleTrackPointerMove}
+          onPointerUp={handleTrackPointerUp}
+          onPointerCancel={handleTrackPointerUp}
         >
-          {allFrames.map((frame, i) => {
-            const isFramePast = frame.time <= nowEpoch;
-            const isActive = i === frameIdx;
-            return (
-              <button
-                key={frame.time}
-                type="button"
-                onClick={() => { setFrameIdx(i); setPlaying(false); }}
-                aria-label={`Radar frame ${new Date(frame.time * 1000).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" })}`}
-                className="flex-1 min-h-[44px] flex items-end p-0 border-0 cursor-pointer bg-transparent"
-              >
-                <span
+          {/* Frame bars */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", gap: 3, alignItems: "flex-end", height: 22 }}>
+            {allFrames.map((frame, i) => {
+              const isFramePast = frame.time <= nowEpoch;
+              const isActive = i === frameIdx;
+              return (
+                <div
+                  key={frame.time}
                   style={{
-                    display: "block",
-                    width: "100%",
+                    flex: 1,
                     height: isActive ? 22 : 6,
                     borderRadius: 3,
                     background: isActive
-                      ? isDark ? "white" : "#1a1a1a"
+                      ? isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)"
                       : isFramePast
-                      ? isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.3)"
-                      : "rgba(108,99,255,0.55)",
+                      ? isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"
+                      : "rgba(108,99,255,0.45)",
                     transition: "height 0.15s ease",
                   }}
                 />
-              </button>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Playhead */}
+          {allFrames.length > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: -3,
+                left: thumbLeft,
+                width: THUMB_W,
+                height: 28,
+                borderRadius: 2,
+                background: isDark ? "white" : "#1a1a1a",
+                pointerEvents: "none",
+                transition: isScrubbing ? "none" : "left 0.15s ease",
+                boxShadow: "0 1px 6px rgba(0,0,0,0.35)",
+              }}
+            />
+          )}
         </div>
 
+        {/* Controls row */}
         <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
           {radarSource === "rainviewer" && (
             <>
@@ -525,7 +646,7 @@ export default function Radar() {
                 fontSize: 12, cursor: "pointer",
               }}
             >
-              {radarSource === "ncep" ? "🛰 NOAA Official" : "NOAA"}
+              🛰 NOAA
             </button>
           )}
         </div>
