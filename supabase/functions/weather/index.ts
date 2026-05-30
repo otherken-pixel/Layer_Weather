@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
         location: "",
         updatedAt: new Date().toISOString(),
       },
-      hourly: hours.slice(0, 168).map((h) => {
+      hourly: hours.slice(0, 240).map((h) => {
         const tProb = deriveThunderstormProb(h.conditionCode as string ?? "");
         return {
           time: h.forecastStart,
@@ -261,7 +261,7 @@ Deno.serve(async (req) => {
           ...(tProb != null ? { thunderstormProb: tProb } : {}),
         };
       }),
-      daily: days.slice(0, 7).map((d) => {
+      daily: days.slice(0, 10).map((d) => {
         const day = (d.daytimeForecast ?? {}) as Record<string, unknown>;
         const night = (d.overnightForecast ?? {}) as Record<string, unknown>;
         const daytime = daytimeStats(hours, d.forecastStart as string, timezone, d);

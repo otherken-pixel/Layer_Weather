@@ -268,6 +268,7 @@ private struct WidgetWeatherFetcher {
             daily: daily,
             timeline: existing.timeline,
             commuteAlert: existing.commuteAlert,
+            activeAlerts: existing.activeAlerts,
             accentColor: existing.accentColor,
             thermalSensitivity: existing.thermalSensitivity
         )

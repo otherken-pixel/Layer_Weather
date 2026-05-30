@@ -132,6 +132,17 @@ struct OutfitView: View {
                 accessoryRow
                     .padding(.top, 4)
 
+                // AQI gauge + pollen pill
+                environmentRow
+                    .padding(.top, 2)
+
+                // Active weather alerts (SEVERE/EXTREME only)
+                let severeAlerts = data.activeAlerts.filter { !$0.isExpired && ($0.severity == "EXTREME" || $0.severity == "SEVERE") }
+                if !severeAlerts.isEmpty {
+                    alertIndicator(severeAlerts[0])
+                        .padding(.top, 4)
+                }
+
                 // Commute alert
                 if let alert = data.commuteAlert {
                     commuteAlertBanner(alert)
@@ -292,6 +303,96 @@ struct OutfitView: View {
         Image(systemName: symbol)
             .font(.footnote)
             .foregroundStyle(active ? .white : .white.opacity(0.2))
+    }
+
+    // MARK: - Environment Row (AQI + Pollen)
+
+    private var environmentRow: some View {
+        HStack(spacing: 6) {
+            if let aqi = snapshot.aqiIndex {
+                aqiPill(aqi: aqi)
+            }
+            if let pollenLevel = snapshot.pollenLevel, pollenLevel != "None" {
+                pollenPill(level: pollenLevel, dominant: snapshot.pollenDominant)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func aqiPill(aqi: Int) -> some View {
+        let color = aqiColor(aqi)
+        return HStack(spacing: 3) {
+            Image(systemName: "aqi.medium")
+                .font(.system(size: 9))
+            Text("\(aqi)")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.18))
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.3), lineWidth: 0.5))
+    }
+
+    private func pollenPill(level: String, dominant: String?) -> some View {
+        let color = pollenColor(level)
+        let label = dominant.map { "\($0) \(level)" } ?? level
+        return HStack(spacing: 3) {
+            Image(systemName: "leaf.fill")
+                .font(.system(size: 9))
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(color.opacity(0.18))
+        .clipShape(Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.3), lineWidth: 0.5))
+    }
+
+    private func aqiColor(_ aqi: Int) -> Color {
+        switch aqi {
+        case 0..<51:   return Color(red: 0, green: 0.9, blue: 0)
+        case 51..<101: return .yellow
+        case 101..<151: return Color(red: 1, green: 0.49, blue: 0)
+        case 151..<201: return .red
+        case 201..<301: return Color(red: 0.56, green: 0.25, blue: 0.59)
+        default:        return Color(red: 0.49, green: 0, blue: 0.14)
+        }
+    }
+
+    private func pollenColor(_ level: String) -> Color {
+        switch level {
+        case "very_high", "Very High": return Color(red: 0.55, green: 0.16, blue: 0.16)
+        case "high", "High":          return Color(red: 0.88, green: 0.35, blue: 0.23)
+        case "moderate", "Moderate":  return Color(red: 0.96, green: 0.64, blue: 0.26)
+        case "low", "Low":            return Color(red: 0.96, green: 0.90, blue: 0.26)
+        default:                      return Color(red: 0.62, green: 0.87, blue: 0.50)
+        }
+    }
+
+    // MARK: - Alert Indicator
+
+    private func alertIndicator(_ alert: WidgetAlert) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: alert.severity == "EXTREME" ? "exclamationmark.triangle.fill" : "exclamationmark.circle.fill")
+                .font(.caption2)
+                .foregroundStyle(alert.severityColor)
+
+            Text(alert.headline)
+                .font(.caption2)
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity)
+        .background(alert.severityColor.opacity(0.18))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Commute Alert Banner

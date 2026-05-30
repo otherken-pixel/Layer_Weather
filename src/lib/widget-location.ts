@@ -252,7 +252,7 @@ export async function syncWidgetFromAppState(options?: {
   });
   if (!target) return;
 
-  const { profile, calibration, formality, outfit } = state;
+  const { profile, calibration, formality, outfit, pollenData, activeAlerts } = state;
   const profileBits = {
     accent_color: profile?.accent_color ?? null,
     temp_unit: profile?.temp_unit ?? "F" as const,
@@ -271,6 +271,8 @@ export async function syncWidgetFromAppState(options?: {
       state.outfitTimeline ?? undefined,
       profileBits,
       coords,
+      pollenData,
+      activeAlerts,
     );
     return;
   }

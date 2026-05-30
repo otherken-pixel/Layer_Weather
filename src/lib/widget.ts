@@ -6,7 +6,9 @@ import type {
   DayOutfitTimeline,
   Profile,
   UserCalibration,
+  PollenData,
 } from "@/types";
+import type { GoogleWeatherAlert } from "@/lib/googleWeatherAlertsService";
 
 // Keys must match AppGroupKeys.swift in the widget/watch extensions.
 const KEYS = {
@@ -15,6 +17,7 @@ const KEYS = {
   daily: "widget_daily",
   timeline: "widget_timeline",
   commuteAlert: "widget_commute_alert",
+  activeAlerts: "widget_active_alerts",
   accentColor: "widget_accent_color",
   thermalSensitivity: "widget_thermal_sensitivity",
   feedbackAction: "widget_feedback_action",
@@ -75,6 +78,16 @@ async function writeKey(key: string, value: string): Promise<void> {
   }
 }
 
+// ── Pollen helpers ────────────────────────────────────────────────────────────
+
+function highestPollenLevel(data: PollenData): string {
+  return data.level ?? "None";
+}
+
+function dominantPollenType(data: PollenData): string | undefined {
+  return data.dominant ?? undefined;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -93,6 +106,8 @@ export async function saveWidgetSnapshot(
     calibration?: UserCalibration;
   },
   coordinates?: { latitude: number; longitude: number },
+  pollenData?: PollenData | null,
+  activeAlerts?: GoogleWeatherAlert[],
 ): Promise<void> {
   try {
     const { current, hourly, daily } = weather;
@@ -123,6 +138,8 @@ export async function saveWidgetSnapshot(
       footwear: outfit.footwear,
       avatarCondition: outfit.avatarCondition,
       updatedAt: new Date().toISOString(),
+      pollenLevel: pollenData ? highestPollenLevel(pollenData) : undefined,
+      pollenDominant: pollenData ? dominantPollenType(pollenData) : undefined,
     };
 
     const hourlyEntries = hourly.slice(0, 24).map((h) => {
@@ -149,7 +166,7 @@ export async function saveWidgetSnapshot(
       };
     });
 
-    const dailyEntries = daily.slice(0, 7).map((d) => ({
+    const dailyEntries = daily.slice(0, 10).map((d) => ({
       date: d.date instanceof Date ? d.date.toISOString() : String(d.date),
       tempMin: d.tempMin,
       tempMax: d.tempMax,
@@ -187,6 +204,11 @@ export async function saveWidgetSnapshot(
       writeKey(KEYS.daily, JSON.stringify(dailyEntries)),
       writeKey(KEYS.timeline, JSON.stringify(timelineEntries)),
       writeKey(KEYS.commuteAlert, JSON.stringify(commuteAlertPayload)),
+      writeKey(KEYS.activeAlerts, JSON.stringify(
+        (activeAlerts ?? [])
+          .filter((a) => (a.severity === "EXTREME" || a.severity === "SEVERE") && new Date(a.expires) > new Date())
+          .map((a) => ({ id: a.id, type: a.type, severity: a.severity, headline: a.headline, expires: a.expires }))
+      )),
       profile?.accent_color
         ? writeKey(KEYS.accentColor, profile.accent_color)
         : Promise.resolve(),

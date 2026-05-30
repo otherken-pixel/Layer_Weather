@@ -146,6 +146,7 @@ private struct ComplicationWeatherFetcher {
             daily: existing.daily,
             timeline: existing.timeline,
             commuteAlert: existing.commuteAlert,
+            activeAlerts: existing.activeAlerts,
             accentColor: existing.accentColor,
             thermalSensitivity: existing.thermalSensitivity
         )
@@ -373,6 +374,52 @@ struct InlineComplicationView: View {
     }
 }
 
+// MARK: - Alert Complication
+
+struct AlertComplication: Widget {
+    let kind = "LayerWeatherAlert"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: WatchTimelineProvider()) { entry in
+            AlertComplicationView(entry: entry)
+                .containerBackground(.clear, for: .widget)
+        }
+        .configurationDisplayName("Weather Alert")
+        .description("Shows active severe or extreme weather alerts.")
+        .supportedFamilies([.accessoryRectangular, .accessoryCircular])
+    }
+}
+
+struct AlertComplicationView: View {
+    let entry: WeatherEntry
+    private var activeAlert: WidgetAlert? {
+        entry.widgetData.activeAlerts
+            .first { !$0.isExpired && ($0.severity == "EXTREME" || $0.severity == "SEVERE") }
+    }
+
+    var body: some View {
+        if let alert = activeAlert {
+            ViewThatFits {
+                HStack(spacing: 3) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(alert.severityColor)
+                        .widgetAccentable()
+                    Text(alert.headline)
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
+                Label(alert.type, systemImage: "exclamationmark.triangle.fill")
+                    .widgetAccentable()
+            }
+        } else {
+            Label("No Alerts", systemImage: "checkmark.shield.fill")
+                .foregroundStyle(.green)
+                .widgetAccentable()
+        }
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -382,5 +429,6 @@ struct LayerWeatherWatchComplications: WidgetBundle {
         GraphicRectangularComplication()
         GraphicCornerComplication()
         InlineComplication()
+        AlertComplication()
     }
 }

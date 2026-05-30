@@ -200,6 +200,7 @@ extension EdgeWeatherResponse {
             daily: Array(dailyEntries.prefix(7)),
             timeline: existing.timeline,
             commuteAlert: existing.commuteAlert,
+            activeAlerts: existing.activeAlerts,
             accentColor: existing.accentColor,
             thermalSensitivity: existing.thermalSensitivity
         )

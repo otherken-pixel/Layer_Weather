@@ -72,6 +72,31 @@ const RADAR_LEGEND = [
 
 const RADAR_LEGEND_GRADIENT = `linear-gradient(to right, ${RADAR_LEGEND.map((e) => e.color).join(", ")})`;
 
+type RadarLayer = "rain" | "aq" | "pollen";
+type PollenSubType = "pollen_tree" | "pollen_grass" | "pollen_weed";
+
+const AQI_LEGEND = [
+  { color: "#00e400", label: "Good" },
+  { color: "#ffff00", label: "Moderate" },
+  { color: "#ff7e00", label: "Sensitive" },
+  { color: "#ff0000", label: "Unhealthy" },
+  { color: "#8f3f97", label: "Very Unhl" },
+  { color: "#7e0023", label: "Hazardous" },
+] as const;
+const AQI_LEGEND_GRADIENT = `linear-gradient(to right, ${AQI_LEGEND.map((e) => e.color).join(", ")})`;
+
+const POLLEN_LEGEND = [
+  { color: "#9ed97f", label: "None" },
+  { color: "#f5e642", label: "Low" },
+  { color: "#f5a442", label: "Moderate" },
+  { color: "#e05a3a", label: "High" },
+  { color: "#8b2a2a", label: "Very High" },
+] as const;
+const POLLEN_LEGEND_GRADIENT = `linear-gradient(to right, ${POLLEN_LEGEND.map((e) => e.color).join(", ")})`;
+
+const _SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? "";
+const SUPABASE_FN_BASE = _SUPABASE_URL ? `${_SUPABASE_URL}/functions/v1` : "";
+
 function ZoomControls({ isDark }: { isDark: boolean }) {
   const map = useMap();
   const badgeBg = isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)";
@@ -258,7 +283,9 @@ export default function Radar() {
   const location = useAppStore((s) => s.location);
   const profile = useAppStore((s) => s.profile);
   const weather = useAppStore((s) => s.weather);
+  const activeAlerts = useAppStore((s) => s.activeAlerts);
   const isDark = useDarkMode(profile?.theme_preference ?? null);
+  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<string>>(new Set());
 
   const [manifest, setManifest] = useState<RVManifest | null>(null);
   const [frameIdx, setFrameIdx] = useState(0);
@@ -266,6 +293,8 @@ export default function Radar() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [radarSource, setRadarSource] = useState<"rainviewer" | "ncep">("rainviewer");
+  const [activeLayer, setActiveLayer] = useState<RadarLayer>("rain");
+  const [pollenSubType, setPollenSubType] = useState<PollenSubType>("pollen_tree");
 
   // Scrubber
   const trackRef = useRef<HTMLDivElement>(null);
@@ -296,7 +325,7 @@ export default function Radar() {
   );
 
   useEffect(() => {
-    if (!playing || allFrames.length === 0 || radarSource !== "rainviewer") return;
+    if (!playing || allFrames.length === 0 || radarSource !== "rainviewer" || activeLayer !== "rain") return;
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -392,6 +421,26 @@ export default function Radar() {
 
   const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
 
+  const aqTileUrl = SUPABASE_FN_BASE
+    ? `${SUPABASE_FN_BASE}/google-map-tiles?type=aq_us&z={z}&x={x}&y={y}`
+    : null;
+  const pollenTileUrl = SUPABASE_FN_BASE
+    ? `${SUPABASE_FN_BASE}/google-map-tiles?type=${pollenSubType}&z={z}&x={x}&y={y}`
+    : null;
+
+  const activeLegendGradient =
+    activeLayer === "aq" ? AQI_LEGEND_GRADIENT :
+    activeLayer === "pollen" ? POLLEN_LEGEND_GRADIENT :
+    RADAR_LEGEND_GRADIENT;
+  const activeLegend =
+    activeLayer === "aq" ? AQI_LEGEND :
+    activeLayer === "pollen" ? POLLEN_LEGEND :
+    RADAR_LEGEND;
+  const activeLegendLabel =
+    activeLayer === "aq" ? "Air Quality Index" :
+    activeLayer === "pollen" ? "Pollen Index" :
+    "Precipitation";
+
   const localAccent = loadAccentLocal();
   const radarCircleColor = useMemo(
     () => deriveAccentPalette(profile?.accent_color ?? localAccent).primary,
@@ -460,8 +509,8 @@ export default function Radar() {
       >
         <TileLayer url={baseTileUrl} maxZoom={19} />
         <ZoomControls isDark={isDark} />
-        {radarSource === "rainviewer" && tileUrl && <RadarOverlay url={tileUrl} />}
-        {radarSource === "ncep" && (
+        {activeLayer === "rain" && radarSource === "rainviewer" && tileUrl && <RadarOverlay url={tileUrl} />}
+        {activeLayer === "rain" && radarSource === "ncep" && (
           <WMSTileLayer
             url="https://opengeo.ncep.noaa.gov/geoserver/conus/conus_bref_qcd/ows"
             layers="conus_bref_qcd"
@@ -471,6 +520,12 @@ export default function Radar() {
             version="1.3.0"
             attribution="NOAA/NCEP"
           />
+        )}
+        {activeLayer === "aq" && aqTileUrl && (
+          <TileLayer url={aqTileUrl} opacity={0.65} zIndex={200} maxNativeZoom={16} crossOrigin="anonymous" />
+        )}
+        {activeLayer === "pollen" && pollenTileUrl && (
+          <TileLayer key={pollenSubType} url={pollenTileUrl} opacity={0.65} zIndex={200} maxNativeZoom={16} crossOrigin="anonymous" />
         )}
         <Circle
           center={center}
@@ -488,6 +543,46 @@ export default function Radar() {
         )}
       </MapContainer>
 
+      {/* Severe weather alert banners */}
+      {activeAlerts
+        .filter((a) => !dismissedAlertIds.has(a.id) && (a.severity === "EXTREME" || a.severity === "SEVERE") && new Date(a.expires) > new Date())
+        .map((alert) => {
+          const isExtreme = alert.severity === "EXTREME";
+          const bg = isExtreme
+            ? isDark ? "rgba(239,68,68,0.85)" : "rgba(220,38,38,0.92)"
+            : isDark ? "rgba(249,115,22,0.82)" : "rgba(234,88,12,0.90)";
+          return (
+            <div
+              key={alert.id}
+              style={{
+                position: "absolute", top: 8, left: 12, right: 52, zIndex: 1100,
+                background: bg, borderRadius: 12,
+                padding: "8px 36px 8px 12px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.35)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              <p style={{ margin: 0, color: "white", fontSize: 12, fontWeight: 700, lineHeight: 1.35 }}>
+                {isExtreme ? "🚨 " : "⚠️ "}{alert.headline}
+              </p>
+              <button
+                type="button"
+                aria-label="Dismiss alert"
+                onClick={() => setDismissedAlertIds((prev) => new Set([...prev, alert.id]))}
+                style={{
+                  position: "absolute", top: 6, right: 8,
+                  width: 24, height: 24, borderRadius: "50%",
+                  border: "none", background: "rgba(255,255,255,0.25)",
+                  color: "white", fontSize: 14, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ×
+              </button>
+            </div>
+          );
+        })}
+
       {/* Bottom controls overlay */}
       <div
         style={{
@@ -497,146 +592,202 @@ export default function Radar() {
           pointerEvents: "none",
         }}
       >
-        {/* Horizontal precipitation legend */}
+        {/* Layer switcher */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 12, pointerEvents: "auto" }}>
+          {(["rain", "aq", "pollen"] as RadarLayer[]).map((layer) => {
+            const isActive = activeLayer === layer;
+            return (
+              <button
+                key={layer}
+                type="button"
+                onClick={() => setActiveLayer(layer)}
+                className="min-h-[36px]"
+                style={{
+                  background: isActive ? btnPrimaryBg : btnSecondaryBg,
+                  border: `1px solid ${isActive ? btnPrimaryBorder : btnSecondaryBorder}`,
+                  borderRadius: 999, padding: "6px 14px",
+                  color: isActive ? btnPrimaryColor : btnSecondaryColor,
+                  fontWeight: isActive ? 700 : 400, fontSize: 12, cursor: "pointer",
+                }}
+              >
+                {layer === "rain" ? "🌧 Rain" : layer === "aq" ? "💨 Air" : "🌿 Pollen"}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Legend (dynamic per layer) */}
         <div style={{ marginBottom: 14, pointerEvents: "none" }}>
           <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6, textAlign: "center" }}>
-            Precipitation
+            {activeLegendLabel}
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: RADAR_LEGEND_GRADIENT }} />
+          <div style={{ height: 6, borderRadius: 999, background: activeLegendGradient }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
-            {RADAR_LEGEND.map(({ label }) => (
+            {activeLegend.map(({ label }) => (
               <span key={label} style={{ fontSize: 9, color: legendLabel, fontWeight: 500 }}>{label}</span>
             ))}
           </div>
         </div>
 
-        {/* Time badge */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
-          <div
-            style={{
-              background: isPast ? badgeBg : "rgba(var(--accent-rgb),0.85)",
-              borderRadius: 999, padding: "4px 14px",
-              border: `1px solid ${isPast ? badgeBorder : "rgba(255,255,255,0.12)"}`,
-            }}
-          >
-            <span style={{ color: isPast ? badgeText : "white", fontSize: 13, fontWeight: 600 }}>
-              {isPast ? timeLabel : `Forecast · ${timeLabel}`}
-            </span>
-          </div>
-        </div>
-
-        {/* Timeline scrubber */}
-        <div
-          ref={trackRef}
-          aria-label="Radar timeline"
-          role="slider"
-          aria-valuenow={frameIdx}
-          aria-valuemin={0}
-          aria-valuemax={Math.max(0, allFrames.length - 1)}
-          style={{
-            position: "relative",
-            height: 44,
-            marginBottom: 8,
-            touchAction: "none",
-            cursor: "ew-resize",
-            pointerEvents: "auto",
-            userSelect: "none",
-          }}
-          onPointerDown={handleTrackPointerDown}
-          onPointerMove={handleTrackPointerMove}
-          onPointerUp={handleTrackPointerUp}
-          onPointerCancel={handleTrackPointerUp}
-        >
-          {/* Frame bars */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", gap: 3, alignItems: "flex-end", height: 22 }}>
-            {allFrames.map((frame, i) => {
-              const isFramePast = frame.time <= nowEpoch;
-              const isActive = i === frameIdx;
+        {/* Pollen sub-type selector */}
+        {activeLayer === "pollen" && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 10, pointerEvents: "auto" }}>
+            {(["pollen_tree", "pollen_grass", "pollen_weed"] as PollenSubType[]).map((sub) => {
+              const isActive = pollenSubType === sub;
               return (
-                <div
-                  key={frame.time}
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setPollenSubType(sub)}
+                  className="min-h-[34px]"
                   style={{
-                    flex: 1,
-                    height: isActive ? 22 : 6,
-                    borderRadius: 3,
-                    background: isActive
-                      ? isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)"
-                      : isFramePast
-                      ? isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"
-                      : "rgba(108,99,255,0.45)",
-                    transition: "height 0.15s ease",
+                    background: isActive ? btnPrimaryBg : btnSecondaryBg,
+                    border: `1px solid ${isActive ? btnPrimaryBorder : btnSecondaryBorder}`,
+                    borderRadius: 999, padding: "5px 12px",
+                    color: isActive ? btnPrimaryColor : btnSecondaryColor,
+                    fontWeight: isActive ? 700 : 400, fontSize: 11, cursor: "pointer",
                   }}
-                />
+                >
+                  {sub === "pollen_tree" ? "🌳 Tree" : sub === "pollen_grass" ? "🌾 Grass" : "🌿 Weed"}
+                </button>
               );
             })}
           </div>
+        )}
 
-          {/* Playhead */}
-          {allFrames.length > 0 && (
+        {/* Time badge (rain only) */}
+        {activeLayer === "rain" && (
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
             <div
               style={{
-                position: "absolute",
-                bottom: -3,
-                left: thumbLeft,
-                width: THUMB_W,
-                height: 28,
-                borderRadius: 2,
-                background: isDark ? "white" : "#1a1a1a",
-                pointerEvents: "none",
-                transition: isScrubbing ? "none" : "left 0.15s ease",
-                boxShadow: "0 1px 6px rgba(0,0,0,0.35)",
-              }}
-            />
-          )}
-        </div>
-
-        {/* Controls row */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
-          {radarSource === "rainviewer" && (
-            <>
-              <button
-                type="button"
-                onClick={() => setPlaying((p) => !p)}
-                className="min-h-[44px]"
-                style={{
-                  background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
-                  borderRadius: 999, padding: "8px 22px",
-                  color: btnPrimaryColor, fontWeight: 600, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                {playing ? "⏸ Pause" : "▶ Play"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
-                className="min-h-[44px]"
-                style={{
-                  background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
-                  borderRadius: 999, padding: "8px 18px",
-                  color: btnSecondaryColor, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                Latest
-              </button>
-            </>
-          )}
-          {isConus && (
-            <button
-              type="button"
-              onClick={() => setRadarSource((s) => s === "rainviewer" ? "ncep" : "rainviewer")}
-              className="min-h-[44px]"
-              style={{
-                background: radarSource === "ncep" ? btnPrimaryBg : btnSecondaryBg,
-                border: `1px solid ${radarSource === "ncep" ? btnPrimaryBorder : btnSecondaryBorder}`,
-                borderRadius: 999, padding: "8px 16px",
-                color: radarSource === "ncep" ? btnPrimaryColor : btnSecondaryColor,
-                fontSize: 12, cursor: "pointer",
+                background: isPast ? badgeBg : "rgba(var(--accent-rgb),0.85)",
+                borderRadius: 999, padding: "4px 14px",
+                border: `1px solid ${isPast ? badgeBorder : "rgba(255,255,255,0.12)"}`,
               }}
             >
-              🛰 NOAA
-            </button>
-          )}
-        </div>
+              <span style={{ color: isPast ? badgeText : "white", fontSize: 13, fontWeight: 600 }}>
+                {isPast ? timeLabel : `Forecast · ${timeLabel}`}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Timeline scrubber (rain only) */}
+        {activeLayer === "rain" && (
+          <div
+            ref={trackRef}
+            aria-label="Radar timeline"
+            role="slider"
+            aria-valuenow={frameIdx}
+            aria-valuemin={0}
+            aria-valuemax={Math.max(0, allFrames.length - 1)}
+            style={{
+              position: "relative",
+              height: 44,
+              marginBottom: 8,
+              touchAction: "none",
+              cursor: "ew-resize",
+              pointerEvents: "auto",
+              userSelect: "none",
+            }}
+            onPointerDown={handleTrackPointerDown}
+            onPointerMove={handleTrackPointerMove}
+            onPointerUp={handleTrackPointerUp}
+            onPointerCancel={handleTrackPointerUp}
+          >
+            {/* Frame bars */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, display: "flex", gap: 3, alignItems: "flex-end", height: 22 }}>
+              {allFrames.map((frame, i) => {
+                const isFramePast = frame.time <= nowEpoch;
+                const isActive = i === frameIdx;
+                return (
+                  <div
+                    key={frame.time}
+                    style={{
+                      flex: 1,
+                      height: isActive ? 22 : 6,
+                      borderRadius: 3,
+                      background: isActive
+                        ? isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)"
+                        : isFramePast
+                        ? isDark ? "rgba(255,255,255,0.3)" : "rgba(0,0,0,0.2)"
+                        : "rgba(108,99,255,0.45)",
+                      transition: "height 0.15s ease",
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Playhead */}
+            {allFrames.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: -3,
+                  left: thumbLeft,
+                  width: THUMB_W,
+                  height: 28,
+                  borderRadius: 2,
+                  background: isDark ? "white" : "#1a1a1a",
+                  pointerEvents: "none",
+                  transition: isScrubbing ? "none" : "left 0.15s ease",
+                  boxShadow: "0 1px 6px rgba(0,0,0,0.35)",
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Controls row (rain only) */}
+        {activeLayer === "rain" && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 10, pointerEvents: "auto" }}>
+            {radarSource === "rainviewer" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setPlaying((p) => !p)}
+                  className="min-h-[44px]"
+                  style={{
+                    background: btnPrimaryBg, border: `1px solid ${btnPrimaryBorder}`,
+                    borderRadius: 999, padding: "8px 22px",
+                    color: btnPrimaryColor, fontWeight: 600, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  {playing ? "⏸ Pause" : "▶ Play"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setFrameIdx(Math.max(0, pastCount - 1)); setPlaying(false); }}
+                  className="min-h-[44px]"
+                  style={{
+                    background: btnSecondaryBg, border: `1px solid ${btnSecondaryBorder}`,
+                    borderRadius: 999, padding: "8px 18px",
+                    color: btnSecondaryColor, fontSize: 13, cursor: "pointer",
+                  }}
+                >
+                  Latest
+                </button>
+              </>
+            )}
+            {isConus && (
+              <button
+                type="button"
+                onClick={() => setRadarSource((s) => s === "rainviewer" ? "ncep" : "rainviewer")}
+                className="min-h-[44px]"
+                style={{
+                  background: radarSource === "ncep" ? btnPrimaryBg : btnSecondaryBg,
+                  border: `1px solid ${radarSource === "ncep" ? btnPrimaryBorder : btnSecondaryBorder}`,
+                  borderRadius: 999, padding: "8px 16px",
+                  color: radarSource === "ncep" ? btnPrimaryColor : btnSecondaryColor,
+                  fontSize: 12, cursor: "pointer",
+                }}
+              >
+                🛰 NOAA
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {(loading || fetchError) && (
@@ -701,7 +852,11 @@ export default function Radar() {
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>OpenStreetMap</a>
         {" "}contributors ·{" "}
         <a href="https://carto.com" target="_blank" rel="noopener noreferrer" style={{ color: attributionColor }}>CARTO</a>
-        {radarSource === "rainviewer" ? " · RainViewer" : " · NOAA/NCEP"}
+        {activeLayer === "rain"
+          ? (radarSource === "rainviewer" ? " · RainViewer" : " · NOAA/NCEP")
+          : activeLayer === "aq"
+          ? " · Google Air Quality"
+          : " · Google Pollen"}
       </div>
     </div>
   );
