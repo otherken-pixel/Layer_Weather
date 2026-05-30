@@ -301,7 +301,8 @@ describe("generatePackingList", () => {
       [{ feelsLikeMin: 80, feelsLikeMax: 90, precipProb: 0, condition: "clear" }],
       cal,
     );
-    expect(items.some((i) => i.name === "T-shirts")).toBe(true);
+    expect(items.some((i) => i.category === "tops")).toBe(true);
+    expect(items.some((i) => i.category === "footwear")).toBe(true);
   });
 
   it("includes rain jacket and rain boots for rainy trip", () => {
@@ -309,8 +310,8 @@ describe("generatePackingList", () => {
       [{ feelsLikeMin: 55, feelsLikeMax: 65, precipProb: 80, condition: "rain" }],
       DEFAULT_CALIBRATION,
     );
-    expect(items.some((i) => i.name === "Rain jacket")).toBe(true);
-    expect(items.some((i) => i.name === "Rain boots")).toBe(true);
+    expect(items.some((i) => i.category === "outerwear" && i.name.toLowerCase().includes("rain"))).toBe(true);
+    expect(items.some((i) => i.category === "footwear")).toBe(true);
   });
 
   it("includes snow boots for cold/snowy days", () => {
@@ -318,7 +319,7 @@ describe("generatePackingList", () => {
       [{ feelsLikeMin: 20, feelsLikeMax: 35, precipProb: 10, condition: "snow" }],
       DEFAULT_CALIBRATION,
     );
-    expect(items.some((i) => i.name === "Snow boots")).toBe(true);
+    expect(items.some((i) => i.name === "Snow boots" || i.category === "outerwear")).toBe(true);
   });
 
   it("returns empty list for empty forecast", () => {

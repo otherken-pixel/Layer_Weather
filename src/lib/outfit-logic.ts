@@ -16,6 +16,7 @@ import type {
   FormalityPreference,
   PackingItem,
 } from "@/types";
+import { generatePackingListFromForecasts } from "@/lib/trip-packing";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -1135,54 +1136,10 @@ export function computeCalibrationFromSwipes(swipes: CalibrationSwipe[]): Partia
 
 // ── Travel packing logic ──────────────────────────────────────────────────────
 
+/** @deprecated Prefer `generateTripPackingList` from `@/lib/trip-packing` for full trip results. */
 export function generatePackingList(
   dailyForecasts: { feelsLikeMin: number; feelsLikeMax: number; precipProb: number; condition: string }[],
   calibration: UserCalibration,
 ): PackingItem[] {
-  if (dailyForecasts.length === 0) return [];
-
-  const items: PackingItem[] = [];
-  const thresholds = computeAdjustedThresholds(calibration);
-
-  const coldDays     = dailyForecasts.filter((d) => d.feelsLikeMin < thresholds.lightJacket).length;
-  const hotDays      = dailyForecasts.filter((d) => d.feelsLikeMax >= thresholds.shorts).length;
-  const rainDays     = dailyForecasts.filter((d) => d.precipProb > 50).length;
-  const flipFlopDays = dailyForecasts.filter((d) => d.feelsLikeMax >= FLIP_FLOPS_MIN_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
-  const sneakerDays  = dailyForecasts.filter((d) => d.feelsLikeMax < FLIP_FLOPS_MIN_TEMP_F && d.feelsLikeMin >= SNOW_BOOTS_BELOW_TEMP_F && d.precipProb <= 50 && d.condition !== "snow").length;
-  const snowBootDays = dailyForecasts.filter((d) => d.condition === "snow" || d.feelsLikeMin < SNOW_BOOTS_BELOW_TEMP_F).length;
-
-  if (hotDays > 0) {
-    items.push({ category: "tops",    name: "T-shirts", quantity: hotDays + 1, reason: `${hotDays} warm days expected` });
-    items.push({ category: "bottoms", name: "Shorts",   quantity: Math.ceil(hotDays / 2) });
-  }
-  if (flipFlopDays > 0) {
-    items.push({ category: "footwear", name: "Flip flops", quantity: 1, reason: `${flipFlopDays} day${flipFlopDays > 1 ? "s" : ""} at ${FLIP_FLOPS_MIN_TEMP_F}°F or warmer` });
-  }
-  if (sneakerDays > 0) {
-    items.push({ category: "footwear", name: "Sneakers", quantity: 1, reason: `${sneakerDays} mild day${sneakerDays > 1 ? "s" : ""} (${SNOW_BOOTS_BELOW_TEMP_F}–${FLIP_FLOPS_MIN_TEMP_F - 1}°F, dry)` });
-  }
-  if (snowBootDays > 0) {
-    items.push({ category: "footwear", name: "Snow boots", quantity: 1, reason: `${snowBootDays} cold or snowy day${snowBootDays > 1 ? "s" : ""}` });
-  }
-  if (coldDays > 0) {
-    items.push({ category: "outerwear",   name: "Warm jacket",   quantity: 1, reason: `Lows around ${Math.min(...dailyForecasts.map((d) => d.feelsLikeMin))}°F` });
-    if (dailyForecasts.some((d) => d.feelsLikeMin < 40)) {
-      items.push({ category: "accessories", name: "Gloves", quantity: 1, reason: "Cold mornings expected" });
-    }
-  }
-  if (rainDays > 0) {
-    items.push({ category: "outerwear",   name: "Rain jacket",    quantity: 1, reason: `${rainDays} rainy day${rainDays > 1 ? "s" : ""}` });
-    items.push({ category: "footwear",    name: "Rain boots",     quantity: 1, reason: `${rainDays} wet day${rainDays > 1 ? "s" : ""}` });
-    if (calibration.rain_tolerance === "low") {
-      items.push({ category: "accessories", name: "Compact umbrella", quantity: 1 });
-    }
-  }
-
-  items.push({
-    category: "bottoms",
-    name: "Pants / Jeans",
-    quantity: Math.min(dailyForecasts.length, 3),
-  });
-
-  return items;
+  return generatePackingListFromForecasts(dailyForecasts, calibration);
 }

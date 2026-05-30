@@ -43,7 +43,7 @@ flowchart TD
 |--------|-----------|
 | Weather refresh | `useWeather` → `getOutfitRecommendation` for **now** |
 | Same refresh | `getDayOutfitTimeline` for **Morning / Afternoon / Evening** |
-| Packing trip | `generatePackingList` (simpler day-count rules) |
+| Packing trip | `generateTripPackingList` (per-day `getOutfitRecommendation` + consolidation) |
 | Onboarding swipes | `computeCalibrationFromSwipes` |
 | Thumbs-down feedback | `computeCalibrationFromFeedback` (adjusts thresholds) |
 
