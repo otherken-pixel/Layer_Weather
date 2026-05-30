@@ -11,7 +11,7 @@ export const CARD_LABELS: Record<CardId, string> = {
   aqi: "Air Quality",
   nowcast: "Next 60 Minutes",
   hourly: "Hourly Forecast",
-  seven_day: "7-Day Forecast",
+  seven_day: "10-Day Forecast",
 };
 
 export const DEFAULT_CARD_LAYOUT: CardConfig[] = [
