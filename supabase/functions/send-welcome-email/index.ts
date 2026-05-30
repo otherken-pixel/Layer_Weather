@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { Resend } from "npm:resend@6.12.4";
 import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
-import WelcomeEmail from "../../emails_compiled/WelcomeEmail.js";
+import WelcomeEmail from "../_shared/emails/WelcomeEmail.tsx";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

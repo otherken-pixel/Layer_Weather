@@ -11,13 +11,13 @@ import * as React from "npm:react@18";
 //
 // If you prefer to keep templates in the function bundle, copy the
 // DailyDigestEmail TSX file into this directory and import it relatively.
-import DailyDigestEmail from "../../emails_compiled/DailyDigestEmail.js";
+import DailyDigestEmail from "../_shared/emails/DailyDigestEmail.tsx";
 
 import type {
   DailyDigestEmailProps,
   ForecastPeriod,
   WeatherAlert,
-} from "../../emails_compiled/DailyDigestEmail.js";
+} from "../_shared/emails/DailyDigestEmail.tsx";
 
 // ─── Re-export types for documentation ────────────────────────────────────────
 
