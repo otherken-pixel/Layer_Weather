@@ -485,35 +485,6 @@ export default function Radar() {
         )}
       </MapContainer>
 
-      {/* Color legend */}
-      <div
-        style={{
-          position: "absolute",
-          top: 8,
-          left: 8,
-          zIndex: 1001,
-          background: legendBg,
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          borderRadius: 10,
-          padding: "6px 10px",
-          border: `1px solid ${legendBorder}`,
-          pointerEvents: "none",
-        }}
-      >
-        <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6 }}>
-          Precipitation
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {RADAR_LEGEND.map(({ color, label }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 10, color: legendLabel, fontWeight: 500 }}>{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Bottom controls overlay */}
       <div
         style={{
@@ -523,6 +494,19 @@ export default function Radar() {
           pointerEvents: "none",
         }}
       >
+        {/* Horizontal precipitation legend */}
+        <div style={{ marginBottom: 14, pointerEvents: "none" }}>
+          <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6, textAlign: "center" }}>
+            Precipitation
+          </div>
+          <div style={{ height: 6, borderRadius: 999, background: "linear-gradient(to right, #90d0f0, #40b840, #f0f040, #e08820, #d82020, #a000b0)" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
+            {RADAR_LEGEND.map(({ label }) => (
+              <span key={label} style={{ fontSize: 9, color: legendLabel, fontWeight: 500 }}>{label}</span>
+            ))}
+          </div>
+        </div>
+
         {/* Time badge */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 10, pointerEvents: "auto" }}>
           <div
