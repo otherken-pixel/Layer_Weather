@@ -2,9 +2,9 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { Resend } from "npm:resend@6.12.4";
 import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
-import SubscriptionConfirmedEmail from "../../emails_compiled/SubscriptionConfirmedEmail.js";
-import SubscriptionExpiredEmail from "../../emails_compiled/SubscriptionExpiredEmail.js";
-import TrialEndingEmail from "../../emails_compiled/TrialEndingEmail.js";
+import SubscriptionConfirmedEmail from "../_shared/emails/SubscriptionConfirmedEmail.tsx";
+import SubscriptionExpiredEmail from "../_shared/emails/SubscriptionExpiredEmail.tsx";
+import TrialEndingEmail from "../_shared/emails/TrialEndingEmail.tsx";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

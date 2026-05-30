@@ -1,0 +1,202 @@
+import {
+  Button,
+  Hr,
+  Link,
+  Section,
+  Text,
+} from "npm:@react-email/components@0.0.28";
+import * as React from "npm:react@18";
+import { colors, LayerWeatherBase } from "./components/LayerWeatherBase.tsx";
+
+export interface SubscriptionExpiredEmailProps {
+  userName: string;
+  expiredDate: string;
+  appUrl: string;
+  unsubscribeUrl: string;
+}
+
+const missedFeatures = [
+  { icon: "🗺️", label: "Advanced radar layers" },
+  { icon: "🔔", label: "Severe weather alerts" },
+  { icon: "📅", label: "Extended 10-day forecasts" },
+  { icon: "📍", label: "Unlimited saved locations" },
+];
+
+export default function SubscriptionExpiredEmail({
+  userName,
+  expiredDate,
+  appUrl,
+  unsubscribeUrl,
+}: SubscriptionExpiredEmailProps) {
+  return (
+    <LayerWeatherBase
+      preview={`Your Layer Weather Premium access ended — come back anytime`}
+    >
+      {/* Hero */}
+      <Section
+        style={{
+          borderBottom: `1px solid ${colors.border}`,
+          padding: "36px 32px 28px",
+        }}
+      >
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "2px",
+            margin: "0 0 12px",
+            textTransform: "uppercase",
+          }}
+        >
+          Subscription Ended
+        </Text>
+        <Text
+          style={{
+            color: colors.textPrimary,
+            fontSize: "24px",
+            fontWeight: "700",
+            letterSpacing: "-0.4px",
+            lineHeight: "32px",
+            margin: "0 0 10px",
+          }}
+        >
+          We'll miss you, {userName}.
+        </Text>
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "14px",
+            lineHeight: "22px",
+            margin: 0,
+          }}
+        >
+          Your Premium access expired on {expiredDate}. Your account is still
+          active — you've just been moved to the free tier.
+        </Text>
+      </Section>
+
+      {/* What they're missing */}
+      <Section style={{ padding: "24px 32px 0" }}>
+        <Text
+          style={{
+            color: colors.accent,
+            fontSize: "10px",
+            fontWeight: "700",
+            letterSpacing: "1.5px",
+            margin: "0 0 14px",
+          }}
+        >
+          WHAT YOU'RE NOW MISSING
+        </Text>
+        <Section
+          style={{
+            backgroundColor: colors.bg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "8px",
+            padding: "18px 20px",
+          }}
+        >
+          {missedFeatures.map((f, i) => (
+            <Text
+              key={f.label}
+              style={{
+                color: colors.textPrimary,
+                fontSize: "14px",
+                fontWeight: "500",
+                lineHeight: "20px",
+                margin: i < missedFeatures.length - 1 ? "0 0 10px" : "0",
+              }}
+            >
+              {f.icon} {f.label}
+            </Text>
+          ))}
+        </Section>
+      </Section>
+
+      {/* Resubscribe CTA */}
+      <Section style={{ padding: "28px 32px 8px", textAlign: "center" }}>
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "14px",
+            lineHeight: "22px",
+            margin: "0 0 20px",
+          }}
+        >
+          Resubscribe anytime — your saved locations and settings are still here.
+        </Text>
+        <Button
+          href={`${appUrl}/upgrade`}
+          style={{
+            backgroundColor: colors.accent,
+            borderRadius: "8px",
+            color: "#ffffff",
+            display: "inline-block",
+            fontSize: "15px",
+            fontWeight: "700",
+            padding: "13px 32px",
+            textDecoration: "none",
+          }}
+        >
+          Resubscribe to Premium →
+        </Button>
+      </Section>
+
+      <Section style={{ padding: "12px 32px 28px", textAlign: "center" }}>
+        <Text style={{ color: colors.textMuted, fontSize: "13px", margin: 0 }}>
+          <Link
+            href={`${appUrl}/pricing`}
+            style={{ color: colors.accent, textDecoration: "underline" }}
+          >
+            View plans and pricing
+          </Link>
+        </Text>
+      </Section>
+
+      {/* Footer */}
+      <Hr style={{ borderColor: colors.border, margin: "0 32px" }} />
+      <Section style={{ padding: "20px 32px 28px" }}>
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "12px",
+            lineHeight: "18px",
+            margin: "0 0 8px",
+          }}
+        >
+          Layer Weather · Real-time atmospheric data, beautifully layered.
+        </Text>
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "12px",
+            margin: "0 0 6px",
+          }}
+        >
+          <Link href="#" style={{ color: colors.textMuted, textDecoration: "underline" }}>
+            Privacy Policy
+          </Link>
+          {" · "}
+          <Link href="#" style={{ color: colors.textMuted, textDecoration: "underline" }}>
+            Terms of Service
+          </Link>
+          {" · "}
+          <Link href={unsubscribeUrl} style={{ color: colors.textMuted, textDecoration: "underline" }}>
+            Unsubscribe
+          </Link>
+        </Text>
+        <Text
+          style={{
+            color: colors.textMuted,
+            fontSize: "11px",
+            lineHeight: "16px",
+            margin: 0,
+          }}
+        >
+          You're receiving this because your Layer Weather Premium subscription has ended.
+        </Text>
+      </Section>
+    </LayerWeatherBase>
+  );
+}

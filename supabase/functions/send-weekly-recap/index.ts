@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@6.12.4";
 import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
-import WeeklyRecapEmail from "../../emails_compiled/WeeklyRecapEmail.js";
-import type { WeeklyRecapEmailProps } from "../../emails_compiled/WeeklyRecapEmail.js";
+import WeeklyRecapEmail from "../_shared/emails/WeeklyRecapEmail.tsx";
+import type { WeeklyRecapEmailProps } from "../_shared/emails/WeeklyRecapEmail.tsx";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

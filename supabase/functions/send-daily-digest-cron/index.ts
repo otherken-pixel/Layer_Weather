@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "npm:resend@6.12.4";
 import { render } from "npm:@react-email/render@2.0.6";
 import * as React from "npm:react@18";
-import DailyDigestEmail from "../../emails_compiled/DailyDigestEmail.js";
-import type { ForecastPeriod } from "../../emails_compiled/DailyDigestEmail.js";
+import DailyDigestEmail from "../_shared/emails/DailyDigestEmail.tsx";
+import type { ForecastPeriod } from "../_shared/emails/DailyDigestEmail.tsx";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
