@@ -28,6 +28,8 @@ struct WidgetSnapshot: Codable {
     let footwear: String
     let avatarCondition: String
     let updatedAt: String
+    var pollenLevel: String?
+    var pollenDominant: String?
 
     var isStale: Bool {
         let formatter = ISO8601DateFormatter()
@@ -247,6 +249,37 @@ struct TimelineWidgetEntry: Codable, Identifiable {
     }
 }
 
+// MARK: - WidgetAlert (Watch)
+
+struct WidgetAlert: Codable, Identifiable {
+    let id: String
+    let type: String
+    let severity: String
+    let headline: String
+    let expires: String
+
+    var isExpired: Bool {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = fmt.date(from: expires)
+        if date == nil {
+            let fallback = ISO8601DateFormatter()
+            date = fallback.date(from: expires)
+        }
+        guard let exp = date else { return true }
+        return exp <= Date()
+    }
+
+    var severityColor: Color {
+        switch severity {
+        case "EXTREME": return .red
+        case "SEVERE":  return Color(red: 1, green: 0.49, blue: 0)
+        case "MODERATE": return .yellow
+        default: return .blue
+        }
+    }
+}
+
 // MARK: - CommuteWidgetAlert (Watch)
 
 struct CommuteWidgetAlert: Codable {
@@ -315,12 +348,18 @@ struct WidgetData {
                 ? defaults?.integer(forKey: AppGroupKeys.thermalSensitivity) : nil)
             ?? 0
 
+        var activeAlerts: [WidgetAlert] = []
+        if let data = jsonData(for: AppGroupKeys.activeAlerts) {
+            activeAlerts = (try? decoder.decode([WidgetAlert].self, from: data)) ?? []
+        }
+
         return WidgetData(
             snapshot: snapshot,
             hourly: hourly,
             daily: daily,
             timeline: timeline,
             commuteAlert: commuteAlert,
+            activeAlerts: activeAlerts,
             accentColor: accentColor,
             thermalSensitivity: thermalSensitivity
         )
@@ -337,6 +376,7 @@ struct WidgetData {
         var timeline: [TimelineWidgetEntry] = existing?.timeline ?? []
         // Phone `buildPayload()` omits this key when no alert exists; treat absence as cleared.
         var commuteAlert: CommuteWidgetAlert?
+        var activeAlerts: [WidgetAlert] = existing?.activeAlerts ?? []
         var accentColor = existing?.accentColor ?? "#4F8EF7"
         var thermalSensitivity = existing?.thermalSensitivity ?? 0
 
@@ -354,6 +394,9 @@ struct WidgetData {
         }
         if let data = payload["commuteAlert"] as? Data {
             commuteAlert = try? decoder.decode(CommuteWidgetAlert.self, from: data)
+        }
+        if let data = payload["activeAlerts"] as? Data {
+            activeAlerts = (try? decoder.decode([WidgetAlert].self, from: data)) ?? activeAlerts
         }
         if let color = payload["accentColor"] as? String {
             accentColor = color
@@ -373,6 +416,7 @@ struct WidgetData {
             daily: daily,
             timeline: timeline,
             commuteAlert: commuteAlert,
+            activeAlerts: activeAlerts,
             accentColor: accentColor,
             thermalSensitivity: thermalSensitivity
         )
@@ -385,6 +429,7 @@ struct WidgetData {
             daily: DailyWidgetEntry.placeholders,
             timeline: TimelineWidgetEntry.placeholders,
             commuteAlert: nil,
+            activeAlerts: [],
             accentColor: "#4F8EF7",
             thermalSensitivity: 0
         )

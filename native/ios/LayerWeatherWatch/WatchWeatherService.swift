@@ -202,6 +202,7 @@ final class WatchWeatherService {
             daily: existingData.daily,
             timeline: existingData.timeline,
             commuteAlert: existingData.commuteAlert,
+            activeAlerts: existingData.activeAlerts,
             accentColor: existingData.accentColor,
             thermalSensitivity: existingData.thermalSensitivity
         )

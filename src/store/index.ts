@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity, EPAObservation, PollenData, SolarData } from "@/types";
+import type { GoogleWeatherAlert } from "@/lib/googleWeatherAlertsService";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
 import { upsertProfile } from "@/lib/supabase";
@@ -61,6 +62,8 @@ interface AppState {
   pollenData: PollenData | null;
   /** Google Solar API data for the current location. Null when unavailable. */
   solarData: SolarData | null;
+  /** Google Weather API governmental alerts. Empty array when none active or outside coverage. */
+  activeAlerts: GoogleWeatherAlert[];
   /** In-memory per-city weather cache keyed by city name (or DEVICE_LOCATION_KEY). */
   cityWeatherCache: Record<string, CachedCityWeather>;
 
@@ -115,6 +118,7 @@ interface AppState {
   setAqiForecast: (forecast: { aqi: number; category: string } | null) => void;
   setPollenData: (data: PollenData | null) => void;
   setSolarData: (data: SolarData | null) => void;
+  setActiveAlerts: (alerts: GoogleWeatherAlert[]) => void;
   setIsLoadingWeather: (v: boolean) => void;
   setWeatherError: (e: string | null) => void;
   setCityWeatherCache: (key: string, entry: CachedCityWeather) => void;
@@ -148,6 +152,7 @@ const initialState = {
   aqiForecast: null as { aqi: number; category: string } | null,
   pollenData: null as PollenData | null,
   solarData: null as SolarData | null,
+  activeAlerts: [] as GoogleWeatherAlert[],
   isLoadingWeather: false,
   weatherError: null,
   cityWeatherCache: {} as Record<string, CachedCityWeather>,
@@ -190,6 +195,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAqiForecast: (aqiForecast) => set({ aqiForecast }),
   setPollenData: (pollenData) => set({ pollenData }),
   setSolarData: (solarData) => set({ solarData }),
+  setActiveAlerts: (activeAlerts) => set({ activeAlerts }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),
   setWeatherError: (weatherError) => set({ weatherError }),
   setCityWeatherCache: (key, entry) =>

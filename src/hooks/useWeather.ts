@@ -6,6 +6,7 @@ import type { CachedCityWeather } from "@/store";
 import { fetchWeatherData, fetchAQIBestSource, fetchNWSAlerts, fetchNOAAConfidence, reverseGeocodePlace, fetchPollenData } from "@/lib/weather";
 import { fetchGoogleSolar } from "@/lib/googleSolarService";
 import { fetchLightningActivity } from "@/lib/swdiService";
+import { fetchGoogleWeatherAlerts } from "@/lib/googleWeatherAlertsService";
 import { getOutfitRecommendation, getDayOutfitTimeline, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { prefetchSvgImages } from "@/lib/svgImageCache";
 import { upsertProfile } from "@/lib/supabase";
@@ -27,6 +28,9 @@ const REFRESH_TIMEOUT_MS = 30_000;
 
 /** Shared across callers; incremented only when a refresh starts network work (not on in-memory cache hits). */
 let refreshGeneration = 0;
+
+/** Throttle Google Weather alerts to at most one fetch per 15 minutes. */
+let alertsLastFetched = 0;
 
 export const WEATHER_FETCH_ERROR_MESSAGE = "Unable to fetch weather data";
 
@@ -199,7 +203,7 @@ export function useWeather() {
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
     setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setAqiForecast, setPollenData,
-    setSolarData,
+    setSolarData, setActiveAlerts,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -384,6 +388,15 @@ export function useWeather() {
             setLightningActivity(null);
           }
 
+          // Google Weather API alerts — global coverage, throttled to 15 min
+          const nowTs = Date.now();
+          if (nowTs - alertsLastFetched > 15 * 60 * 1000) {
+            alertsLastFetched = nowTs;
+            fetchGoogleWeatherAlerts(latitude, longitude)
+              .then((alerts) => { if (generation === refreshGeneration) setActiveAlerts(alerts); })
+              .catch(() => {});
+          }
+
           syncWidgetFromAppState().catch(() => {});
           saveWeatherCache(data, rec).catch(() => {});
         })(),
@@ -419,7 +432,7 @@ export function useWeather() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStale, weather, calibration, profile, userId, location, formality, cityWeatherCache]);
+  }, [isStale, weather, calibration, profile, userId, location, formality, cityWeatherCache, setActiveAlerts]);
 
   return { weather, outfit, location, isLoadingWeather, weatherError, isStale, refresh };
 }

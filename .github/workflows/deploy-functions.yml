@@ -164,3 +164,16 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --no-verify-jwt \
             --use-api
+
+      - name: Deploy google-map-tiles function
+        run: |
+          supabase functions deploy google-map-tiles \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt \
+            --use-api
+
+      - name: Deploy google-weather-alerts function
+        run: |
+          supabase functions deploy google-weather-alerts \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --use-api
