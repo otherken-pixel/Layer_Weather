@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import StoreKit, { PRODUCT_IDS, type StoreKitProduct } from "@/lib/storekit";
-import { isWebSubscriptionActive } from "@/lib/revenuecat-web";
+import { isSubscriptionActive } from "@/lib/revenuecat-web";
 import { getProDisplayState, type ProDisplayState } from "@/lib/subscription-display";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store";
@@ -89,19 +89,19 @@ export function useSubscription(): UseSubscriptionReturn {
   const isPremium = proDisplay.isPro;
   const isTrialing = appleStatus === "trialing" || webStatus === "trialing";
 
-  const subscriptionStatus: SubscriptionStatus = isWebSubscriptionActive(appleStatus)
+  const subscriptionStatus: SubscriptionStatus = isSubscriptionActive(appleStatus)
     ? appleStatus
-    : isWebSubscriptionActive(webStatus)
+    : isSubscriptionActive(webStatus)
       ? webStatus
       : webStatus !== "none"
         ? webStatus
         : appleStatus;
 
-  const subscriptionTier: SubscriptionTier | null = isWebSubscriptionActive(webStatus)
+  const subscriptionTier: SubscriptionTier | null = isSubscriptionActive(webStatus)
     ? profile?.web_subscription_tier ?? profile?.subscription_tier ?? null
     : profile?.subscription_tier ?? profile?.web_subscription_tier ?? null;
 
-  const expiresAtRaw = isWebSubscriptionActive(webStatus)
+  const expiresAtRaw = isSubscriptionActive(webStatus)
     ? profile?.web_subscription_expires_at ?? profile?.subscription_expires_at
     : profile?.subscription_expires_at ?? profile?.web_subscription_expires_at;
 
@@ -206,8 +206,9 @@ export function useSubscription(): UseSubscriptionReturn {
         await validateWithServer(jwsTransaction);
       } catch (e: unknown) {
         const msg = await subscriptionErrorMessage(e);
-        if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
-          setPurchaseError(friendlyPurchaseError(msg));
+        const friendly = friendlyPurchaseError(msg);
+        if (friendly !== "USER_CANCELLED" && friendly !== "PENDING") {
+          setPurchaseError(friendly);
         }
       } finally {
         setIsPurchasing(false);
@@ -229,8 +230,9 @@ export function useSubscription(): UseSubscriptionReturn {
       await validateWithServer(transactions[transactions.length - 1].jwsTransaction);
     } catch (e: unknown) {
       const msg = await subscriptionErrorMessage(e);
-      if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
-        setPurchaseError(friendlyPurchaseError(msg, "Restore failed. Please try again."));
+      const friendly = friendlyPurchaseError(msg, "Restore failed. Please try again.");
+      if (friendly !== "USER_CANCELLED" && friendly !== "PENDING") {
+        setPurchaseError(friendly);
       }
     } finally {
       setIsPurchasing(false);

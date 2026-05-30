@@ -134,13 +134,26 @@ serve(async (req) => {
     };
     if (tier) update.web_subscription_tier = tier;
 
-    await supabase.from("profiles").update(update).eq("id", userId);
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update(update)
+      .eq("id", userId);
 
-    await supabase.from("revenuecat_webhook_events").insert({
+    if (profileError) {
+      console.error("revenuecat-webhook: profile update failed", profileError);
+      return new Response("Profile update failed", { status: 500 });
+    }
+
+    const { error: eventError } = await supabase.from("revenuecat_webhook_events").insert({
       event_id: event.id,
       event_type: event.type,
       app_user_id: userId,
     });
+
+    if (eventError) {
+      console.error("revenuecat-webhook: event insert failed", eventError);
+      return new Response("Event recording failed", { status: 500 });
+    }
 
     return new Response("OK", { status: 200 });
   } catch (err) {
