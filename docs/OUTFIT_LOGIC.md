@@ -314,12 +314,13 @@ Uses outfit **warmth rank**, not exact garments.
 
 ## 16. Packing list (trip planner)
 
-`generatePackingList` uses **daily** forecast stats + calibration:
+`generateTripPackingList` (`src/lib/trip-packing.ts`) uses the **same** engine as Today:
 
-- Counts hot / cold / rainy / flip-flop / sneaker / snow days
-- Emits quantities (tees, shorts, jackets, rain gear, umbrella if low rain tolerance, etc.)
+1. For each trip day, call `getOutfitRecommendation` with midday feels-like and daily precip.
+2. Merge garments, footwear, and accessories into a consolidated list (`consolidatePackingFromDailyOutfits`).
+3. Apply **laundry access** (fewer tops) and **activity tags** (hiking boots, swimsuit, etc.).
 
-Simpler than the live outfit engine — good for luggage, not hour-by-hour.
+`generatePackingList` in `outfit-logic.ts` delegates to this module for backward compatibility.
 
 ---
 

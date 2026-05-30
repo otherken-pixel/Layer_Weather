@@ -3,7 +3,6 @@ import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import {
   buildTripDailyOutfits,
   consolidatePackingFromDailyOutfits,
-  computePackingScore,
   generateTripPackingList,
   packingItemKey,
 } from "@/lib/trip-packing";
