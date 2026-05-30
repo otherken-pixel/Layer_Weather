@@ -292,7 +292,7 @@ export default function PaywallScreen() {
             Restore Purchases
           </button>
 
-          <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <div className="flex items-center justify-center gap-3 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
             <button
               onClick={() => window.open("https://layerweather.com/privacy", "_system")}
               className="underline underline-offset-2"
