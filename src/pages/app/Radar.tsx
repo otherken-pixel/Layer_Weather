@@ -314,7 +314,7 @@ export default function Radar() {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [playing, allFrames.length]);
+  }, [playing, allFrames.length, radarSource]);
 
   // Measure track width for thumb positioning
   useEffect(() => {
@@ -325,7 +325,7 @@ export default function Radar() {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [location]);
 
   const seekFromPointer = (el: HTMLDivElement, clientX: number) => {
     if (allFrames.length === 0) return;
