@@ -26,9 +26,12 @@ export const colors = {
 interface LayerWeatherBaseProps {
   preview: string;
   children: React.ReactNode;
+  appUrl: string;
+  unsubscribeUrl?: string;
 }
 
-export function LayerWeatherBase({ preview, children }: LayerWeatherBaseProps) {
+export function LayerWeatherBase({ preview, children, appUrl, unsubscribeUrl }: LayerWeatherBaseProps) {
+  const resolvedUnsubscribeUrl = unsubscribeUrl ?? `${appUrl}/unsubscribe`;
   return (
     <Html lang="en">
       <Head />
@@ -50,15 +53,15 @@ export function LayerWeatherBase({ preview, children }: LayerWeatherBaseProps) {
               Layer Weather · Real-time atmospheric data, beautifully layered.
             </Text>
             <Text style={styles.footerLinks}>
-              <Link href="#" style={styles.footerLink}>
+              <Link href={`${appUrl}/privacy`} style={styles.footerLink}>
                 Privacy Policy
               </Link>{" "}
               ·{" "}
-              <Link href="#" style={styles.footerLink}>
+              <Link href={`${appUrl}/terms`} style={styles.footerLink}>
                 Terms of Service
               </Link>{" "}
               ·{" "}
-              <Link href="#" style={styles.footerLink}>
+              <Link href={resolvedUnsubscribeUrl} style={styles.footerLink}>
                 Unsubscribe
               </Link>
             </Text>
