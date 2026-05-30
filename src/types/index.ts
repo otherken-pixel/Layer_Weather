@@ -29,13 +29,12 @@ export interface Profile {
   nerd_mode_enabled: boolean;
   nerd_mode_cards: NerdModeCardId[];
   card_layout: Array<{ id: string; minimized: boolean }> | null;
-  /** Apple App Store subscription (StoreKit). */
   subscription_status: SubscriptionStatus;
   subscription_tier: SubscriptionTier | null;
   subscription_expires_at: string | null;
   trial_started_at: string | null;
   original_transaction_id: string | null;
-  /** RevenueCat Web Billing / Stripe subscription. */
+  /** RevenueCat Web Billing (Stripe). Separate from App Store subscription_* fields. */
   web_subscription_status?: SubscriptionStatus;
   web_subscription_tier?: SubscriptionTier | null;
   web_subscription_expires_at?: string | null;

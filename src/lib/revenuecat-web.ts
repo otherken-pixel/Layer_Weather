@@ -81,3 +81,16 @@ export async function presentRevenueCatPaywall(options: {
     customerEmail: options.customerEmail,
   });
 }
+
+/** RevenueCat Web Billing customer portal URL (manage/cancel web subscription). */
+export async function getWebManagementUrl(appUserId: string): Promise<string | null> {
+  const purchases = configureRevenueCatWeb(appUserId);
+  if (!purchases) return null;
+  try {
+    const info = await purchases.getCustomerInfo();
+    return info.managementURL ?? null;
+  } catch (e) {
+    console.error("getWebManagementUrl failed:", e);
+    return null;
+  }
+}
