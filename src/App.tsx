@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSvgCatalog } from "@/hooks/useSvgCatalog";
 import { useAppStore } from "@/store";
+import { Capacitor } from "@capacitor/core";
 import { useSubscription } from "@/hooks/useSubscription";
 import PaywallScreen from "@/components/PaywallScreen";
+import RevenueCatPaywallScreen from "@/components/RevenueCatPaywallScreen";
 
 import Welcome from "@/pages/auth/Welcome";
 import Login from "@/pages/auth/Login";
@@ -39,7 +41,9 @@ function useHashError() {
 function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const { isOnboarded } = useAppStore();
   const { isPremium } = useSubscription();
-  if (isOnboarded && !isPremium) return <PaywallScreen />;
+  if (isOnboarded && !isPremium) {
+    return Capacitor.isNativePlatform() ? <PaywallScreen /> : <RevenueCatPaywallScreen />;
+  }
   return <>{children}</>;
 }
 

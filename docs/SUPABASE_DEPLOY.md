@@ -120,7 +120,7 @@ Web checkout uses RevenueCat Web Billing (`@revenuecat/purchases-js`). iOS conti
 ### RevenueCat dashboard
 
 1. Web Billing app with Stripe connected.
-2. Offering packages named **`monthly`** and **`annual`** (package identifiers).
+2. Offering packages with Web Billing products **`monthly`** and **`yearly`** (iOS App Store products stay separate) (package identifiers).
 3. Entitlement (default **`pro`**) linked to both products.
 4. Webhook URL: `https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`
 5. Set the same Authorization header value as `REVENUECAT_WEBHOOK_AUTHORIZATION` in Supabase.

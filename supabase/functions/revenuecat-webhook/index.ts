@@ -30,7 +30,7 @@ function verifyAuthorization(req: Request): boolean {
 function tierFromProduct(productId: string | undefined): "monthly" | "annual" | null {
   if (!productId) return null;
   const id = productId.toLowerCase();
-  if (id.includes("annual") || id.includes("year")) return "annual";
+  if (id.includes("annual") || id.includes("yearly") || id.includes("year")) return "annual";
   if (id.includes("monthly") || id.includes("month")) return "monthly";
   return null;
 }
