@@ -74,6 +74,9 @@ serve(async (req: Request): Promise<Response> => {
     );
     subject = "Your Layer Weather subscription has ended";
   } else if (type === "trial_ending") {
+    if (body.daysRemaining == null) {
+      return json({ success: false, error: "Missing required field: daysRemaining" }, 400);
+    }
     html = await render(
       React.createElement(TrialEndingEmail, {
         userName,
