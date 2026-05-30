@@ -103,17 +103,19 @@ export function PackingCategoryCard({
                   {item.quantity}×
                 </span>
               )}
-              <span
-                style={{
-                  minWidth: 32,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: accentSolid,
-                  flexShrink: 0,
-                }}
-              >
-                {item.quantity}×
-              </span>
+              {onTogglePacked && (
+                <span
+                  style={{
+                    minWidth: 32,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: accentSolid,
+                    flexShrink: 0,
+                  }}
+                >
+                  {item.quantity}×
+                </span>
+              )}
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <p
