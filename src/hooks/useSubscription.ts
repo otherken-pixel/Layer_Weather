@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { FunctionsHttpError } from "@supabase/supabase-js";
+import type { Package } from "@revenuecat/purchases-js";
 import StoreKit, { PRODUCT_IDS, type StoreKitProduct } from "@/lib/storekit";
-import { supabase } from "@/lib/supabase";
+import {
+  configureRevenueCatWeb,
+  findPackage,
+  isRevenueCatWebConfigured,
+  loadRevenueCatOffering,
+  purchaseRevenueCatPackage,
+  RC_PACKAGE_IDS,
+} from "@/lib/revenuecat-web";
+import { supabase, getProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import type { SubscriptionStatus, SubscriptionTier } from "@/types";
 
@@ -20,16 +29,34 @@ export interface UseSubscriptionReturn {
   purchase: (productId: string) => Promise<void>;
   restorePurchases: () => Promise<void>;
   productsLoadedFromStore: boolean;
-  /** True when the native StoreKit plugin itself is missing from the build
-   * (Capacitor "not implemented"), as opposed to products simply not loading
-   * because they aren't approved in App Store Connect yet. */
   storeKitUnavailable: boolean;
+  /** Web: RevenueCat packages loaded and ready to purchase. */
+  webPackagesReady: boolean;
+  isWebPlatform: boolean;
+  webMonthlyPackage: Package | null;
+  webAnnualPackage: Package | null;
 }
 
-/** Capacitor throws this when a registered JS plugin has no native counterpart
- * in the running build — i.e. the bridge VC never registered StoreKitPlugin. */
 function isPluginUnimplemented(raw: string): boolean {
   return raw.includes("not implemented") || raw.includes("UNIMPLEMENTED");
+}
+
+function isApplePremium(status: SubscriptionStatus): boolean {
+  return status === "active" || status === "trialing";
+}
+
+function isWebPremium(status: SubscriptionStatus | undefined): boolean {
+  return status === "active" || status === "trialing";
+}
+
+function mergedSubscriptionStatus(
+  apple: SubscriptionStatus,
+  web: SubscriptionStatus | undefined,
+): SubscriptionStatus {
+  if (isApplePremium(apple)) return apple;
+  if (web && isWebPremium(web)) return web;
+  if (web && web !== "none") return web;
+  return apple;
 }
 
 async function subscriptionErrorMessage(error: unknown): Promise<string> {
@@ -67,29 +94,47 @@ function friendlyPurchaseError(
   if (raw.includes("Invalid transaction signature") || raw.includes("Bundle ID mismatch")) {
     return "Could not verify your purchase with our server. Update the app and try again.";
   }
+  if (raw.includes("UserCancelledError") || raw.includes("user cancelled")) {
+    return "USER_CANCELLED";
+  }
   if (raw.includes("Subscription service is unavailable")) return raw;
+  if (raw.includes("RevenueCat") || raw.includes("offerings")) {
+    return "Web subscriptions are not available right now. Please try again in a few minutes.";
+  }
   if (raw.length > 120) return `${raw.slice(0, 120)}…`;
   return raw || defaultMessage;
 }
 
 export function useSubscription(): UseSubscriptionReturn {
-  const { profile, setProfile } = useAppStore();
+  const { profile, setProfile, userId } = useAppStore();
   const [products, setProducts] = useState<StoreKitProduct[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [storeKitUnavailable, setStoreKitUnavailable] = useState(false);
+  const [webMonthlyPackage, setWebMonthlyPackage] = useState<Package | null>(null);
+  const [webAnnualPackage, setWebAnnualPackage] = useState<Package | null>(null);
   const listenerRef = useRef<{ remove: () => void } | null>(null);
 
-  const subscriptionStatus: SubscriptionStatus = profile?.subscription_status ?? "none";
-  // Server-granted complimentary Pro (set by admins, never the client). A
-  // time-limited grant auto-expires here; a lifetime grant leaves comp_access_until null.
+  const isWebPlatform = !Capacitor.isNativePlatform();
+
+  const appleStatus: SubscriptionStatus = profile?.subscription_status ?? "none";
+  const webStatus: SubscriptionStatus = profile?.web_subscription_status ?? "none";
   const compActive =
     profile?.comp_access === true &&
     (!profile.comp_access_until || new Date(profile.comp_access_until).getTime() > Date.now());
   const isPremium =
-    compActive || subscriptionStatus === "active" || subscriptionStatus === "trialing";
-  const isTrialing = subscriptionStatus === "trialing";
+    compActive || isApplePremium(appleStatus) || isWebPremium(webStatus);
+  const subscriptionStatus = mergedSubscriptionStatus(appleStatus, webStatus);
+  const isTrialing = appleStatus === "trialing" || webStatus === "trialing";
+
+  const subscriptionTier: SubscriptionTier | null = isWebPremium(webStatus)
+    ? profile?.web_subscription_tier ?? profile?.subscription_tier ?? null
+    : profile?.subscription_tier ?? profile?.web_subscription_tier ?? null;
+
+  const expiresAtRaw = isWebPremium(webStatus)
+    ? profile?.web_subscription_expires_at ?? profile?.subscription_expires_at
+    : profile?.subscription_expires_at ?? profile?.web_subscription_expires_at;
 
   const applyValidationResult = useCallback(
     (data: {
@@ -110,6 +155,13 @@ export function useSubscription(): UseSubscriptionReturn {
     [setProfile],
   );
 
+  const refreshProfileFromServer = useCallback(async () => {
+    const userId = useAppStore.getState().userId;
+    if (!userId) return;
+    const fresh = await getProfile(userId);
+    if (fresh) setProfile(fresh);
+  }, [setProfile]);
+
   const validateWithServer = useCallback(
     async (jwsTransaction: string): Promise<void> => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -122,14 +174,18 @@ export function useSubscription(): UseSubscriptionReturn {
       if (!data || typeof data !== "object" || !("status" in data)) {
         throw new Error("Unexpected response from subscription validation");
       }
-      applyValidationResult(data);
+      applyValidationResult(data as {
+        status: SubscriptionStatus;
+        tier: SubscriptionTier | null;
+        expiresAt: string | null;
+        isTrialing: boolean;
+      });
     },
     [applyValidationResult],
   );
 
-  // On mount: load products and sync entitlement from App Store
+  // iOS: StoreKit products and entitlement sync
   useEffect(() => {
-    // Capture in a local const so TypeScript narrows non-null inside async callbacks
     const sk = StoreKit;
     if (!Capacitor.isNativePlatform() || !sk) return;
 
@@ -150,10 +206,14 @@ export function useSubscription(): UseSubscriptionReturn {
         if (!cancelled) setIsLoadingProducts(false);
       }
 
-      // Sync entitlement if Supabase profile doesn't show premium but App Store says so
       try {
         const entitlement = await sk.getCurrentEntitlement();
-        if (entitlement.isActive && entitlement.jwsTransaction && !isPremium) {
+        const premium =
+          useAppStore.getState().profile?.subscription_status === "active" ||
+          useAppStore.getState().profile?.subscription_status === "trialing" ||
+          useAppStore.getState().profile?.web_subscription_status === "active" ||
+          useAppStore.getState().profile?.web_subscription_status === "trialing";
+        if (entitlement.isActive && entitlement.jwsTransaction && !premium) {
           await validateWithServer(entitlement.jwsTransaction);
         }
       } catch (e) {
@@ -163,7 +223,6 @@ export function useSubscription(): UseSubscriptionReturn {
 
     init();
 
-    // Listen for background transaction updates (renewals, revocations)
     sk.addListener("transactionUpdated", async ({ jwsTransaction }) => {
       try {
         await validateWithServer(jwsTransaction);
@@ -178,16 +237,72 @@ export function useSubscription(): UseSubscriptionReturn {
       cancelled = true;
       listenerRef.current?.remove();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [validateWithServer]);
+
+  // Web: RevenueCat offerings
+  useEffect(() => {
+    if (!isWebPlatform || !isRevenueCatWebConfigured() || !userId) return;
+
+    let cancelled = false;
+
+    const init = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const purchases = configureRevenueCatWeb(userId);
+        if (!purchases) return;
+        const offering = await loadRevenueCatOffering(purchases);
+        if (cancelled || !offering) return;
+        setWebMonthlyPackage(findPackage(offering, RC_PACKAGE_IDS.MONTHLY) ?? null);
+        setWebAnnualPackage(findPackage(offering, RC_PACKAGE_IDS.ANNUAL) ?? null);
+      } catch (e) {
+        console.error("RevenueCat offerings failed:", e);
+      } finally {
+        if (!cancelled) setIsLoadingProducts(false);
+      }
+    };
+
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [isWebPlatform, userId]);
 
   const purchase = useCallback(
     async (productId: string): Promise<void> => {
-      if (!StoreKit) return;
       setIsPurchasing(true);
       setPurchaseError(null);
+
       try {
-        const { jwsTransaction } = await StoreKit.purchase({ productId });
-        await validateWithServer(jwsTransaction);
+        if (Capacitor.isNativePlatform()) {
+          if (!StoreKit) return;
+          const { jwsTransaction } = await StoreKit.purchase({ productId });
+          await validateWithServer(jwsTransaction);
+          return;
+        }
+
+        if (!userId) throw new Error("Not authenticated");
+        const purchases = configureRevenueCatWeb(userId);
+        if (!purchases) throw new Error("RevenueCat is not configured");
+
+        const packageId =
+          productId === PRODUCT_IDS.MONTHLY || productId === RC_PACKAGE_IDS.MONTHLY
+            ? RC_PACKAGE_IDS.MONTHLY
+            : RC_PACKAGE_IDS.ANNUAL;
+        const rcPackage =
+          packageId === RC_PACKAGE_IDS.MONTHLY ? webMonthlyPackage : webAnnualPackage;
+        if (!rcPackage) throw new Error("Subscription package not found");
+
+        await purchaseRevenueCatPackage(purchases, rcPackage, {
+          customerEmail: profile?.email ?? undefined,
+        });
+
+        // Webhook updates Supabase; poll briefly then refresh profile.
+        for (let i = 0; i < 8; i++) {
+          await new Promise((r) => setTimeout(r, 1500));
+          await refreshProfileFromServer();
+          const p = useAppStore.getState().profile;
+          if (isWebPremium(p?.web_subscription_status)) break;
+        }
       } catch (e: unknown) {
         const msg = await subscriptionErrorMessage(e);
         if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
@@ -197,7 +312,15 @@ export function useSubscription(): UseSubscriptionReturn {
         setIsPurchasing(false);
       }
     },
-    [validateWithServer],
+    [
+      userId,
+      
+      profile?.email,
+      validateWithServer,
+      webMonthlyPackage,
+      webAnnualPackage,
+      refreshProfileFromServer,
+    ],
   );
 
   const restorePurchases = useCallback(async (): Promise<void> => {
@@ -221,12 +344,14 @@ export function useSubscription(): UseSubscriptionReturn {
     }
   }, [validateWithServer]);
 
+  const webPackagesReady = Boolean(webMonthlyPackage && webAnnualPackage);
+
   return {
     isPremium,
     isTrialing,
     subscriptionStatus,
-    subscriptionTier: profile?.subscription_tier ?? null,
-    expiresAt: profile?.subscription_expires_at ? new Date(profile.subscription_expires_at) : null,
+    subscriptionTier,
+    expiresAt: expiresAtRaw ? new Date(expiresAtRaw) : null,
     products,
     isLoadingProducts,
     isPurchasing,
@@ -236,5 +361,9 @@ export function useSubscription(): UseSubscriptionReturn {
     restorePurchases,
     productsLoadedFromStore: products.length > 0,
     storeKitUnavailable,
+    webPackagesReady,
+    isWebPlatform,
+    webMonthlyPackage,
+    webAnnualPackage,
   };
 }
