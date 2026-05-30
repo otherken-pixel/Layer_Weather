@@ -89,7 +89,7 @@ serve(async (req: Request): Promise<Response> => {
   const html = await render(React.createElement(DailyDigestEmail, props));
 
   const { data, error } = await resend.emails.send({
-    from: "Layer Weather <digest@mail.layerweather.app>",
+    from: "Layer Weather <digest@mail.layerweather.com>",
     to,
     subject: `${props.location} · ${props.currentTemp}°${props.unit} — Your Daily Digest`,
     html,
