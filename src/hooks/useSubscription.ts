@@ -82,7 +82,13 @@ export function useSubscription(): UseSubscriptionReturn {
   const listenerRef = useRef<{ remove: () => void } | null>(null);
 
   const subscriptionStatus: SubscriptionStatus = profile?.subscription_status ?? "none";
-  const isPremium = subscriptionStatus === "active" || subscriptionStatus === "trialing";
+  // Server-granted complimentary Pro (set by admins, never the client). A
+  // time-limited grant auto-expires here; a lifetime grant leaves comp_access_until null.
+  const compActive =
+    profile?.comp_access === true &&
+    (!profile.comp_access_until || new Date(profile.comp_access_until).getTime() > Date.now());
+  const isPremium =
+    compActive || subscriptionStatus === "active" || subscriptionStatus === "trialing";
   const isTrialing = subscriptionStatus === "trialing";
 
   const applyValidationResult = useCallback(
