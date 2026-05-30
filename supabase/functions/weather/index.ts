@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
         const tProb = deriveThunderstormProb(h.conditionCode as string ?? "");
         const humRaw = h.humidity as number | undefined;
         const uviRaw = h.uvIndex as number | undefined;
-        const presRaw = h.pressureSealevel as number | undefined;
+        const presRaw = h.pressure as number | undefined;
         const precAmtMm = h.precipitationAmount as number | undefined;
         return {
           time: h.forecastStart,
