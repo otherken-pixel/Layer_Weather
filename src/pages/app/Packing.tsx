@@ -271,10 +271,9 @@ export default function Packing() {
     try {
       const rawList: PackingItem[] = currentItems.map(({ ownedItem: _o, ...rest }) => rest);
       const snapshot = currentForecasts.length ? serializeForecasts(currentForecasts) : null;
-      const displayName = tripName.trim() || selected.name;
       const trip = await savePackingTrip({
         user_id: userId,
-        destination: displayName,
+        destination: selected.name,
         latitude: selected.latitude,
         longitude: selected.longitude,
         country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
@@ -315,6 +314,7 @@ export default function Packing() {
     setDepartureDate("");
     setReturnDate("");
     setTripName("");
+    setTripType("leisure");
     setActivities([]);
     setLaundryAccess(false);
   }
@@ -324,10 +324,9 @@ export default function Packing() {
     setSaving(true);
     setError("");
     try {
-      const displayName = tripName.trim() || selected.name;
       const trip = await savePackingTrip({
         user_id: userId,
-        destination: displayName,
+        destination: selected.name,
         latitude: selected.latitude,
         longitude: selected.longitude,
         country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
@@ -490,10 +489,16 @@ export default function Packing() {
           return;
         }
         snapshot = serializeForecasts(result.forecasts);
+        const lastGenAt = new Date().toISOString();
         await updatePackingTrip(trip.id, {
           weather_snapshot: snapshot,
-          last_generated_at: new Date().toISOString(),
+          last_generated_at: lastGenAt,
         });
+        setSavedTrips((prev) =>
+          prev.map((t) =>
+            t.id === trip.id ? { ...t, weather_snapshot: snapshot, last_generated_at: lastGenAt } : t,
+          ),
+        );
       }
       const baseline = generateTripPackingList(
         forecastsForPackingRules(snapshot).map((d, i) => ({
