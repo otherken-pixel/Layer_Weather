@@ -215,8 +215,9 @@ export function useSubscription(): UseSubscriptionReturn {
         await validateWithServer(jwsTransaction);
       } catch (e: unknown) {
         const msg = await subscriptionErrorMessage(e);
-        if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
-          setPurchaseError(friendlyPurchaseError(msg));
+        const friendly = friendlyPurchaseError(msg);
+        if (friendly !== "USER_CANCELLED" && friendly !== "PENDING") {
+          setPurchaseError(friendly);
         }
       } finally {
         setIsPurchasing(false);
@@ -238,8 +239,9 @@ export function useSubscription(): UseSubscriptionReturn {
       await validateWithServer(transactions[transactions.length - 1].jwsTransaction);
     } catch (e: unknown) {
       const msg = await subscriptionErrorMessage(e);
-      if (msg !== "USER_CANCELLED" && msg !== "PENDING") {
-        setPurchaseError(friendlyPurchaseError(msg, "Restore failed. Please try again."));
+      const friendly = friendlyPurchaseError(msg, "Restore failed. Please try again.");
+      if (friendly !== "USER_CANCELLED" && friendly !== "PENDING") {
+        setPurchaseError(friendly);
       }
     } finally {
       setIsPurchasing(false);
