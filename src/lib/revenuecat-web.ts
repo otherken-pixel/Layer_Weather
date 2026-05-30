@@ -1,6 +1,5 @@
 import { Capacitor } from "@capacitor/core";
 import { ErrorCode, Purchases, type PurchasesError } from "@revenuecat/purchases-js";
-import "@revenuecat/purchases-js/styles";
 import { getProfile } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import type { SubscriptionStatus } from "@/types";
