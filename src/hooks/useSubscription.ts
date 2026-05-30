@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import StoreKit, { PRODUCT_IDS, type StoreKitProduct } from "@/lib/storekit";
-import { isWebSubscriptionActive } from "@/lib/revenuecat-web";
+import { isSubscriptionActive } from "@/lib/revenuecat-web";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import type { SubscriptionStatus, SubscriptionTier } from "@/types";
@@ -37,7 +37,7 @@ function profileIsPremium(profile: ReturnType<typeof useAppStore.getState>["prof
   if (profile.subscription_status === "active" || profile.subscription_status === "trialing") {
     return true;
   }
-  return isWebSubscriptionActive(profile.web_subscription_status);
+  return isSubscriptionActive(profile.web_subscription_status);
 }
 
 async function subscriptionErrorMessage(error: unknown): Promise<string> {
@@ -95,22 +95,22 @@ export function useSubscription(): UseSubscriptionReturn {
     profile?.comp_access === true &&
     (!profile.comp_access_until || new Date(profile.comp_access_until).getTime() > Date.now());
   const isPremium =
-    compActive || isWebSubscriptionActive(appleStatus) || isWebSubscriptionActive(webStatus);
+    compActive || isSubscriptionActive(appleStatus) || isSubscriptionActive(webStatus);
   const isTrialing = appleStatus === "trialing" || webStatus === "trialing";
 
-  const subscriptionStatus: SubscriptionStatus = isWebSubscriptionActive(appleStatus)
+  const subscriptionStatus: SubscriptionStatus = isSubscriptionActive(appleStatus)
     ? appleStatus
-    : isWebSubscriptionActive(webStatus)
+    : isSubscriptionActive(webStatus)
       ? webStatus
       : webStatus !== "none"
         ? webStatus
         : appleStatus;
 
-  const subscriptionTier: SubscriptionTier | null = isWebSubscriptionActive(webStatus)
+  const subscriptionTier: SubscriptionTier | null = isSubscriptionActive(webStatus)
     ? profile?.web_subscription_tier ?? profile?.subscription_tier ?? null
     : profile?.subscription_tier ?? profile?.web_subscription_tier ?? null;
 
-  const expiresAtRaw = isWebSubscriptionActive(webStatus)
+  const expiresAtRaw = isSubscriptionActive(webStatus)
     ? profile?.web_subscription_expires_at ?? profile?.subscription_expires_at
     : profile?.subscription_expires_at ?? profile?.web_subscription_expires_at;
 

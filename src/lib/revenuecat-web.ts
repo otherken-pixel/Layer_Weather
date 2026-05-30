@@ -38,7 +38,7 @@ export function configureRevenueCatWeb(appUserId: string): Purchases | null {
   return purchases;
 }
 
-export function isWebSubscriptionActive(status: SubscriptionStatus | undefined): boolean {
+export function isSubscriptionActive(status: SubscriptionStatus | undefined): boolean {
   return status === "active" || status === "trialing";
 }
 
@@ -52,7 +52,7 @@ export async function syncProfileAfterWebPurchase(maxAttempts = 10, intervalMs =
     const fresh = await getProfile(userId);
     if (fresh) {
       setProfile(fresh);
-      if (isWebSubscriptionActive(fresh.web_subscription_status)) return;
+      if (isSubscriptionActive(fresh.web_subscription_status)) return;
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
