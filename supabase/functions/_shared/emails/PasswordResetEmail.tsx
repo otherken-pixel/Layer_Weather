@@ -5,14 +5,16 @@ import { LayerWeatherBase, colors } from "./components/LayerWeatherBase.tsx";
 export interface PasswordResetEmailProps {
   resetUrl: string;
   expiresInMinutes: number;
+  appUrl?: string;
 }
 
 export default function PasswordResetEmail({
   resetUrl,
   expiresInMinutes,
+  appUrl = "https://layerweather.com",
 }: PasswordResetEmailProps) {
   return (
-    <LayerWeatherBase preview="Reset your Layer Weather password">
+    <LayerWeatherBase preview="Reset your Layer Weather password" appUrl={appUrl}>
       {/* Hero */}
       <Section style={styles.hero}>
         <Text style={styles.icon}>🔑</Text>

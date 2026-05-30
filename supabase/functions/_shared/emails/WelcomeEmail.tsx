@@ -30,7 +30,7 @@ const features = [
 
 export default function WelcomeEmail({ userName, appUrl }: WelcomeEmailProps) {
   return (
-    <LayerWeatherBase preview={`Welcome to Layer Weather, ${userName}!`}>
+    <LayerWeatherBase preview={`Welcome to Layer Weather, ${userName}!`} appUrl={appUrl}>
       {/* Hero */}
       <Section style={styles.hero}>
         <Text style={styles.headline}>Welcome aboard, {userName}.</Text>

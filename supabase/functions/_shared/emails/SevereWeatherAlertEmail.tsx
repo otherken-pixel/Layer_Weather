@@ -1,8 +1,6 @@
 import {
   Button,
   Column,
-  Hr,
-  Link,
   Row,
   Section,
   Text,
@@ -105,6 +103,8 @@ export default function SevereWeatherAlertEmail({
   return (
     <LayerWeatherBase
       preview={`${cfg.label}: ${alertHeadline} — ${location}`}
+      appUrl={appUrl}
+      unsubscribeUrl={unsubscribeUrl}
     >
       {/* Full-width alert banner */}
       <Section
@@ -290,38 +290,7 @@ export default function SevereWeatherAlertEmail({
         </Button>
       </Section>
 
-      {/* Footer */}
-      <Hr style={{ borderColor: colors.border, margin: "0 32px" }} />
-      <Section style={{ padding: "20px 32px 28px" }}>
-        <Text
-          style={{
-            color: colors.textMuted,
-            fontSize: "12px",
-            lineHeight: "18px",
-            margin: "0 0 8px",
-          }}
-        >
-          Layer Weather · Real-time atmospheric data, beautifully layered.
-        </Text>
-        <Text
-          style={{
-            color: colors.textMuted,
-            fontSize: "12px",
-            margin: "0 0 6px",
-          }}
-        >
-          <Link href="#" style={{ color: colors.textMuted, textDecoration: "underline" }}>
-            Privacy Policy
-          </Link>
-          {" · "}
-          <Link href="#" style={{ color: colors.textMuted, textDecoration: "underline" }}>
-            Terms of Service
-          </Link>
-          {" · "}
-          <Link href={unsubscribeUrl} style={{ color: colors.textMuted, textDecoration: "underline" }}>
-            Unsubscribe
-          </Link>
-        </Text>
+      <Section style={{ padding: "0 32px 8px" }}>
         <Text
           style={{
             color: colors.textMuted,

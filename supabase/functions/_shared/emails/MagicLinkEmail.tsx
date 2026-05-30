@@ -5,14 +5,16 @@ import { LayerWeatherBase, colors } from "./components/LayerWeatherBase.tsx";
 export interface MagicLinkEmailProps {
   magicLinkUrl: string;
   expiresInMinutes: number;
+  appUrl?: string;
 }
 
 export default function MagicLinkEmail({
   magicLinkUrl,
   expiresInMinutes,
+  appUrl = "https://layerweather.com",
 }: MagicLinkEmailProps) {
   return (
-    <LayerWeatherBase preview="Your Layer Weather sign-in link">
+    <LayerWeatherBase preview="Your Layer Weather sign-in link" appUrl={appUrl}>
       {/* Hero */}
       <Section style={styles.hero}>
         <Text style={styles.eyebrow}>SIGN IN REQUEST</Text>

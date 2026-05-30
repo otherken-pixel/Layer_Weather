@@ -169,6 +169,7 @@ serve(async (req: Request): Promise<Response> => {
           conditionIcon: wmo(current.weather_code).icon,
           humidity: current.relative_humidity_2m,
           windSpeed: Math.round(current.wind_speed_10m),
+          windUnit: "mph",
           uvIndex: current.uv_index,
           forecast,
           appUrl: "https://layerweather.com",
