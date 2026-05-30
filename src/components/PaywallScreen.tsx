@@ -1,15 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Cloud, Zap } from "lucide-react";
+import { Check, Cloud, Star, Zap } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PRODUCT_IDS } from "@/lib/storekit";
-import {
-  RC_PACKAGE_IDS,
-  packageDisplayPrice,
-  packageHasFreeTrial,
-  packageTrialDays,
-  isRevenueCatWebConfigured,
-} from "@/lib/revenuecat-web";
 import { Capacitor } from "@capacitor/core";
 
 const FEATURES = [
@@ -48,47 +41,27 @@ export default function PaywallScreen() {
     restorePurchases,
     productsLoadedFromStore,
     storeKitUnavailable,
-    webPackagesReady,
-    isWebPlatform,
-    webMonthlyPackage,
-    webAnnualPackage,
   } = useSubscription();
 
   const isNative = Capacitor.isNativePlatform();
-  const canPurchaseNative = isNative && productsLoadedFromStore;
-  const canPurchaseWeb = isWebPlatform && isRevenueCatWebConfigured() && webPackagesReady;
-  const canPurchase = canPurchaseNative || canPurchaseWeb;
+  // Only allow a purchase attempt once real App Store products are loaded.
+  // Otherwise the tap is guaranteed to fail (plugin missing or products not
+  // approved) and surfaces a raw error to the user.
+  const canPurchase = isNative && productsLoadedFromStore;
 
   const monthlyProduct = products.find((p) => p.id === PRODUCT_IDS.MONTHLY);
   const annualProduct  = products.find((p) => p.id === PRODUCT_IDS.ANNUAL);
 
-  const displayMonthlyPrice =
-    (isWebPlatform && webMonthlyPackage
-      ? packageDisplayPrice(webMonthlyPackage)
-      : monthlyProduct?.displayPrice) ?? MONTHLY_PRICE;
-  const displayAnnualPrice =
-    (isWebPlatform && webAnnualPackage
-      ? packageDisplayPrice(webAnnualPackage)
-      : annualProduct?.displayPrice) ?? ANNUAL_PRICE;
+  const displayMonthlyPrice = monthlyProduct?.displayPrice ?? MONTHLY_PRICE;
+  const displayAnnualPrice  = annualProduct?.displayPrice  ?? ANNUAL_PRICE;
 
-  const webMonthlyTrial = webMonthlyPackage ? packageHasFreeTrial(webMonthlyPackage) : false;
-  const webAnnualTrial = webAnnualPackage ? packageHasFreeTrial(webAnnualPackage) : false;
-  const webMonthlyTrialDays = webMonthlyPackage ? packageTrialDays(webMonthlyPackage) : undefined;
-  const webAnnualTrialDays = webAnnualPackage ? packageTrialDays(webAnnualPackage) : undefined;
-
-  const hasTrial = isWebPlatform
-    ? selectedPlan === "monthly"
-      ? webMonthlyTrial
-      : webAnnualTrial
-    : selectedPlan === "monthly"
+  const hasTrial =
+    selectedPlan === "monthly"
       ? monthlyProduct?.introductoryOffer?.type === "freeTrial"
-      : annualProduct?.introductoryOffer?.type === "freeTrial";
+      : annualProduct?.introductoryOffer?.type  === "freeTrial";
 
-  const trialDays = isWebPlatform
-    ? selectedPlan === "monthly"
-      ? webMonthlyTrialDays
-      : webAnnualTrialDays
-    : selectedPlan === "monthly"
+  const trialDays =
+    selectedPlan === "monthly"
       ? monthlyProduct?.introductoryOffer?.periodValue
       : annualProduct?.introductoryOffer?.periodValue;
 
@@ -96,13 +69,7 @@ export default function PaywallScreen() {
 
   async function handleCTA() {
     clearPurchaseError();
-    const productId = isWebPlatform
-      ? selectedPlan === "monthly"
-        ? RC_PACKAGE_IDS.MONTHLY
-        : RC_PACKAGE_IDS.ANNUAL
-      : selectedPlan === "monthly"
-        ? PRODUCT_IDS.MONTHLY
-        : PRODUCT_IDS.ANNUAL;
+    const productId = selectedPlan === "monthly" ? PRODUCT_IDS.MONTHLY : PRODUCT_IDS.ANNUAL;
     await purchase(productId);
   }
 
@@ -115,6 +82,7 @@ export default function PaywallScreen() {
       className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
       style={{ background: "linear-gradient(160deg, #0d1117 0%, #111827 50%, #1a1a2e 100%)" }}
     >
+      {/* Decorative background stars */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {BACKGROUND_STARS.map((star, i) => (
           <motion.div
@@ -146,6 +114,7 @@ export default function PaywallScreen() {
       </div>
 
       <div className="relative flex flex-col items-center px-5 pt-14 pb-10 gap-6 min-h-full">
+        {/* Logo + brand */}
         <motion.div
           className="flex flex-col items-center gap-3"
           initial={{ opacity: 0, y: -20 }}
@@ -166,6 +135,7 @@ export default function PaywallScreen() {
           </div>
         </motion.div>
 
+        {/* Hero headline */}
         <motion.div
           className="text-center"
           initial={{ opacity: 0, y: 10 }}
@@ -180,6 +150,7 @@ export default function PaywallScreen() {
           </p>
         </motion.div>
 
+        {/* Feature list */}
         <motion.div
           className="w-full max-w-sm"
           initial={{ opacity: 0 }}
@@ -204,12 +175,14 @@ export default function PaywallScreen() {
           </div>
         </motion.div>
 
+        {/* Plan selector */}
         <motion.div
           className="w-full max-w-sm flex gap-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
+          {/* Monthly */}
           <button
             className="flex-1 rounded-2xl p-4 text-left transition-all"
             style={{
@@ -223,6 +196,7 @@ export default function PaywallScreen() {
             <p className="text-xs text-white/50 mt-0.5">per month</p>
           </button>
 
+          {/* Annual — recommended */}
           <button
             className="flex-1 rounded-2xl p-4 text-left relative overflow-hidden transition-all"
             style={{
@@ -231,6 +205,7 @@ export default function PaywallScreen() {
             }}
             onClick={() => setSelectedPlan("annual")}
           >
+            {/* Save badge */}
             <div
               className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-bold"
               style={{ background: "linear-gradient(90deg, #6C63FF, #9D97FF)", color: "#fff" }}
@@ -257,19 +232,7 @@ export default function PaywallScreen() {
           )
         )}
 
-        {isWebPlatform && !isLoadingProducts && isRevenueCatWebConfigured() && !webPackagesReady && (
-          <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
-            Web subscription plans are not loading. Check your RevenueCat offering includes packages named
-            &quot;monthly&quot; and &quot;annual&quot;.
-          </p>
-        )}
-
-        {isWebPlatform && !isRevenueCatWebConfigured() && (
-          <p className="text-sm text-amber-400/90 text-center px-4 max-w-sm">
-            Web subscriptions are not configured. Add VITE_REVENUECAT_API_KEY to your environment.
-          </p>
-        )}
-
+        {/* Error message */}
         <AnimatePresence>
           {purchaseError && (
             <motion.p
@@ -283,6 +246,7 @@ export default function PaywallScreen() {
           )}
         </AnimatePresence>
 
+        {/* CTA */}
         <motion.div
           className="w-full max-w-sm flex flex-col gap-3"
           initial={{ opacity: 0, y: 10 }}
@@ -319,32 +283,21 @@ export default function PaywallScreen() {
             </p>
           )}
 
-          {isNative && (
-            <button
-              onClick={restorePurchases}
-              disabled={isPurchasing}
-              className="text-sm text-center py-2 transition-opacity"
-              style={{ color: "#9D97FF" }}
-            >
-              Restore Purchases
-            </button>
-          )}
+          <button
+            onClick={restorePurchases}
+            disabled={isPurchasing}
+            className="text-sm text-center py-2 transition-opacity"
+            style={{ color: "#9D97FF" }}
+          >
+            Restore Purchases
+          </button>
         </motion.div>
 
+        {/* Legal footer */}
         <p className="text-center text-xs px-6 pb-2" style={{ color: "rgba(255,255,255,0.25)" }}>
-          {isWebPlatform ? (
-            <>
-              Payment is processed securely by Stripe via RevenueCat. Subscription automatically renews
-              unless cancelled before the end of the current period. Manage your subscription from your
-              account email receipt or contact support.
-            </>
-          ) : (
-            <>
-              Payment will be charged to your Apple ID at confirmation of purchase. Subscription
-              automatically renews unless cancelled at least 24 hours before the end of the current period.
-              You can manage your subscription in App Store settings.
-            </>
-          )}
+          Payment will be charged to your Apple ID at confirmation of purchase. Subscription automatically
+          renews unless cancelled at least 24 hours before the end of the current period. You can manage
+          your subscription in App Store settings.
         </p>
       </div>
     </div>

@@ -1,15 +1,8 @@
 import { Capacitor } from "@capacitor/core";
-import { Purchases, type Offering, type Package } from "@revenuecat/purchases-js";
-import "@revenuecat/purchases-js/styles";
-
-/** Package identifiers in RevenueCat (must match dashboard). */
-export const RC_PACKAGE_IDS = {
-  MONTHLY: "monthly",
-  ANNUAL: "annual",
-} as const;
-
-const ENTITLEMENT_ID =
-  (import.meta.env.VITE_REVENUECAT_ENTITLEMENT_ID as string | undefined)?.trim() || "pro";
+import { ErrorCode, Purchases, type PurchasesError } from "@revenuecat/purchases-js";
+import { getProfile } from "@/lib/supabase";
+import { useAppStore } from "@/store";
+import type { SubscriptionStatus } from "@/types";
 
 export function getRevenueCatApiKey(): string | null {
   const key =
@@ -35,7 +28,7 @@ export function configureRevenueCatWeb(appUserId: string): Purchases | null {
   }
 
   if (Purchases.isConfigured() && configuredUserId !== appUserId) {
-    Purchases.getSharedInstance().changeUser(appUserId);
+    void Purchases.getSharedInstance().changeUser(appUserId);
     configuredUserId = appUserId;
     return Purchases.getSharedInstance();
   }
@@ -45,80 +38,46 @@ export function configureRevenueCatWeb(appUserId: string): Purchases | null {
   return purchases;
 }
 
-export async function loadRevenueCatOffering(
-  purchases: Purchases,
-): Promise<Offering | null> {
-  const offerings = await purchases.getOfferings();
-  return offerings.current;
+export function isWebSubscriptionActive(status: SubscriptionStatus | undefined): boolean {
+  return status === "active" || status === "trialing";
 }
 
-export function findPackage(
-  offering: Offering,
-  packageId: string,
-): Package | undefined {
-  return (
-    offering.packagesById[packageId] ??
-    offering.availablePackages.find((p) => p.identifier === packageId)
-  );
-}
+/** Poll Supabase until the webhook updates web_subscription_* (or timeout). */
+export async function syncProfileAfterWebPurchase(maxAttempts = 10, intervalMs = 1500): Promise<void> {
+  const userId = useAppStore.getState().userId;
+  const setProfile = useAppStore.getState().setProfile;
+  if (!userId) return;
 
-export function packageDisplayPrice(pkg: Package): string | undefined {
-  return pkg.webBillingProduct?.price?.formattedPrice;
-}
-
-export function packageHasFreeTrial(pkg: Package): boolean {
-  const product = pkg.webBillingProduct;
-  if (!product) return false;
-  return product.freeTrialPhase != null || product.introPricePhase != null;
-}
-
-export function packageTrialDays(pkg: Package): number | undefined {
-  const product = pkg.webBillingProduct;
-  if (!product) return undefined;
-  const trial = product.freeTrialPhase ?? product.introPricePhase;
-  if (!trial?.periodDuration) return undefined;
-  const match = trial.periodDuration.match(/^P(\d+)([DWMY])$/);
-  if (!match) return undefined;
-  const n = Number(match[1]);
-  switch (match[2]) {
-    case "D":
-      return n;
-    case "W":
-      return n * 7;
-    case "M":
-      return n * 30;
-    case "Y":
-      return n * 365;
-    default:
-      return n;
+  for (let i = 0; i < maxAttempts; i++) {
+    const fresh = await getProfile(userId);
+    if (fresh) {
+      setProfile(fresh);
+      if (isWebSubscriptionActive(fresh.web_subscription_status)) return;
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 
-export async function purchaseRevenueCatPackage(
-  purchases: Purchases,
-  rcPackage: Package,
-  options: { customerEmail?: string; htmlTarget?: HTMLElement },
-): Promise<void> {
-  await purchases.purchase({
-    rcPackage,
-    customerEmail: options.customerEmail,
+export function isUserCancelledError(error: unknown): boolean {
+  const rc = error as PurchasesError | undefined;
+  return rc?.errorCode === ErrorCode.UserCancelledError;
+}
+
+/**
+ * Renders the RevenueCat-hosted paywall (configured in the RC dashboard).
+ * Products: monthly + yearly (Web Billing); iOS uses separate App Store products.
+ */
+export async function presentRevenueCatPaywall(options: {
+  appUserId: string;
+  htmlTarget: HTMLElement;
+  customerEmail?: string;
+}): Promise<void> {
+  const purchases = configureRevenueCatWeb(options.appUserId);
+  if (!purchases) throw new Error("RevenueCat is not configured");
+
+  await purchases.preload();
+  await purchases.presentPaywall({
     htmlTarget: options.htmlTarget,
-    skipSuccessPage: true,
+    customerEmail: options.customerEmail,
   });
-}
-
-export async function syncRevenueCatEntitlement(
-  purchases: Purchases,
-): Promise<{ isActive: boolean; isTrialing: boolean }> {
-  const entitled = await purchases.isEntitledTo(ENTITLEMENT_ID);
-  if (!entitled) return { isActive: false, isTrialing: false };
-  const info = await purchases.getCustomerInfo();
-  const ent = info.entitlements.active[ENTITLEMENT_ID];
-  if (!ent) return { isActive: false, isTrialing: false };
-  const isTrialing = ent.periodType === "trial" || ent.periodType === "intro";
-  return { isActive: true, isTrialing };
-}
-
-export function resetRevenueCatWebConfig(): void {
-  configuredUserId = null;
 }
