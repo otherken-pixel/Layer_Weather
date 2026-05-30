@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import StoreKit, { PRODUCT_IDS, type StoreKitProduct } from "@/lib/storekit";
 import { isSubscriptionActive } from "@/lib/revenuecat-web";
+import { getProDisplayState, type ProDisplayState } from "@/lib/subscription-display";
 import { supabase } from "@/lib/supabase";
 import { useAppStore } from "@/store";
 import type { SubscriptionStatus, SubscriptionTier } from "@/types";
@@ -22,6 +23,7 @@ export interface UseSubscriptionReturn {
   restorePurchases: () => Promise<void>;
   productsLoadedFromStore: boolean;
   storeKitUnavailable: boolean;
+  proDisplay: ProDisplayState;
 }
 
 function isPluginUnimplemented(raw: string): boolean {
@@ -29,15 +31,7 @@ function isPluginUnimplemented(raw: string): boolean {
 }
 
 function profileIsPremium(profile: ReturnType<typeof useAppStore.getState>["profile"]): boolean {
-  if (!profile) return false;
-  const compActive =
-    profile.comp_access === true &&
-    (!profile.comp_access_until || new Date(profile.comp_access_until).getTime() > Date.now());
-  if (compActive) return true;
-  if (profile.subscription_status === "active" || profile.subscription_status === "trialing") {
-    return true;
-  }
-  return isSubscriptionActive(profile.web_subscription_status);
+  return getProDisplayState(profile).isPro;
 }
 
 async function subscriptionErrorMessage(error: unknown): Promise<string> {
@@ -89,13 +83,10 @@ export function useSubscription(): UseSubscriptionReturn {
   const [storeKitUnavailable, setStoreKitUnavailable] = useState(false);
   const listenerRef = useRef<{ remove: () => void } | null>(null);
 
+  const proDisplay = getProDisplayState(profile);
   const appleStatus: SubscriptionStatus = profile?.subscription_status ?? "none";
   const webStatus: SubscriptionStatus = profile?.web_subscription_status ?? "none";
-  const compActive =
-    profile?.comp_access === true &&
-    (!profile.comp_access_until || new Date(profile.comp_access_until).getTime() > Date.now());
-  const isPremium =
-    compActive || isSubscriptionActive(appleStatus) || isSubscriptionActive(webStatus);
+  const isPremium = proDisplay.isPro;
   const isTrialing = appleStatus === "trialing" || webStatus === "trialing";
 
   const subscriptionStatus: SubscriptionStatus = isSubscriptionActive(appleStatus)
@@ -263,5 +254,6 @@ export function useSubscription(): UseSubscriptionReturn {
     restorePurchases,
     productsLoadedFromStore: products.length > 0,
     storeKitUnavailable,
+    proDisplay,
   };
 }

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { signOut, deleteUserAccount, upsertProfile } from "@/lib/supabase";
+import { signOut, deleteUserAccount, upsertProfile, getProfile } from "@/lib/supabase";
+import { useSubscription } from "@/hooks/useSubscription";
+import ProSubscriptionCard from "@/components/ProSubscriptionCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useAppStore } from "@/store";
 import type { FormalityPreference, StylePreference, NerdModeCardId } from "@/types";
@@ -59,6 +61,7 @@ export default function Settings() {
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
+  const { proDisplay } = useSubscription();
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
@@ -119,6 +122,13 @@ export default function Settings() {
     getSavedLocations().then(setSavedLocations).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    getProfile(userId).then((fresh) => {
+      if (fresh) setProfile(fresh);
+    }).catch(() => {});
+  }, [userId, setProfile]);
 
   // Sync nerd mode state from profile (handles late profile load and external updates)
   useEffect(() => {
@@ -243,11 +253,44 @@ export default function Settings() {
             {profile?.display_name ?? "Weather Enthusiast"}
           </h2>
           <p style={{ fontSize: 14, color: emailColor, marginTop: 2 }}>{profile?.email}</p>
+          {proDisplay.isPro && (
+            <span
+              style={{
+                display: "inline-block",
+                marginTop: 10,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                padding: "4px 10px",
+                borderRadius: 999,
+                background: "rgba(var(--accent-rgb),0.18)",
+                color: "var(--accent-primary)",
+              }}
+            >
+              {proDisplay.badgeLabel}
+            </span>
+          )}
         </div>
       </motion.div>
 
       {/* ── Sections ── */}
       <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 22 }}>
+
+        {proDisplay.isPro && (
+          <Section title="Subscription" labelColor={sectionLabelColor}>
+            <ProSubscriptionCard
+              proDisplay={proDisplay}
+              userId={userId}
+              isDark={isDark}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              cardShadow={cardShadow}
+              hintColor={hintColor}
+              rowTextColor={rowTextColor}
+            />
+          </Section>
+        )}
 
         {/* Location */}
         <Section title="Location" labelColor={sectionLabelColor}>
