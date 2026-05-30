@@ -1,8 +1,4 @@
-import {
-  getOutfitRecommendation,
-  FLIP_FLOPS_MIN_TEMP_F,
-  SNOW_BOOTS_BELOW_TEMP_F,
-} from "@/lib/outfit-logic";
+import { getOutfitRecommendation } from "@/lib/outfit-logic";
 import type {
   DailyForecast,
   FormalityPreference,
@@ -393,7 +389,7 @@ export function deserializeTripDayOutfits(rows: SerializedTripDayOutfit[]): Trip
       beanie: r.beanie,
       gloves: r.gloves,
       footwear: r.footwear,
-      avatarCondition: "clear",
+      avatarCondition: "sunny",
       commuteAlert: null,
     },
   }));
