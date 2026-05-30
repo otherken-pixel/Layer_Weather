@@ -248,6 +248,10 @@ Deno.serve(async (req) => {
       },
       hourly: hours.slice(0, 240).map((h) => {
         const tProb = deriveThunderstormProb(h.conditionCode as string ?? "");
+        const humRaw = h.humidity as number | undefined;
+        const uviRaw = h.uvIndex as number | undefined;
+        const presRaw = h.pressureSealevel as number | undefined;
+        const precAmtMm = h.precipitationAmount as number | undefined;
         return {
           time: h.forecastStart,
           temp: cToF(h.temperature as number ?? 0),
@@ -259,6 +263,10 @@ Deno.serve(async (req) => {
           windDirection: Math.round(h.windDirection as number ?? 0),
           isDay: h.daylight as boolean ?? true,
           ...(tProb != null ? { thunderstormProb: tProb } : {}),
+          ...(humRaw != null ? { humidity: Math.round(humRaw * 100) } : {}),
+          ...(uviRaw != null ? { uvIndex: uviRaw } : {}),
+          ...(presRaw != null ? { pressure: Math.round(presRaw) } : {}),
+          ...(precAmtMm != null ? { precipAmount: Math.round(precAmtMm * 0.03937 * 100) / 100 } : {}),
         };
       }),
       daily: days.slice(0, 10).map((d) => {

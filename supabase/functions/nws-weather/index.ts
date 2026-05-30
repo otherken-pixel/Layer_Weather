@@ -181,6 +181,7 @@ function mapPeriod(p: NWSHourlyPeriod) {
     isDay: p.isDaytime,
     windGust: gustMph && gustMph > wind ? gustMph : null,
     dewPoint: dewPointC != null ? Math.round(dewPointC * 9 / 5 + 32) : null,
+    humidity: p.relativeHumidity?.value != null ? Math.round(p.relativeHumidity.value) : null,
     pressure: null,
     visibility: null,
   };
