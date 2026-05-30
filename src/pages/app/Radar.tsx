@@ -70,6 +70,8 @@ const RADAR_LEGEND = [
   { color: "#a000b0", label: "Extreme" },
 ] as const;
 
+const RADAR_LEGEND_GRADIENT = `linear-gradient(to right, ${RADAR_LEGEND.map((e) => e.color).join(", ")})`;
+
 function ZoomControls({ isDark }: { isDark: boolean }) {
   const map = useMap();
   const badgeBg = isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.8)";
@@ -149,6 +151,7 @@ const FADE_MS = 220;
 function waitForLayerTiles(layer: L.TileLayer, timeoutMs: number): Promise<void> {
   return new Promise((resolve) => {
     let pending = 0;
+    let started = false;
     let settled = false;
     const done = () => {
       if (settled) return;
@@ -160,10 +163,10 @@ function waitForLayerTiles(layer: L.TileLayer, timeoutMs: number): Promise<void>
       clearTimeout(timer);
       resolve();
     };
-    const onStart = () => { pending += 1; };
+    const onStart = () => { pending += 1; started = true; };
     const onLoad = () => {
       pending = Math.max(0, pending - 1);
-      if (pending === 0) done();
+      if (started && pending === 0) done();
     };
     const onLayerLoad = () => done();
     const timer = setTimeout(done, timeoutMs);
@@ -171,9 +174,6 @@ function waitForLayerTiles(layer: L.TileLayer, timeoutMs: number): Promise<void>
     layer.on("tileload", onLoad);
     layer.on("tileerror", onLoad);
     layer.on("load", onLayerLoad);
-    if ((layer as L.TileLayer & { _loading?: boolean })._loading === false) {
-      done();
-    }
   });
 }
 
@@ -205,7 +205,6 @@ function RadarOverlay({ url }: { url: string }) {
       if (animId !== animRef.current || urlRef.current !== nextUrl) return;
 
       const prev = layersRef.current[activeRef.current];
-      layer.setOpacity(0.65);
       if (prev && prev !== layer) {
         const start = performance.now();
         const tick = (now: number) => {
@@ -256,7 +255,9 @@ function RadarOverlay({ url }: { url: string }) {
 }
 
 export default function Radar() {
-  const { location, profile, weather } = useAppStore();
+  const location = useAppStore((s) => s.location);
+  const profile = useAppStore((s) => s.profile);
+  const weather = useAppStore((s) => s.weather);
   const isDark = useDarkMode(profile?.theme_preference ?? null);
 
   const [manifest, setManifest] = useState<RVManifest | null>(null);
@@ -280,7 +281,7 @@ export default function Radar() {
       })
       .then((data: RVManifest) => {
         setManifest(data);
-        setFrameIdx(Math.max(0, (data.radar.past.length ?? 1) - 1));
+        setFrameIdx(Math.max(0, data.radar.past.length - 1));
         setLoading(false);
       })
       .catch(() => {
@@ -289,12 +290,13 @@ export default function Radar() {
       });
   }, []);
 
-  const allFrames: RVFrame[] = manifest
-    ? [...manifest.radar.past, ...manifest.radar.nowcast]
-    : [];
+  const allFrames = useMemo<RVFrame[]>(
+    () => (manifest ? [...manifest.radar.past, ...manifest.radar.nowcast] : []),
+    [manifest],
+  );
 
   useEffect(() => {
-    if (!playing || allFrames.length === 0) return;
+    if (!playing || allFrames.length === 0 || radarSource !== "rainviewer") return;
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -323,7 +325,7 @@ export default function Radar() {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [location]);
+  }, []);
 
   const seekFromPointer = (el: HTMLDivElement, clientX: number) => {
     if (allFrames.length === 0) return;
@@ -390,9 +392,10 @@ export default function Radar() {
 
   const mapKey = `${center[0].toFixed(4)}-${center[1].toFixed(4)}`;
 
+  const localAccent = loadAccentLocal();
   const radarCircleColor = useMemo(
-    () => deriveAccentPalette(profile?.accent_color ?? loadAccentLocal()).primary,
-    [profile?.accent_color],
+    () => deriveAccentPalette(profile?.accent_color ?? localAccent).primary,
+    [profile?.accent_color, localAccent],
   );
 
   const baseTileUrl = isDark
@@ -499,7 +502,7 @@ export default function Radar() {
           <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6, textAlign: "center" }}>
             Precipitation
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: "linear-gradient(to right, #90d0f0, #40b840, #f0f040, #e08820, #d82020, #a000b0)" }} />
+          <div style={{ height: 6, borderRadius: 999, background: RADAR_LEGEND_GRADIENT }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
             {RADAR_LEGEND.map(({ label }) => (
               <span key={label} style={{ fontSize: 9, color: legendLabel, fontWeight: 500 }}>{label}</span>
@@ -662,10 +665,13 @@ export default function Radar() {
                   setFetchError(false);
                   setLoading(true);
                   fetch("https://api.rainviewer.com/public/weather-maps.json")
-                    .then((r) => r.json())
+                    .then((r) => {
+                      if (!r.ok) throw new Error(`RainViewer manifest ${r.status}`);
+                      return r.json();
+                    })
                     .then((data: RVManifest) => {
                       setManifest(data);
-                      setFrameIdx(Math.max(0, (data.radar.past.length ?? 1) - 1));
+                      setFrameIdx(Math.max(0, data.radar.past.length - 1));
                       setLoading(false);
                     })
                     .catch(() => {
