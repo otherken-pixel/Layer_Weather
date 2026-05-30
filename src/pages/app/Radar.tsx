@@ -499,7 +499,7 @@ export default function Radar() {
           <div style={{ fontSize: 9, fontWeight: 600, color: legendHeader, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.6, textAlign: "center" }}>
             Precipitation
           </div>
-          <div style={{ height: 6, borderRadius: 999, background: "linear-gradient(to right, #90d0f0, #40b840, #f0f040, #e08820, #d82020, #a000b0)" }} />
+          <div style={{ height: 6, borderRadius: 999, background: `linear-gradient(to right, ${RADAR_LEGEND.map(({ color }) => color).join(", ")})` }} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5 }}>
             {RADAR_LEGEND.map(({ label }) => (
               <span key={label} style={{ fontSize: 9, color: legendLabel, fontWeight: 500 }}>{label}</span>
