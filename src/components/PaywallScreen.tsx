@@ -302,14 +302,14 @@ export default function PaywallScreen() {
           </p>
           <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
             <button
-              onClick={() => window.open("https://layerweather.com/privacy", "_system")}
+              onClick={() => window.open("https://layerweather.com/privacy", "_blank", "noopener,noreferrer")}
               className="underline underline-offset-2"
             >
               Privacy Policy
             </button>
             <span>·</span>
             <button
-              onClick={() => window.open("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "_system")}
+              onClick={() => window.open("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "_blank", "noopener,noreferrer")}
               className="underline underline-offset-2"
             >
               Terms of Use
