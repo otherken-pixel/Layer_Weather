@@ -6,48 +6,68 @@ import { useAppStore } from "@/store";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { deriveAccentPalette, loadAccentLocal } from "@/hooks/useAccentTheme";
 
-function WindMarker({ lat, lng, windDir, windSpeed, isDark }: {
-  lat: number; lng: number; windDir: number; windSpeed: number; isDark: boolean;
+function WindOverlay({ windDir, windSpeed, isDark }: {
+  windDir: number; windSpeed: number; isDark: boolean;
 }) {
-  const map = useMap();
+  const bg = isDark ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.88)";
+  const border = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const arrowColor = isDark ? "rgba(255,255,255,0.85)" : "rgba(30,30,30,0.75)";
+  const textColor = isDark ? "rgba(255,255,255,0.9)" : "#111827";
 
-  useEffect(() => {
-    const bg = isDark ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.88)";
-    const border = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
-    const arrowColor = isDark ? "rgba(255,255,255,0.85)" : "rgba(30,30,30,0.75)";
-    const textColor = isDark ? "rgba(255,255,255,0.9)" : "#111827";
-
-    const icon = L.divIcon({
-      className: "",
-      iconSize: [56, 68],
-      iconAnchor: [28, 34],
-      html: `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none;">
-          <div style="
-            width:44px;height:44px;border-radius:50%;
-            background:${bg};border:1px solid ${border};
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:0 2px 8px rgba(0,0,0,0.25);
-          ">
-            <svg width="22" height="22" viewBox="0 0 22 22" style="transform:rotate(${(windDir + 180) % 360}deg);transition:transform 0.6s ease;">
-              <polygon points="11,3 14,16 11,13 8,16" fill="${arrowColor}" />
-              <circle cx="11" cy="11" r="2" fill="${arrowColor}" opacity="0.5" />
-            </svg>
-          </div>
-          <div style="
-            background:${bg};border:1px solid ${border};border-radius:8px;
-            padding:2px 7px;font-size:11px;font-weight:700;color:${textColor};
-            box-shadow:0 1px 4px rgba(0,0,0,0.2);white-space:nowrap;
-          ">${windSpeed} mph</div>
-        </div>
-      `,
-    });
-
-    const marker = L.marker([lat, lng], { icon, interactive: false, zIndexOffset: 500 }).addTo(map);
-    return () => { map.removeLayer(marker); };
-  }, [lat, lng, windDir, windSpeed, isDark, map]);
-
-  return null;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 56,
+        left: 10,
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          background: bg,
+          border: `1px solid ${border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+        }}
+      >
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 22 22"
+          style={{ transform: `rotate(${(windDir + 180) % 360}deg)`, transition: "transform 0.6s ease" }}
+        >
+          <polygon points="11,3 14,16 11,13 8,16" fill={arrowColor} />
+          <circle cx="11" cy="11" r="2" fill={arrowColor} opacity="0.5" />
+        </svg>
+      </div>
+      <div
+        style={{
+          background: bg,
+          border: `1px solid ${border}`,
+          borderRadius: 8,
+          padding: "2px 7px",
+          fontSize: 11,
+          fontWeight: 700,
+          color: textColor,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {windSpeed} mph
+      </div>
+    </div>
+  );
 }
 
 const RADAR_MAX_ZOOM = 12;
@@ -532,16 +552,15 @@ export default function Radar() {
           radius={1500}
           pathOptions={{ color: radarCircleColor, fillColor: radarCircleColor, fillOpacity: 0.7, weight: 2 }}
         />
-        {weather?.current.windSpeed != null && weather.current.windDirection != null && (
-          <WindMarker
-            lat={center[0]}
-            lng={center[1]}
-            windDir={weather.current.windDirection}
-            windSpeed={Math.round(weather.current.windSpeed)}
-            isDark={isDark}
-          />
-        )}
       </MapContainer>
+
+      {weather?.current.windSpeed != null && weather.current.windDirection != null && (
+        <WindOverlay
+          windDir={weather.current.windDirection}
+          windSpeed={Math.round(weather.current.windSpeed)}
+          isDark={isDark}
+        />
+      )}
 
       {/* Severe weather alert banners */}
       {activeAlerts
