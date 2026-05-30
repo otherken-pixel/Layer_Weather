@@ -199,6 +199,19 @@ export interface HourlyForecast {
   isDay: boolean;
   /** Thunderstorm probability 0–100. Only available from Open-Meteo ICON model and WeatherKit derived codes. */
   thunderstormProb?: number;
+  /** Relative humidity %. Available from Open-Meteo; may be absent for WeatherKit/NWS sources. */
+  humidity?: number;
+  /** UV index. Available from Open-Meteo; may be absent for WeatherKit/NWS sources. */
+  uvIndex?: number;
+  /** Mean sea-level pressure in hPa. Available from Open-Meteo; may be absent for WeatherKit/NWS sources. */
+  pressure?: number;
+  /** Actual precipitation amount in inches. Available from Open-Meteo; may be absent for other sources. */
+  precipAmount?: number;
+}
+
+export interface HourlyAqiPoint {
+  time: Date;
+  aqi: number;
 }
 
 export type ForecastConfidence = "high" | "medium" | "low" | null;

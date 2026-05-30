@@ -1207,7 +1207,7 @@ export default function Settings() {
                 <span style={{ fontSize: 15, fontWeight: 700, color: rowTextColor, letterSpacing: "-0.01em" }}>Layer Weather</span>
               </div>
               {/* Version — #6B7280 on white (4.87:1 ✓); #9BA4B4 on dark card (5.0:1 ✓) */}
-              <span style={{ fontSize: 12, color: hintColor }}>v1.0.0</span>
+              <span style={{ fontSize: 12, color: hintColor }}>v1.3</span>
             </div>
           </ThemedCard>
         </Section>

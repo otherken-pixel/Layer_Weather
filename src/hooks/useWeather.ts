@@ -114,12 +114,14 @@ function applyCachedEntry(
     setAqiForecast,
     setPollenData,
     setSolarData,
+    setHourlyAqi,
   } = useAppStore.getState();
 
   setAqiBreakdown(null);
   setAqiForecast(null);
   setPollenData(null);
   setSolarData(null);
+  setHourlyAqi(null);
   setWeatherError(
     `Offline — showing weather from ${formatCacheAge(entry.fetchedAt)}`,
   );
@@ -205,7 +207,7 @@ export function useWeather() {
     setWeather, setOutfit, setOutfitTimeline, setLocation, setWeatherLastFetched,
     setIsLoadingWeather, setWeatherError, setCityWeatherCache, setActiveLocationIsDevice,
     setForecastConfidence, setNWSAlerts, setLightningActivity, setAqiBreakdown, setAqiForecast, setPollenData,
-    setSolarData, setActiveAlerts,
+    setSolarData, setActiveAlerts, setHourlyAqi,
   } = useAppStore();
 
   const isStale = !weatherLastFetched || Date.now() - weatherLastFetched.getTime() > STALE_AFTER_MS;
@@ -227,6 +229,7 @@ export function useWeather() {
         setAqiForecast(null);
         setPollenData(null);
         setSolarData(null);
+        setHourlyAqi(null);
         syncWidgetFromAppState().catch(() => {});
         return;
       }
@@ -279,7 +282,7 @@ export function useWeather() {
             }).catch(console.error);
           }
 
-          const [data, aqiResult, pollenResult, solarResult] = await Promise.all([
+          const [data, aqiResult, pollenAndAqiResult, solarResult] = await Promise.all([
             withTimeout(
               fetchWeatherData(latitude, longitude, { countryCode }),
               WEATHER_TIMEOUT_MS,
@@ -299,7 +302,8 @@ export function useWeather() {
               ? { aqi: aqiResult.forecastAqi, category: aqiResult.forecastCategory }
               : null,
           );
-          setPollenData(pollenResult);
+          setPollenData(pollenAndAqiResult.pollen);
+          setHourlyAqi(pollenAndAqiResult.hourlyAqi);
           setSolarData(solarResult);
           setWeather(data);
           const fetchedAt = new Date();
