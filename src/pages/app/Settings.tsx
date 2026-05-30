@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, deleteUserAccount, upsertProfile, getProfile } from "@/lib/supabase";
-import { useSubscription } from "@/hooks/useSubscription";
+import { getProDisplayState } from "@/lib/subscription-display";
 import ProSubscriptionCard from "@/components/ProSubscriptionCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useAppStore } from "@/store";
@@ -61,7 +61,7 @@ export default function Settings() {
   const { eventType, setEventType } = useCalendarContext();
   const { refresh } = useWeather();
   const { saveFromCity, saveFromDevice, saving: citySaving, error: cityError } = useSaveLocation();
-  const { proDisplay } = useSubscription();
+  const proDisplay = getProDisplayState(profile);
   const isDark = useIsDark();
   const [tempUnit, setTempUnit] = useState<"F" | "C">(profile?.temp_unit ?? "F");
   const [displayMode, setDisplayMode] = useState<"visual" | "text">(profile?.outfit_display_mode ?? "visual");
