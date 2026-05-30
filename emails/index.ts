@@ -15,3 +15,21 @@ export type {
   AlertSeverity,
   TempUnit,
 } from "./DailyDigestEmail";
+
+export { default as SevereWeatherAlertEmail } from "./SevereWeatherAlertEmail";
+export type {
+  SevereWeatherAlertEmailProps,
+  AlertSeverity as SevereAlertSeverity,
+} from "./SevereWeatherAlertEmail";
+
+export { default as WeeklyRecapEmail } from "./WeeklyRecapEmail";
+export type { WeeklyRecapEmailProps } from "./WeeklyRecapEmail";
+
+export { default as TrialEndingEmail } from "./TrialEndingEmail";
+export type { TrialEndingEmailProps } from "./TrialEndingEmail";
+
+export { default as SubscriptionConfirmedEmail } from "./SubscriptionConfirmedEmail";
+export type { SubscriptionConfirmedEmailProps } from "./SubscriptionConfirmedEmail";
+
+export { default as SubscriptionExpiredEmail } from "./SubscriptionExpiredEmail";
+export type { SubscriptionExpiredEmailProps } from "./SubscriptionExpiredEmail";

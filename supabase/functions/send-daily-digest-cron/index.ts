@@ -22,6 +22,8 @@ interface Profile {
   last_longitude: number | null;
   temp_unit: string | null;
   email_unsubscribe_token: string;
+  digest_send_hour: number;
+  digest_timezone: string;
 }
 
 interface WmoEntry {
@@ -31,9 +33,9 @@ interface WmoEntry {
 
 const WMO_MAP: Record<number, WmoEntry> = {
   0: { condition: "Clear skies", icon: "☀️" },
-  1: { condition: "Partly cloudy", icon: "⛅" },
+  1: { condition: "Mostly clear", icon: "🌤️" },
   2: { condition: "Partly cloudy", icon: "⛅" },
-  3: { condition: "Partly cloudy", icon: "⛅" },
+  3: { condition: "Overcast", icon: "☁️" },
   45: { condition: "Foggy", icon: "🌫️" },
   48: { condition: "Foggy", icon: "🌫️" },
   51: { condition: "Drizzle", icon: "🌦️" },
@@ -60,6 +62,21 @@ const WMO_MAP: Record<number, WmoEntry> = {
 
 function wmo(code: number): WmoEntry {
   return WMO_MAP[code] ?? { condition: "Unknown", icon: "🌡️" };
+}
+
+function localHourInTimezone(timezone: string): number | null {
+  try {
+    const hour = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      hour: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(new Date())
+      .find((p) => p.type === "hour")?.value ?? "0";
+    return parseInt(hour, 10) % 24;
+  } catch {
+    return null;
+  }
 }
 
 function periodForecast(
@@ -95,8 +112,6 @@ serve(async (req: Request): Promise<Response> => {
     return json({ success: false, error: "Unauthorized" }, 401);
   }
 
-  const currentHour = new Date().getUTCHours();
-
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -105,10 +120,9 @@ serve(async (req: Request): Promise<Response> => {
   const { data: profiles, error: dbError } = await supabase
     .from("profiles")
     .select(
-      "id, email, display_name, last_city, last_latitude, last_longitude, temp_unit, email_unsubscribe_token",
+      "id, email, display_name, last_city, last_latitude, last_longitude, temp_unit, email_unsubscribe_token, digest_send_hour, digest_timezone",
     )
     .eq("email_daily_digest", true)
-    .eq("digest_send_hour", currentHour)
     .not("email", "is", null)
     .not("last_latitude", "is", null)
     .not("last_longitude", "is", null);
@@ -121,7 +135,11 @@ serve(async (req: Request): Promise<Response> => {
   let sent = 0;
   let failed = 0;
 
-  for (const profile of (profiles ?? []) as Profile[]) {
+  const dueProfiles = ((profiles ?? []) as Profile[]).filter(
+    (profile) => localHourInTimezone(profile.digest_timezone) === profile.digest_send_hour,
+  );
+
+  for (const profile of dueProfiles) {
     try {
       const isCelsius = profile.temp_unit === "C";
       const tempUnit = isCelsius ? "celsius" : "fahrenheit";
@@ -169,6 +187,7 @@ serve(async (req: Request): Promise<Response> => {
           conditionIcon: wmo(current.weather_code).icon,
           humidity: current.relative_humidity_2m,
           windSpeed: Math.round(current.wind_speed_10m),
+          windUnit: "mph",
           uvIndex: current.uv_index,
           forecast,
           appUrl: "https://layerweather.com",
