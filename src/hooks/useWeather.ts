@@ -29,8 +29,10 @@ const REFRESH_TIMEOUT_MS = 30_000;
 /** Shared across callers; incremented only when a refresh starts network work (not on in-memory cache hits). */
 let refreshGeneration = 0;
 
-/** Throttle Google Weather alerts to at most one fetch per 15 minutes. */
+/** Throttle Google Weather alerts to at most one fetch per 15 minutes per location. */
 let alertsLastFetched = 0;
+let alertsLastLat: number | undefined;
+let alertsLastLon: number | undefined;
 
 export const WEATHER_FETCH_ERROR_MESSAGE = "Unable to fetch weather data";
 
@@ -388,10 +390,17 @@ export function useWeather() {
             setLightningActivity(null);
           }
 
-          // Google Weather API alerts — global coverage, throttled to 15 min
+          // Google Weather API alerts — global coverage, throttled to 15 min per location
           const nowTs = Date.now();
-          if (nowTs - alertsLastFetched > 15 * 60 * 1000) {
+          const locationChanged =
+            alertsLastLat === undefined ||
+            alertsLastLon === undefined ||
+            latitude !== alertsLastLat ||
+            longitude !== alertsLastLon;
+          if (nowTs - alertsLastFetched > 15 * 60 * 1000 || locationChanged) {
             alertsLastFetched = nowTs;
+            alertsLastLat = latitude;
+            alertsLastLon = longitude;
             fetchGoogleWeatherAlerts(latitude, longitude)
               .then((alerts) => { if (generation === refreshGeneration) setActiveAlerts(alerts); })
               .catch(() => {});
