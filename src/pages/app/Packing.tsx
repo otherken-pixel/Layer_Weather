@@ -3,13 +3,14 @@ import { useAppStore } from "@/store";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useIsDark } from "@/hooks/useDarkMode";
 import { fetchWeatherForDateRange } from "@/lib/weather";
-import { generatePackingList, DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
+import { DEFAULT_CALIBRATION } from "@/lib/outfit-logic";
 import { annotatePackingListWithWardrobe, type AnnotatedPackingItem } from "@/lib/wardrobe-matching";
 import {
   getPackingTrips,
   savePackingTrip,
   updatePackingTrip,
   deletePackingTrip,
+  getWardrobeItems,
 } from "@/lib/supabase";
 import {
   fetchPackingInsights,
@@ -17,86 +18,44 @@ import {
   packingInsightsErrorMessage,
   wardrobeForInsights,
 } from "@/lib/packing-insights";
-import type { SavedPackingTrip, PackingItem, SerializedDailyForecast, DailyForecast, PackingAiInsights } from "@/types";
+import {
+  generateTripPackingList,
+  serializeTripDayOutfits,
+  deserializeTripDayOutfits,
+  type TripDayOutfit,
+  type PackingScore,
+} from "@/lib/trip-packing";
+import {
+  todayStr,
+  tripCountdown,
+  isPastTrip,
+  tripLengthDays,
+  formatDateRange,
+  forecastStatus,
+  forecastAvailableOn,
+  forecastUnavailableMsg,
+  formatLastUpdated,
+  TRIP_TYPES,
+  ACTIVITY_TAGS,
+} from "@/lib/packing-utils";
+import { PackingListView } from "@/components/packing/PackingListView";
+import { PackingAiInsightsCard } from "@/components/packing/PackingAiInsightsCard";
+import type {
+  SavedPackingTrip,
+  PackingItem,
+  SerializedDailyForecast,
+  DailyForecast,
+  PackingAiInsights,
+  PackingChecklistState,
+  TripType,
+} from "@/types";
 
-interface GeoResult { name: string; latitude: number; longitude: number; country: string; admin1?: string; }
-
-const CATEGORIES = ["outerwear", "tops", "bottoms", "footwear", "accessories"] as const;
-const CATEGORY_EMOJI: Record<string, string> = {
-  outerwear: "🧥", tops: "👕", bottoms: "👖", footwear: "👟", accessories: "🧣",
-};
-
-function toLocalDayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function todayStr(): string {
-  return toLocalDayKey(new Date());
-}
-
-function tripCountdown(departureDateStr: string): string {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const dep = new Date(departureDateStr + "T00:00:00");
-  const days = Math.round((dep.getTime() - today.getTime()) / 86400000);
-  if (days < 0) return "Past trip";
-  if (days === 0) return "Today";
-  if (days === 1) return "Tomorrow";
-  return `In ${days} days`;
-}
-
-function isPastTrip(returnDateStr: string): boolean {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const ret = new Date(returnDateStr + "T00:00:00");
-  return ret < today;
-}
-
-function tripLengthDays(dep: string, ret: string): number {
-  const d1 = new Date(dep + "T00:00:00");
-  const d2 = new Date(ret + "T00:00:00");
-  return Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
-}
-
-function formatDateRange(dep: string, ret: string): string {
-  const d = new Date(dep + "T00:00:00");
-  const r = new Date(ret + "T00:00:00");
-  const sameYear = d.getFullYear() === r.getFullYear();
-  const sameMonth = sameYear && d.getMonth() === r.getMonth();
-  if (sameMonth) {
-    return `${d.toLocaleDateString("en", { month: "short" })} ${d.getDate()}–${r.getDate()}${sameYear ? "" : `, ${r.getFullYear()}`}`;
-  }
-  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
-  return `${d.toLocaleDateString("en", opts)} – ${r.toLocaleDateString("en", opts)}${sameYear ? "" : `, ${r.getFullYear()}`}`;
-}
-
-function daysToReturn(returnDateStr: string): number {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const ret = new Date(returnDateStr + "T00:00:00");
-  return Math.ceil((ret.getTime() - today.getTime()) / 86400000);
-}
-
-function forecastStatus(departureDateStr: string, returnDateStr: string): "full" | "extended" | "unavailable" {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const dep = new Date(departureDateStr + "T00:00:00");
-  const ret = new Date(returnDateStr + "T00:00:00");
-  const daysUntilDep = Math.ceil((dep.getTime() - today.getTime()) / 86400000);
-  const daysUntilRet = Math.ceil((ret.getTime() - today.getTime()) / 86400000);
-  if (daysUntilDep > 16) return "unavailable";
-  if (daysUntilRet <= 10) return "full";
-  return "extended";
-}
-
-function forecastAvailableOn(departureDateStr: string): string {
-  const dep = new Date(departureDateStr + "T00:00:00");
-  const avail = new Date(dep.getTime() - 16 * 86400000);
-  return avail.toLocaleDateString("en", { month: "short", day: "numeric" });
-}
-
-function forecastUnavailableMsg(departureDateStr: string): string {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const dep = new Date(departureDateStr + "T00:00:00");
-  const availDate = new Date(dep.getTime() - 16 * 86400000);
-  if (availDate <= today) return "Forecast unavailable — try again later.";
-  return `Forecast not available yet — check back ${forecastAvailableOn(departureDateStr)}.`;
+interface GeoResult {
+  name: string;
+  latitude: number;
+  longitude: number;
+  country: string;
+  admin1?: string;
 }
 
 function serializeForecasts(forecasts: DailyForecast[]): SerializedDailyForecast[] {
@@ -114,36 +73,36 @@ function serializeForecasts(forecasts: DailyForecast[]): SerializedDailyForecast
   }));
 }
 
-function formatLastUpdated(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  return d.toLocaleDateString("en", { month: "short", day: "numeric" });
+function tripPackingOptions(profile: { style_preference?: import("@/types").StylePreference[]; formality_preference?: import("@/types").FormalityPreference | null } | null) {
+  return {
+    stylePreference: profile?.style_preference,
+    formality: profile?.formality_preference ?? ("casual" as const),
+    laundryAccess: false as boolean,
+    activities: [] as string[],
+  };
 }
 
 export default function Packing() {
-  const { calibration, wardrobeItems, userId, profile } = useAppStore();
+  const { calibration, wardrobeItems, userId, profile, setWardrobeItems } = useAppStore();
   const { accentSolid } = useAccentColor();
   const isDark = useIsDark();
-  const pageBg       = isDark ? "#1C1C1E" : "#F2F2F7";
-  const cardBg       = isDark ? "#2C2C2E" : "#FFFFFF";
-  const inputBg      = isDark ? "#3A3A3C" : "#F3F4F6";
-  const inputBorder  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
-  const inputText    = isDark ? "#F4F4F5" : "#111827";
-  const textPrimary  = isDark ? "#F4F4F5" : "#111827";
-  const hintColor    = isDark ? "#9BA4B4" : "#9CA3AF";
+  const pageBg = isDark ? "#1C1C1E" : "#F2F2F7";
+  const cardBg = isDark ? "#2C2C2E" : "#FFFFFF";
+  const inputBg = isDark ? "#3A3A3C" : "#F3F4F6";
+  const inputBorder = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
+  const inputText = isDark ? "#F4F4F5" : "#111827";
+  const textPrimary = isDark ? "#F4F4F5" : "#111827";
+  const hintColor = isDark ? "#9BA4B4" : "#9CA3AF";
   const dividerColor = isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6";
-  const cardShadow   = isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)";
-  const cardBorder   = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
+  const cardShadow = isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(0,0,0,0.06)";
+  const cardBorder = isDark ? "1px solid rgba(255,255,255,0.08)" : undefined;
   const cal = calibration ?? DEFAULT_CALIBRATION;
 
-  // ── New-trip form ──
+  const [tripName, setTripName] = useState("");
+  const [tripType, setTripType] = useState<TripType>("leisure");
+  const [activities, setActivities] = useState<string[]>([]);
+  const [laundryAccess, setLaundryAccess] = useState(false);
+
   const [destination, setDestination] = useState("");
   const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
   const [noResults, setNoResults] = useState(false);
@@ -154,18 +113,24 @@ export default function Packing() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ── Current generated list (before saving) ──
   const [currentItems, setCurrentItems] = useState<AnnotatedPackingItem[]>([]);
+  const [currentDailyOutfits, setCurrentDailyOutfits] = useState<TripDayOutfit[]>([]);
+  const [currentScore, setCurrentScore] = useState<PackingScore | null>(null);
   const [currentForecasts, setCurrentForecasts] = useState<DailyForecast[]>([]);
+  const [currentChecklist, setCurrentChecklist] = useState<PackingChecklistState>({});
+  const [viewMode, setViewMode] = useState<"list" | "days">("list");
   const [saving, setSaving] = useState(false);
   const [savedConfirm, setSavedConfirm] = useState(false);
   const [forecastIncomplete, setForecastIncomplete] = useState(false);
 
-  // ── Saved trips ──
   const [savedTrips, setSavedTrips] = useState<SavedPackingTrip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
   const [tripItems, setTripItems] = useState<Record<string, AnnotatedPackingItem[]>>({});
+  const [tripDailyOutfits, setTripDailyOutfits] = useState<Record<string, TripDayOutfit[]>>({});
+  const [tripScores, setTripScores] = useState<Record<string, PackingScore>>({});
+  const [tripChecklists, setTripChecklists] = useState<Record<string, PackingChecklistState>>({});
+  const [tripViewModes, setTripViewModes] = useState<Record<string, "list" | "days">>({});
   const [refreshingTripId, setRefreshingTripId] = useState<string | null>(null);
   const [tripDiffs, setTripDiffs] = useState<Record<string, { added: string[]; removed: string[] }>>({});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -176,137 +141,267 @@ export default function Packing() {
     if (!userId) return;
     setLoadingTrips(true);
     getPackingTrips(userId)
-      .then((trips) => setSavedTrips(trips))
+      .then((trips) => {
+        setSavedTrips(trips);
+        const checklists: Record<string, PackingChecklistState> = {};
+        for (const t of trips) {
+          if (t.checklist_state) checklists[t.id] = t.checklist_state;
+        }
+        setTripChecklists(checklists);
+      })
       .catch(() => {})
       .finally(() => setLoadingTrips(false));
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    void getWardrobeItems(userId)
+      .then((data) => {
+        if (!cancelled) setWardrobeItems(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, setWardrobeItems]);
+
+  function packingOpts() {
+    return {
+      ...tripPackingOptions(profile),
+      laundryAccess,
+      activities,
+    };
+  }
+
   async function search() {
     const query = destination.trim().split(",")[0].trim();
     if (!query) return;
-    setSearching(true); setNoResults(false); setGeoResults([]);
+    setSearching(true);
+    setNoResults(false);
+    setGeoResults([]);
     try {
-      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+      const res = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`,
+      );
       const json = await res.json();
       const results: GeoResult[] = json.results ?? [];
       setGeoResults(results);
       setNoResults(results.length === 0);
-    } catch { setError("Could not search for destination."); }
-    finally { setSearching(false); }
+    } catch {
+      setError("Could not search for destination.");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function applyGeneration(
+    rawList: PackingItem[],
+    dailyOutfits: TripDayOutfit[],
+    score: PackingScore,
+    forecasts: DailyForecast[],
+  ) {
+    setCurrentItems(annotatePackingListWithWardrobe(rawList, wardrobeItems));
+    setCurrentDailyOutfits(dailyOutfits);
+    setCurrentScore(score);
+    setCurrentForecasts(forecasts);
+    setCurrentChecklist({});
   }
 
   async function generate() {
     if (!selected || !departureDate || !returnDate) return;
-    setLoading(true); setError(""); setCurrentItems([]); setCurrentForecasts([]); setForecastIncomplete(false); setCurrentAiInsights(null);
+    setLoading(true);
+    setError("");
+    setCurrentItems([]);
+    setCurrentForecasts([]);
+    setForecastIncomplete(false);
+    setCurrentAiInsights(null);
     try {
       const dep = new Date(departureDate + "T00:00:00");
       const ret = new Date(returnDate + "T00:00:00");
       const countryCode = selected.country?.slice(0, 2).toUpperCase();
-      const result = await fetchWeatherForDateRange(
-        selected.latitude, selected.longitude, dep, ret,
-        { countryCode },
-      );
+      const result = await fetchWeatherForDateRange(selected.latitude, selected.longitude, dep, ret, {
+        countryCode,
+      });
       if (!result || result.forecasts.length === 0) {
         setError(forecastUnavailableMsg(departureDate));
         return;
       }
       if (!result.isForecastComplete) setForecastIncomplete(true);
-      const rawList = generatePackingList(result.forecasts, cal);
-      setCurrentItems(annotatePackingListWithWardrobe(rawList, wardrobeItems));
-      setCurrentForecasts(result.forecasts);
-    } catch { setError("Could not fetch weather for this destination."); }
-    finally { setLoading(false); }
+      const { items, dailyOutfits, score } = generateTripPackingList(result.forecasts, cal, packingOpts());
+      applyGeneration(items, dailyOutfits, score, result.forecasts);
+    } catch {
+      setError("Could not fetch weather for this destination.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleActivity(tag: string) {
+    setActivities((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
+  }
+
+  function toggleCurrentChecklist(key: string) {
+    setCurrentChecklist((prev) => ({
+      ...prev,
+      [key]: { packed: !prev[key]?.packed },
+    }));
+  }
+
+  function toggleTripChecklist(tripId: string, key: string) {
+    setTripChecklists((prev) => {
+      const next = {
+        ...prev,
+        [tripId]: {
+          ...(prev[tripId] ?? {}),
+          [key]: { packed: !(prev[tripId]?.[key]?.packed ?? false) },
+        },
+      };
+      if (userId) {
+        void updatePackingTrip(tripId, { checklist_state: next[tripId] }).catch(() => {});
+      }
+      return next;
+    });
   }
 
   async function saveTrip() {
     if (!selected || !userId) return;
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
       const rawList: PackingItem[] = currentItems.map(({ ownedItem: _o, ...rest }) => rest);
       const snapshot = currentForecasts.length ? serializeForecasts(currentForecasts) : null;
+      const displayName = tripName.trim() || selected.name;
       const trip = await savePackingTrip({
         user_id: userId,
-        destination: selected.name,
+        destination: displayName,
         latitude: selected.latitude,
         longitude: selected.longitude,
         country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
         departure_date: departureDate,
         return_date: returnDate,
+        trip_name: tripName.trim() || null,
+        trip_type: tripType,
+        activities,
+        laundry_access: laundryAccess,
         packing_list: rawList.length ? rawList : null,
+        daily_outfits: currentDailyOutfits.length ? serializeTripDayOutfits(currentDailyOutfits) : null,
+        checklist_state: Object.keys(currentChecklist).length ? currentChecklist : null,
         weather_snapshot: snapshot,
         last_generated_at: rawList.length ? new Date().toISOString() : null,
         ai_insights: currentAiInsights,
         ai_generated_at: currentAiInsights ? new Date().toISOString() : null,
       });
-      setSavedTrips((prev) =>
-        [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date))
-      );
+      setSavedTrips((prev) => [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date)));
       setSavedConfirm(true);
       setTimeout(() => setSavedConfirm(false), 3000);
-      setCurrentItems([]); setCurrentForecasts([]); setCurrentAiInsights(null); setSelected(null); setDestination(""); setDepartureDate(""); setReturnDate("");
-    } catch { setError("Could not save trip."); }
-    finally { setSaving(false); }
+      resetForm();
+    } catch {
+      setError("Could not save trip.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetForm() {
+    setCurrentItems([]);
+    setCurrentForecasts([]);
+    setCurrentDailyOutfits([]);
+    setCurrentScore(null);
+    setCurrentChecklist({});
+    setCurrentAiInsights(null);
+    setSelected(null);
+    setDestination("");
+    setDepartureDate("");
+    setReturnDate("");
+    setTripName("");
+    setActivities([]);
+    setLaundryAccess(false);
   }
 
   async function saveTripWithoutForecast() {
     if (!selected || !userId) return;
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
+      const displayName = tripName.trim() || selected.name;
       const trip = await savePackingTrip({
         user_id: userId,
-        destination: selected.name,
+        destination: displayName,
         latitude: selected.latitude,
         longitude: selected.longitude,
         country_code: selected.country?.slice(0, 2).toUpperCase() ?? null,
         departure_date: departureDate,
         return_date: returnDate,
+        trip_name: tripName.trim() || null,
+        trip_type: tripType,
+        activities,
+        laundry_access: laundryAccess,
         packing_list: null,
+        daily_outfits: null,
+        checklist_state: null,
         weather_snapshot: null,
         last_generated_at: null,
         ai_insights: null,
         ai_generated_at: null,
       });
-      setSavedTrips((prev) =>
-        [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date))
-      );
+      setSavedTrips((prev) => [...prev, trip].sort((a, b) => a.departure_date.localeCompare(b.departure_date)));
       setSavedConfirm(true);
       setTimeout(() => setSavedConfirm(false), 3000);
-      setSelected(null); setDestination(""); setDepartureDate(""); setReturnDate(""); setError("");
-    } catch { setError("Could not save trip."); }
-    finally { setSaving(false); }
+      resetForm();
+      setError("");
+    } catch {
+      setError("Could not save trip.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const openTrip = useCallback(
     (trip: SavedPackingTrip) => {
-      if (expandedTripId === trip.id) { setExpandedTripId(null); return; }
+      if (expandedTripId === trip.id) {
+        setExpandedTripId(null);
+        return;
+      }
       if (!tripItems[trip.id] && trip.packing_list) {
         setTripItems((prev) => ({
           ...prev,
           [trip.id]: annotatePackingListWithWardrobe(trip.packing_list!, wardrobeItems),
         }));
       }
+      if (!tripDailyOutfits[trip.id] && trip.daily_outfits?.length) {
+        setTripDailyOutfits((prev) => ({
+          ...prev,
+          [trip.id]: deserializeTripDayOutfits(trip.daily_outfits!),
+        }));
+      }
       setExpandedTripId(trip.id);
     },
-    [expandedTripId, tripItems, wardrobeItems],
+    [expandedTripId, tripItems, tripDailyOutfits, wardrobeItems],
   );
 
   async function refreshTrip(trip: SavedPackingTrip) {
-    setRefreshingTripId(trip.id); setError("");
+    setRefreshingTripId(trip.id);
+    setError("");
     try {
       const dep = new Date(trip.departure_date + "T00:00:00");
       const ret = new Date(trip.return_date + "T00:00:00");
-      const result = await fetchWeatherForDateRange(
-        trip.latitude, trip.longitude, dep, ret,
-        { countryCode: trip.country_code ?? undefined },
-      );
+      const result = await fetchWeatherForDateRange(trip.latitude, trip.longitude, dep, ret, {
+        countryCode: trip.country_code ?? undefined,
+      });
       if (!result || result.forecasts.length === 0) {
         setError(forecastUnavailableMsg(trip.departure_date));
         return;
       }
-      const rawList = generatePackingList(result.forecasts, cal);
-      const annotated = annotatePackingListWithWardrobe(rawList, wardrobeItems);
+      const opts = {
+        stylePreference: profile?.style_preference,
+        formality: profile?.formality_preference ?? "casual",
+        laundryAccess: trip.laundry_access ?? false,
+        activities: trip.activities ?? [],
+      };
+      const { items, dailyOutfits, score } = generateTripPackingList(result.forecasts, cal, opts);
+      const annotated = annotatePackingListWithWardrobe(items, wardrobeItems);
 
-      // Compute diff vs stored list
       const oldNames = new Set((trip.packing_list ?? []).map((i) => i.name));
       const newNames = new Set(annotated.map((i) => i.name));
       const added = [...newNames].filter((n) => !oldNames.has(n));
@@ -314,29 +409,55 @@ export default function Packing() {
       if (added.length || removed.length) {
         setTripDiffs((prev) => ({ ...prev, [trip.id]: { added, removed } }));
       } else {
-        setTripDiffs((prev) => { const p = { ...prev }; delete p[trip.id]; return p; });
+        setTripDiffs((prev) => {
+          const p = { ...prev };
+          delete p[trip.id];
+          return p;
+        });
       }
 
       const newRawList: PackingItem[] = annotated.map(({ ownedItem: _o, ...rest }) => rest);
       const snapshot = serializeForecasts(result.forecasts);
       const lastGenAt = new Date().toISOString();
-      await updatePackingTrip(trip.id, { packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt });
+      const serializedDays = serializeTripDayOutfits(dailyOutfits);
+      await updatePackingTrip(trip.id, {
+        packing_list: newRawList,
+        weather_snapshot: snapshot,
+        daily_outfits: serializedDays,
+        last_generated_at: lastGenAt,
+      });
       setSavedTrips((prev) =>
-        prev.map((t) => t.id === trip.id ? { ...t, packing_list: newRawList, weather_snapshot: snapshot, last_generated_at: lastGenAt } : t)
+        prev.map((t) =>
+          t.id === trip.id
+            ? {
+                ...t,
+                packing_list: newRawList,
+                weather_snapshot: snapshot,
+                daily_outfits: serializedDays,
+                last_generated_at: lastGenAt,
+              }
+            : t,
+        ),
       );
       setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
-    } catch { setError("Could not refresh weather."); }
-    finally { setRefreshingTripId(null); }
+      setTripDailyOutfits((prev) => ({ ...prev, [trip.id]: dailyOutfits }));
+      setTripScores((prev) => ({ ...prev, [trip.id]: score }));
+    } catch {
+      setError("Could not refresh weather.");
+    } finally {
+      setRefreshingTripId(null);
+    }
   }
 
   async function requestAiInsightsForCurrent() {
     if (!selected || !currentForecasts.length) return;
-    setAiLoadingId("current"); setError("");
+    setAiLoadingId("current");
+    setError("");
     try {
       const snapshot = serializeForecasts(currentForecasts);
-      const baseline = generatePackingList(forecastsForPackingRules(snapshot), cal);
+      const baseline = generateTripPackingList(currentForecasts, cal, packingOpts()).items;
       const insights = await fetchPackingInsights({
-        destination: selected.name,
+        destination: tripName.trim() || selected.name,
         departure_date: departureDate,
         return_date: returnDate,
         daily_forecasts: snapshot,
@@ -346,8 +467,6 @@ export default function Packing() {
         wardrobe_items: wardrobeForInsights(wardrobeItems),
       });
       setCurrentAiInsights(insights);
-      const annotated = annotatePackingListWithWardrobe(insights.packing_recommendations, wardrobeItems);
-      setCurrentItems(annotated);
     } catch (err) {
       setError(await packingInsightsErrorMessage(err));
     } finally {
@@ -356,16 +475,16 @@ export default function Packing() {
   }
 
   async function requestAiInsightsForTrip(trip: SavedPackingTrip) {
-    setAiLoadingId(trip.id); setError("");
+    setAiLoadingId(trip.id);
+    setError("");
     try {
       let snapshot = trip.weather_snapshot;
       if (!snapshot?.length) {
         const dep = new Date(trip.departure_date + "T00:00:00");
         const ret = new Date(trip.return_date + "T00:00:00");
-        const result = await fetchWeatherForDateRange(
-          trip.latitude, trip.longitude, dep, ret,
-          { countryCode: trip.country_code ?? undefined },
-        );
+        const result = await fetchWeatherForDateRange(trip.latitude, trip.longitude, dep, ret, {
+          countryCode: trip.country_code ?? undefined,
+        });
         if (!result?.forecasts.length) {
           setError(forecastUnavailableMsg(trip.departure_date));
           return;
@@ -375,11 +494,26 @@ export default function Packing() {
           weather_snapshot: snapshot,
           last_generated_at: new Date().toISOString(),
         });
-        setSavedTrips((prev) =>
-          prev.map((t) => t.id === trip.id ? { ...t, weather_snapshot: snapshot, last_generated_at: new Date().toISOString() } : t),
-        );
       }
-      const baseline = generatePackingList(forecastsForPackingRules(snapshot), cal);
+      const baseline = generateTripPackingList(
+        forecastsForPackingRules(snapshot).map((d, i) => ({
+          date: new Date(snapshot![i].date),
+          tempMin: d.feelsLikeMin,
+          tempMax: d.feelsLikeMax,
+          feelsLikeMin: d.feelsLikeMin,
+          feelsLikeMax: d.feelsLikeMax,
+          precipProb: d.precipProb,
+          condition: d.condition as DailyForecast["condition"],
+          weatherCode: snapshot![i].weatherCode,
+          sunrise: new Date(snapshot![i].sunrise),
+          sunset: new Date(snapshot![i].sunset),
+        })),
+        cal,
+        {
+          laundryAccess: trip.laundry_access,
+          activities: trip.activities ?? [],
+        },
+      ).items;
       const insights = await fetchPackingInsights({
         destination: trip.destination,
         departure_date: trip.departure_date,
@@ -390,22 +524,14 @@ export default function Packing() {
         baseline_packing_list: baseline,
         wardrobe_items: wardrobeForInsights(wardrobeItems),
       });
-      const annotated = annotatePackingListWithWardrobe(insights.packing_recommendations, wardrobeItems);
-      const rawList: PackingItem[] = annotated.map(({ ownedItem: _o, ...rest }) => rest);
       const aiGenAt = new Date().toISOString();
       await updatePackingTrip(trip.id, {
-        packing_list: rawList,
         ai_insights: insights,
         ai_generated_at: aiGenAt,
       });
       setSavedTrips((prev) =>
-        prev.map((t) =>
-          t.id === trip.id
-            ? { ...t, packing_list: rawList, ai_insights: insights, ai_generated_at: aiGenAt, weather_snapshot: snapshot }
-            : t,
-        ),
+        prev.map((t) => (t.id === trip.id ? { ...t, ai_insights: insights, ai_generated_at: aiGenAt } : t)),
       );
-      setTripItems((prev) => ({ ...prev, [trip.id]: annotated }));
     } catch (err) {
       setError(await packingInsightsErrorMessage(err));
     } finally {
@@ -417,50 +543,104 @@ export default function Packing() {
     try {
       await deletePackingTrip(tripId);
       setSavedTrips((prev) => prev.filter((t) => t.id !== tripId));
-      setTripItems((prev) => { const p = { ...prev }; delete p[tripId]; return p; });
-      setTripDiffs((prev) => { const p = { ...prev }; delete p[tripId]; return p; });
+      setTripItems((prev) => {
+        const p = { ...prev };
+        delete p[tripId];
+        return p;
+      });
+      setTripDiffs((prev) => {
+        const p = { ...prev };
+        delete p[tripId];
+        return p;
+      });
       if (expandedTripId === tripId) setExpandedTripId(null);
-    } catch { setError("Could not delete trip."); }
-    finally { setConfirmDeleteId(null); }
+    } catch {
+      setError("Could not delete trip.");
+    } finally {
+      setConfirmDeleteId(null);
+    }
   }
 
   const canGenerate = !!selected && !!departureDate && !!returnDate && returnDate >= departureDate;
   const today = todayStr();
+  const displayDestination = tripName.trim() || selected?.name;
 
   return (
     <div style={{ minHeight: "100%", background: pageBg, display: "flex", flexDirection: "column" }}>
-
-      {/* ── Header ── */}
-      <div style={{
-        background: pageBg,
-        paddingTop: 36,
-        paddingBottom: 16, paddingLeft: 20, paddingRight: 20,
-      }}>
+      <div style={{ background: pageBg, paddingTop: 36, paddingBottom: 16, paddingLeft: 20, paddingRight: 20 }}>
         <h1 style={{ fontSize: 30, fontWeight: 800, color: textPrimary, letterSpacing: "-0.03em", margin: 0 }}>
           Travel Packing
         </h1>
-        <p style={{ fontSize: 14, color: hintColor, marginTop: 4 }}>Weather-smart packing lists for any trip</p>
+        <p style={{ fontSize: 14, color: hintColor, marginTop: 4 }}>
+          Daily outfits and smart packing lists for your trip
+        </p>
       </div>
 
       <div style={{ flex: 1, padding: "0 14px 32px", display: "flex", flexDirection: "column", gap: 12 }}>
-
-        {/* ── New trip form ── */}
         <div style={{ background: cardBg, borderRadius: 24, padding: 16, boxShadow: cardShadow, border: cardBorder }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+            New trip
+          </p>
+          <input
+            value={tripName}
+            onChange={(e) => setTripName(e.target.value)}
+            placeholder="Trip name (optional)"
+            style={{
+              width: "100%",
+              background: inputBg,
+              border: `1.5px solid ${inputBorder}`,
+              borderRadius: 12,
+              padding: "10px 12px",
+              fontSize: 14,
+              color: inputText,
+              outline: "none",
+              marginBottom: 10,
+              boxSizing: "border-box",
+            }}
+          />
+          <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
             Destination
           </p>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               value={destination}
-              onChange={(e) => { setDestination(e.target.value); setSelected(null); setGeoResults([]); setNoResults(false); }}
+              onChange={(e) => {
+                setDestination(e.target.value);
+                setSelected(null);
+                setGeoResults([]);
+                setNoResults(false);
+              }}
               onKeyDown={(e) => e.key === "Enter" && search()}
               placeholder="Paris, Tokyo, New York…"
-              style={{ flex: 1, background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 14, padding: "12px 14px", fontSize: 15, color: inputText, outline: "none", colorScheme: isDark ? "dark" : "light" }}
+              style={{
+                flex: 1,
+                background: inputBg,
+                border: `1.5px solid ${inputBorder}`,
+                borderRadius: 14,
+                padding: "12px 14px",
+                fontSize: 15,
+                color: inputText,
+                outline: "none",
+                colorScheme: isDark ? "dark" : "light",
+              }}
             />
             <button
               onClick={search}
               disabled={searching}
-              style={{ width: 48, height: 48, borderRadius: 14, background: accentSolid, border: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: searching ? "not-allowed" : "pointer", flexShrink: 0, opacity: searching ? 0.7 : 1 }}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: accentSolid,
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                cursor: searching ? "not-allowed" : "pointer",
+                flexShrink: 0,
+                opacity: searching ? 0.7 : 1,
+              }}
             >
               {searching ? "⏳" : "🔍"}
             </button>
@@ -470,25 +650,99 @@ export default function Packing() {
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column" }}>
               {geoResults.map((r, i) => (
                 <button
-                  key={i} type="button"
-                  onClick={() => { setSelected(r); setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`); setGeoResults([]); setNoResults(false); }}
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setSelected(r);
+                    setDestination(`${r.name}${r.admin1 ? `, ${r.admin1}` : ""}, ${r.country}`);
+                    setGeoResults([]);
+                    setNoResults(false);
+                  }}
                   className="flex items-center gap-2 min-h-[44px] py-2.5 px-1 w-full bg-transparent border-0 cursor-pointer text-left text-sm"
-                  style={{ borderBottom: i < geoResults.length - 1 ? `1px solid ${dividerColor}` : "none", color: textPrimary }}
+                  style={{
+                    borderBottom: i < geoResults.length - 1 ? `1px solid ${dividerColor}` : "none",
+                    color: textPrimary,
+                  }}
                 >
                   <span>📍</span>
-                  <span>{r.name}{r.admin1 ? `, ${r.admin1}` : ""}, {r.country}</span>
+                  <span>
+                    {r.name}
+                    {r.admin1 ? `, ${r.admin1}` : ""}, {r.country}
+                  </span>
                 </button>
               ))}
             </div>
           )}
 
           {noResults && !selected && (
-            <p style={{ fontSize: 13, color: hintColor, textAlign: "center", marginTop: 8, paddingBottom: 4 }}>
-              No destinations found — try a different spelling.
-            </p>
+            <p style={{ fontSize: 13, color: hintColor, textAlign: "center", marginTop: 8 }}>No destinations found.</p>
           )}
 
-          {/* Date pickers */}
+          <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {TRIP_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTripType(t.value)}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: "6px 12px",
+                  borderRadius: 20,
+                  border: "none",
+                  cursor: "pointer",
+                  background: tripType === t.value ? accentSolid : inputBg,
+                  color: tripType === t.value ? "white" : hintColor,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 6px" }}>
+              Activities
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {ACTIVITY_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleActivity(tag)}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: "5px 10px",
+                    borderRadius: 16,
+                    border: `1px solid ${activities.includes(tag) ? accentSolid : inputBorder}`,
+                    background: activities.includes(tag) ? (isDark ? "rgba(124,58,237,0.2)" : "#EDE9FE") : "transparent",
+                    color: activities.includes(tag) ? accentSolid : hintColor,
+                    cursor: "pointer",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 12,
+              fontSize: 13,
+              color: textPrimary,
+              cursor: "pointer",
+            }}
+          >
+            <input type="checkbox" checked={laundryAccess} onChange={(e) => setLaundryAccess(e.target.checked)} />
+            Laundry access (fewer tops — re-wear)
+          </label>
+
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
             <div>
               <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
@@ -502,7 +756,19 @@ export default function Packing() {
                   setDepartureDate(e.target.value);
                   if (returnDate && e.target.value > returnDate) setReturnDate(e.target.value);
                 }}
-                style={{ width: "100%", background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: departureDate ? inputText : hintColor, outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", colorScheme: isDark ? "dark" : "light" }}
+                style={{
+                  width: "100%",
+                  background: inputBg,
+                  border: `1.5px solid ${inputBorder}`,
+                  borderRadius: 12,
+                  padding: "0 12px",
+                  height: 36,
+                  fontSize: 14,
+                  color: departureDate ? inputText : hintColor,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  colorScheme: isDark ? "dark" : "light",
+                }}
               />
             </div>
             <div>
@@ -514,7 +780,19 @@ export default function Packing() {
                 min={departureDate || today}
                 value={returnDate}
                 onChange={(e) => setReturnDate(e.target.value)}
-                style={{ width: "100%", background: inputBg, border: `1.5px solid ${inputBorder}`, borderRadius: 12, padding: "0 12px", height: 36, fontSize: 14, color: returnDate ? inputText : hintColor, outline: "none", boxSizing: "border-box", WebkitAppearance: "none", appearance: "none", colorScheme: isDark ? "dark" : "light" }}
+                style={{
+                  width: "100%",
+                  background: inputBg,
+                  border: `1.5px solid ${inputBorder}`,
+                  borderRadius: 12,
+                  padding: "0 12px",
+                  height: 36,
+                  fontSize: 14,
+                  color: returnDate ? inputText : hintColor,
+                  outline: "none",
+                  boxSizing: "border-box",
+                  colorScheme: isDark ? "dark" : "light",
+                }}
               />
             </div>
           </div>
@@ -523,22 +801,45 @@ export default function Packing() {
             <p style={{ fontSize: 12, color: hintColor, marginTop: 8 }}>
               {tripLengthDays(departureDate, returnDate)} day{tripLengthDays(departureDate, returnDate) !== 1 ? "s" : ""}
               {" · "}
-              {forecastStatus(departureDate, returnDate) === "full" && <span style={{ color: "#22C55E" }}>Full forecast available</span>}
-              {forecastStatus(departureDate, returnDate) === "extended" && <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>}
-              {forecastStatus(departureDate, returnDate) === "unavailable" && <span style={{ color: hintColor }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>}
+              {forecastStatus(departureDate, returnDate) === "full" && (
+                <span style={{ color: "#22C55E" }}>Full forecast available</span>
+              )}
+              {forecastStatus(departureDate, returnDate) === "extended" && (
+                <span style={{ color: "#F59E0B" }}>Extended forecast (Open-Meteo)</span>
+              )}
+              {forecastStatus(departureDate, returnDate) === "unavailable" && (
+                <span style={{ color: hintColor }}>Forecast unlocks {forecastAvailableOn(departureDate)}</span>
+              )}
             </p>
           )}
         </div>
 
-        {/* Error */}
         {error && (
-          <div style={{ background: isDark ? "rgba(239,68,68,0.12)" : "#FEF2F2", borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <div
+            style={{
+              background: isDark ? "rgba(239,68,68,0.12)" : "#FEF2F2",
+              borderRadius: 14,
+              padding: "12px 16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 8,
+            }}
+          >
             <p style={{ fontSize: 13, color: isDark ? "#F87171" : "#EF4444", margin: 0, flex: 1 }}>{error}</p>
             {selected && departureDate && returnDate && forecastStatus(departureDate, returnDate) === "unavailable" && (
               <button
                 onClick={saveTripWithoutForecast}
                 disabled={saving || !userId}
-                style={{ fontSize: 12, fontWeight: 700, color: accentSolid, background: "none", border: "none", cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: accentSolid,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
               >
                 {saving ? "Saving…" : "Save for Later"}
               </button>
@@ -546,28 +847,29 @@ export default function Packing() {
           </div>
         )}
 
-        {/* Generate button */}
         <button
           onClick={generate}
           disabled={!canGenerate || loading}
           style={{
             background: canGenerate ? accentSolid : isDark ? "#3A3A3C" : "#E5E7EB",
-            color: canGenerate ? "white" : isDark ? "#6B7280" : "#9CA3AF",
-            border: "none", borderRadius: 16, padding: "16px 0",
-            fontSize: 16, fontWeight: 700, width: "100%",
+            color: canGenerate ? "white" : hintColor,
+            border: "none",
+            borderRadius: 16,
+            padding: "16px 0",
+            fontSize: 16,
+            fontWeight: 700,
+            width: "100%",
             cursor: canGenerate && !loading ? "pointer" : "not-allowed",
-            transition: "background 0.2s",
           }}
         >
-          {loading ? "⟳ Fetching weather…" : selected ? `Pack for ${selected.name}` : "Select a destination & dates"}
+          {loading ? "⟳ Fetching weather…" : selected ? `Pack for ${selected.name}` : "Select destination & dates"}
         </button>
 
-        {/* Packing list (unsaved) */}
         {currentItems.length > 0 && (
           <>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", paddingLeft: 4, marginTop: 4 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <h2 style={{ fontSize: 20, fontWeight: 700, color: textPrimary, margin: 0 }}>{selected?.name}</h2>
+              <div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: textPrimary, margin: 0 }}>{displayDestination}</h2>
                 <span style={{ fontSize: 14, color: hintColor }}>{formatDateRange(departureDate, returnDate)}</span>
               </div>
               {userId && (
@@ -575,11 +877,14 @@ export default function Packing() {
                   onClick={saveTrip}
                   disabled={saving}
                   style={{
-                    fontSize: 13, fontWeight: 700,
+                    fontSize: 13,
+                    fontWeight: 700,
                     color: savedConfirm ? "#22C55E" : "white",
                     background: savedConfirm ? "#DCFCE7" : accentSolid,
-                    border: "none", borderRadius: 10, padding: "6px 14px",
-                    cursor: saving ? "not-allowed" : "pointer", flexShrink: 0,
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "6px 14px",
+                    cursor: saving ? "not-allowed" : "pointer",
                   }}
                 >
                   {savedConfirm ? "✓ Saved!" : saving ? "Saving…" : "Save Trip"}
@@ -589,13 +894,13 @@ export default function Packing() {
 
             {forecastIncomplete && (
               <div style={{ background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB", borderRadius: 12, padding: "10px 14px" }}>
-                <p style={{ fontSize: 12, color: isDark ? "#FCD34D" : "#92400E", margin: 0 }}>⚠️ Partial forecast — recommendations cover the days available. Refresh closer to departure for the full picture.</p>
+                <p style={{ fontSize: 12, color: isDark ? "#FCD34D" : "#92400E", margin: 0 }}>
+                  Partial forecast — refresh closer to departure for the full trip.
+                </p>
               </div>
             )}
 
-            {currentAiInsights && (
-              <PackingAiInsightsCard insights={currentAiInsights} accentSolid={accentSolid} />
-            )}
+            {currentAiInsights && <PackingAiInsightsCard insights={currentAiInsights} accentSolid={accentSolid} />}
 
             <button
               type="button"
@@ -611,44 +916,45 @@ export default function Packing() {
                 fontWeight: 700,
                 width: "100%",
                 cursor: aiLoadingId === "current" ? "not-allowed" : "pointer",
-                opacity: aiLoadingId === "current" ? 0.7 : 1,
               }}
             >
               {aiLoadingId === "current"
                 ? "✨ Generating smart advice…"
                 : currentAiInsights
                   ? "✨ Regenerate smart packing advice"
-                  : "✨ Get smart packing advice"}
+                  : "✨ Get smart packing advice (insights only)"}
             </button>
 
-            {CATEGORIES.map((cat) => {
-              const catItems = currentItems.filter((i) => i.category === cat);
-              if (!catItems.length) return null;
-              return (
-                <PackingCategoryCard
-                  key={cat}
-                  cat={cat}
-                  items={catItems}
-                  accentSolid={accentSolid}
-                  diffAdded={new Set()}
-                  diffRemoved={[]}
-                />
-              );
-            })}
+            <PackingListView
+              items={currentItems}
+              dailyOutfits={currentDailyOutfits}
+              score={currentScore}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              accentSolid={accentSolid}
+              isDark={isDark}
+              checklistState={currentChecklist}
+              onTogglePacked={toggleCurrentChecklist}
+            />
           </>
         )}
 
-        {/* ── Saved trips ── */}
         {(savedTrips.length > 0 || loadingTrips) && (
           <div style={{ marginTop: 8 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: hintColor, letterSpacing: "0.1em", textTransform: "uppercase", paddingLeft: 4, marginBottom: 10 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: hintColor,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                paddingLeft: 4,
+                marginBottom: 10,
+              }}
+            >
               My Trips
             </p>
-
-            {loadingTrips && (
-              <p style={{ fontSize: 14, color: hintColor, textAlign: "center", padding: "16px 0" }}>Loading trips…</p>
-            )}
-
+            {loadingTrips && <p style={{ fontSize: 14, color: hintColor, textAlign: "center" }}>Loading trips…</p>}
             {savedTrips.map((trip) => {
               const isExpanded = expandedTripId === trip.id;
               const isPast = isPastTrip(trip.return_date);
@@ -658,9 +964,11 @@ export default function Packing() {
               const isAiLoading = aiLoadingId === trip.id;
               const diff = tripDiffs[trip.id];
               const items = tripItems[trip.id] ?? [];
+              const dailyOutfits =
+                tripDailyOutfits[trip.id] ??
+                (trip.daily_outfits?.length ? deserializeTripDayOutfits(trip.daily_outfits) : []);
+              const tripView = tripViewModes[trip.id] ?? "list";
               const hasItems = items.length > 0 || (trip.packing_list?.length ?? 0) > 0;
-              const canRequestAi = !isPast && fStatus !== "unavailable";
-              const hasForecastData = (trip.weather_snapshot?.length ?? 0) > 0 || hasItems;
 
               return (
                 <div
@@ -675,40 +983,69 @@ export default function Packing() {
                     opacity: isPast ? 0.75 : 1,
                   }}
                 >
-                  {/* Trip card header */}
                   <div
                     style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
                     onClick={() => openTrip(trip)}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: textPrimary }}>{trip.destination}</span>
-                        <span style={{
-                          fontSize: 11, fontWeight: 700, borderRadius: 6, padding: "2px 7px",
-                          background: isPast ? (isDark ? "#3A3A3C" : "#F3F4F6") : countdown === "Tomorrow" || countdown === "Today" ? (isDark ? "rgba(251,191,36,0.18)" : "#FEF3C7") : (isDark ? "rgba(124,58,237,0.18)" : "#EDE9FE"),
-                          color: isPast ? hintColor : countdown === "Tomorrow" || countdown === "Today" ? (isDark ? "#FCD34D" : "#92400E") : accentSolid,
-                        }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: textPrimary }}>
+                          {trip.trip_name || trip.destination}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            borderRadius: 6,
+                            padding: "2px 7px",
+                            background:
+                              countdown === "Tomorrow" || countdown === "Today"
+                                ? isDark
+                                  ? "rgba(251,191,36,0.18)"
+                                  : "#FEF3C7"
+                                : isDark
+                                  ? "rgba(124,58,237,0.18)"
+                                  : "#EDE9FE",
+                            color: countdown === "Tomorrow" || countdown === "Today" ? (isDark ? "#FCD34D" : "#92400E") : accentSolid,
+                          }}
+                        >
                           {countdown}
                         </span>
                       </div>
                       <p style={{ fontSize: 13, color: hintColor, margin: "2px 0 0" }}>
                         {formatDateRange(trip.departure_date, trip.return_date)} · {tripLengthDays(trip.departure_date, trip.return_date)} days
+                        {trip.laundry_access ? " · laundry" : ""}
                       </p>
                     </div>
-
-                    {/* Delete button */}
                     <div onClick={(e) => e.stopPropagation()}>
                       {confirmDeleteId === trip.id ? (
                         <div style={{ display: "flex", gap: 6 }}>
                           <button
                             onClick={() => confirmDelete(trip.id)}
-                            style={{ fontSize: 12, fontWeight: 700, color: "white", background: "#EF4444", border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "white",
+                              background: "#EF4444",
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "5px 10px",
+                              cursor: "pointer",
+                            }}
                           >
                             Delete
                           </button>
                           <button
                             onClick={() => setConfirmDeleteId(null)}
-                            style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#6B7280", background: inputBg, border: "none", borderRadius: 8, padding: "5px 10px", cursor: "pointer" }}
+                            style={{
+                              fontSize: 12,
+                              color: hintColor,
+                              background: inputBg,
+                              border: "none",
+                              borderRadius: 8,
+                              padding: "5px 10px",
+                              cursor: "pointer",
+                            }}
                           >
                             Cancel
                           </button>
@@ -716,60 +1053,56 @@ export default function Packing() {
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteId(trip.id)}
-                          style={{ width: 32, height: 32, borderRadius: 10, background: inputBg, border: "none", fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 10,
+                            background: inputBg,
+                            border: "none",
+                            cursor: "pointer",
+                          }}
                           aria-label="Delete trip"
                         >
                           🗑️
                         </button>
                       )}
                     </div>
-
-                    <span style={{ fontSize: 18, color: isDark ? "#4B5563" : "#D1D5DB", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s", flexShrink: 0 }}>›</span>
+                    <span style={{ fontSize: 18, color: hintColor, transform: isExpanded ? "rotate(90deg)" : "none" }}>›</span>
                   </div>
 
-                  {/* Expanded content */}
                   {isExpanded && (
                     <div style={{ borderTop: `1px solid ${dividerColor}`, padding: "14px 16px" }}>
-                      {/* Refresh row */}
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
-                        <div>
-                          {trip.last_generated_at && (
-                            <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>Updated {formatLastUpdated(trip.last_generated_at)}</p>
-                          )}
-                          {fStatus === "unavailable" && !isPast && (
-                            <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>Forecast available {forecastAvailableOn(trip.departure_date)}</p>
-                          )}
-                          {fStatus !== "unavailable" && !trip.last_generated_at && (
-                            <p style={{ fontSize: 12, color: accentSolid, margin: 0 }}>Forecast is ready — tap Refresh</p>
-                          )}
-                        </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, gap: 8 }}>
+                        <p style={{ fontSize: 12, color: hintColor, margin: 0 }}>
+                          {trip.last_generated_at ? `Updated ${formatLastUpdated(trip.last_generated_at)}` : "Not generated yet"}
+                        </p>
                         {!isPast && (
                           <button
                             onClick={() => refreshTrip(trip)}
                             disabled={isRefreshing || fStatus === "unavailable"}
                             style={{
-                              fontSize: 13, fontWeight: 700,
-                              color: fStatus === "unavailable" ? hintColor : "white",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: "white",
                               background: fStatus === "unavailable" ? inputBg : accentSolid,
-                              border: "none", borderRadius: 10, padding: "7px 14px",
-                              cursor: isRefreshing || fStatus === "unavailable" ? "not-allowed" : "pointer",
-                              flexShrink: 0,
+                              border: "none",
+                              borderRadius: 10,
+                              padding: "7px 14px",
+                              cursor: isRefreshing ? "not-allowed" : "pointer",
                             }}
                           >
-                            {isRefreshing ? "⟳ Refreshing…" : "↻ Refresh Weather"}
+                            {isRefreshing ? "⟳…" : "↻ Refresh"}
                           </button>
                         )}
                       </div>
 
-                      {trip.ai_insights && (
-                        <PackingAiInsightsCard insights={trip.ai_insights} accentSolid={accentSolid} />
-                      )}
+                      {trip.ai_insights && <PackingAiInsightsCard insights={trip.ai_insights} accentSolid={accentSolid} />}
 
-                      {canRequestAi && hasForecastData && (
+                      {!isPast && fStatus !== "unavailable" && (
                         <button
                           type="button"
                           onClick={() => requestAiInsightsForTrip(trip)}
-                          disabled={isAiLoading || isRefreshing}
+                          disabled={isAiLoading}
                           style={{
                             width: "100%",
                             marginBottom: 12,
@@ -780,52 +1113,48 @@ export default function Packing() {
                             padding: "10px 0",
                             fontSize: 13,
                             fontWeight: 700,
-                            cursor: isAiLoading || isRefreshing ? "not-allowed" : "pointer",
-                            opacity: isAiLoading || isRefreshing ? 0.7 : 1,
+                            cursor: isAiLoading ? "not-allowed" : "pointer",
                           }}
                         >
-                          {isAiLoading
-                            ? "✨ Generating smart advice…"
-                            : trip.ai_insights
-                              ? "✨ Regenerate smart packing advice"
-                              : "✨ Get smart packing advice"}
+                          {isAiLoading ? "✨…" : trip.ai_insights ? "✨ Regenerate advice" : "✨ Smart advice"}
                         </button>
                       )}
 
-                      {canRequestAi && !hasForecastData && (
-                        <p style={{ fontSize: 12, color: hintColor, margin: "0 0 12px", textAlign: "center" }}>
-                          Refresh weather first, then you can request smart packing advice.
-                        </p>
-                      )}
-
-                      {/* Diff banner */}
                       {diff && (diff.added.length > 0 || diff.removed.length > 0) && (
-                        <div style={{ background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB", borderRadius: 12, padding: "10px 14px", marginBottom: 12 }}>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#FCD34D" : "#92400E", margin: "0 0 4px" }}>Weather changed — packing list updated</p>
-                          {diff.added.length > 0 && <p style={{ fontSize: 12, color: "#15803D", margin: 0 }}>+ Now needed: {diff.added.join(", ")}</p>}
-                          {diff.removed.length > 0 && <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#6B7280", margin: "2px 0 0", textDecoration: "line-through" }}>No longer needed: {diff.removed.join(", ")}</p>}
+                        <div
+                          style={{
+                            background: isDark ? "rgba(251,191,36,0.12)" : "#FFFBEB",
+                            borderRadius: 12,
+                            padding: "10px 14px",
+                            marginBottom: 12,
+                          }}
+                        >
+                          <p style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#FCD34D" : "#92400E", margin: 0 }}>
+                            Weather changed — list updated
+                          </p>
+                          {diff.added.length > 0 && (
+                            <p style={{ fontSize: 12, color: "#15803D", margin: "4px 0 0" }}>+ {diff.added.join(", ")}</p>
+                          )}
                         </div>
                       )}
 
-                      {/* Packing list */}
                       {hasItems ? (
-                        CATEGORIES.map((cat) => {
-                          const catItems = items.filter((i) => i.category === cat);
-                          if (!catItems.length) return null;
-                          return (
-                            <PackingCategoryCard
-                              key={cat}
-                              cat={cat}
-                              items={catItems}
-                              accentSolid={accentSolid}
-                              diffAdded={new Set(diff?.added ?? [])}
-                              diffRemoved={diff?.removed ?? []}
-                            />
-                          );
-                        })
+                        <PackingListView
+                          items={items}
+                          dailyOutfits={dailyOutfits}
+                          score={tripScores[trip.id] ?? null}
+                          viewMode={tripView}
+                          onViewModeChange={(m) => setTripViewModes((prev) => ({ ...prev, [trip.id]: m }))}
+                          accentSolid={accentSolid}
+                          isDark={isDark}
+                          diffAdded={new Set(diff?.added ?? [])}
+                          diffRemoved={diff?.removed ?? []}
+                          checklistState={tripChecklists[trip.id]}
+                          onTogglePacked={(key) => toggleTripChecklist(trip.id, key)}
+                        />
                       ) : (
-                        <p style={{ fontSize: 14, color: hintColor, textAlign: "center", padding: "16px 0" }}>
-                          {fStatus === "unavailable" ? "Forecast not yet available — check back closer to departure." : "Tap Refresh to generate your packing list."}
+                        <p style={{ fontSize: 14, color: hintColor, textAlign: "center", padding: 16 }}>
+                          {fStatus === "unavailable" ? "Forecast not available yet." : "Tap Refresh to generate."}
                         </p>
                       )}
                     </div>
@@ -836,124 +1165,15 @@ export default function Packing() {
           </div>
         )}
 
-        {/* Empty saved trips prompt */}
         {!loadingTrips && savedTrips.length === 0 && !currentItems.length && userId && (
-          <div style={{ background: cardBg, borderRadius: 20, padding: "20px 16px", textAlign: "center", boxShadow: cardShadow, border: cardBorder, marginTop: 4 }}>
+          <div style={{ background: cardBg, borderRadius: 20, padding: 20, textAlign: "center", boxShadow: cardShadow, border: cardBorder }}>
             <p style={{ fontSize: 28, margin: "0 0 8px" }}>✈️</p>
             <p style={{ fontSize: 15, fontWeight: 600, color: textPrimary, margin: "0 0 4px" }}>No trips saved yet</p>
-            <p style={{ fontSize: 13, color: hintColor, margin: 0 }}>Search a destination, pick your dates, and save trips here to get updated packing lists as your trip approaches.</p>
+            <p style={{ fontSize: 13, color: hintColor, margin: 0 }}>
+              Plan a trip to see daily outfits and a consolidated packing list.
+            </p>
           </div>
         )}
-
-        {!userId && savedTrips.length === 0 && (
-          <div style={{ background: cardBg, borderRadius: 20, padding: "16px", textAlign: "center", boxShadow: cardShadow, border: cardBorder, marginTop: 4 }}>
-            <p style={{ fontSize: 13, color: hintColor, margin: 0 }}>Sign in to save trips and get weather-updated packing lists.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── AI insights summary ───────────────────────────────────────────────────────
-
-function PackingAiInsightsCard({
-  insights,
-  accentSolid,
-}: {
-  insights: PackingAiInsights;
-  accentSolid: string;
-}) {
-  const isDark = useIsDark();
-  const [highlightsOpen, setHighlightsOpen] = useState(false);
-  return (
-    <div style={{ background: isDark ? "rgba(124,58,237,0.12)" : "#F5F3FF", borderRadius: 16, padding: 14, marginBottom: 12, border: `1px solid ${accentSolid}22` }}>
-      <p style={{ fontSize: 11, fontWeight: 700, color: accentSolid, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 8px" }}>
-        Smart packing advice
-      </p>
-      <p style={{ fontSize: 14, color: isDark ? "#E5E7EB" : "#374151", margin: "0 0 8px", lineHeight: 1.45 }}>{insights.weather_summary}</p>
-      {insights.packing_notes && (
-        <p style={{ fontSize: 13, color: isDark ? "#9BA4B4" : "#6B7280", margin: 0, fontStyle: "italic" }}>{insights.packing_notes}</p>
-      )}
-      {insights.daily_highlights.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          <button
-            type="button"
-            onClick={() => setHighlightsOpen((o) => !o)}
-            style={{ fontSize: 12, fontWeight: 700, color: accentSolid, background: "none", border: "none", padding: 0, cursor: "pointer" }}
-          >
-            {highlightsOpen ? "Hide" : "Show"} day-by-day ({insights.daily_highlights.length})
-          </button>
-          {highlightsOpen && (
-            <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: isDark ? "#9BA4B4" : "#4B5563", lineHeight: 1.5 }}>
-              {insights.daily_highlights.map((h) => (
-                <li key={h.date}>
-                  <strong>{h.date}</strong> — {h.summary}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Shared packing category card ──────────────────────────────────────────────
-
-function PackingCategoryCard({
-  cat,
-  items,
-  accentSolid,
-  diffAdded,
-  diffRemoved,
-}: {
-  cat: string;
-  items: AnnotatedPackingItem[];
-  accentSolid: string;
-  diffAdded: Set<string>;
-  diffRemoved: string[];
-}) {
-  const isDark = useIsDark();
-  const removedSet = new Set(diffRemoved);
-  return (
-    <div style={{ background: isDark ? "#2C2C2E" : "#F9FAFB", borderRadius: 18, padding: 14, marginBottom: 10, border: isDark ? "1px solid rgba(255,255,255,0.06)" : undefined }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-        <span style={{ fontSize: 16 }}>{CATEGORY_EMOJI[cat]}</span>
-        <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? "#6B7280" : "#9CA3AF", letterSpacing: "0.1em", textTransform: "uppercase", margin: 0 }}>
-          {cat}
-        </p>
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {items.map((item, i) => {
-          const isNew = diffAdded.has(item.name);
-          return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, opacity: removedSet.has(item.name) ? 0.4 : 1 }}>
-              <span style={{
-                minWidth: 36, height: 36, borderRadius: 12,
-                background: isNew ? "#DCFCE7" : item.ownedItem ? "#DCFCE7" : isDark ? "rgba(124,58,237,0.18)" : "#EDE9FE",
-                color: isNew ? "#15803D" : item.ownedItem ? "#15803D" : accentSolid,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 800,
-              }}>
-                {item.quantity}×
-              </span>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: isDark ? "#F4F4F5" : "#111827", margin: 0 }}>{item.name}</p>
-                  {isNew && <span style={{ fontSize: 10, fontWeight: 700, color: "#15803D", background: "#DCFCE7", borderRadius: 4, padding: "1px 5px" }}>NEW</span>}
-                </div>
-                {item.ownedItem && (
-                  <p style={{ fontSize: 12, color: "#15803D", margin: 0, fontWeight: 600 }}>✓ You have: {item.ownedItem.name}</p>
-                )}
-                {item.reason && !item.ownedItem && (
-                  <p style={{ fontSize: 12, color: isDark ? "#9BA4B4" : "#9CA3AF", margin: 0 }}>{item.reason}</p>
-                )}
-              </div>
-              <span style={{ fontSize: 16, color: item.ownedItem ? "#22C55E" : isDark ? "#4B5563" : "#D1D5DB" }}>✓</span>
-            </div>
-          );
-        })}
       </div>
     </div>
   );

@@ -231,6 +231,12 @@ export async function updatePackingTrip(
   updates: {
     packing_list?: PackingItem[];
     weather_snapshot?: SerializedDailyForecast[];
+    daily_outfits?: import("@/types").SerializedTripDayOutfit[] | null;
+    checklist_state?: import("@/types").PackingChecklistState | null;
+    trip_name?: string | null;
+    trip_type?: import("@/types").TripType | null;
+    activities?: string[] | null;
+    laundry_access?: boolean;
     last_generated_at?: string;
     ai_insights?: PackingAiInsights | null;
     ai_generated_at?: string | null;

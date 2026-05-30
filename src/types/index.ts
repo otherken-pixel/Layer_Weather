@@ -482,6 +482,30 @@ export interface PackingAiInsights {
   packing_notes: string;
 }
 
+export type TripType = "business" | "leisure" | "family" | "adventure" | "beach" | "other";
+
+export interface SerializedTripDayOutfit {
+  date: string;
+  feelsLikeMin: number;
+  feelsLikeMax: number;
+  precipProb: number;
+  condition: WeatherCondition;
+  outfitType: OutfitType;
+  label: string;
+  description: string;
+  garmentTop: string;
+  garmentBottom: string | null;
+  rainGear: boolean;
+  footwear: FootwearKind;
+  sunglasses: boolean;
+  umbrella: boolean;
+  scarf: boolean;
+  beanie: boolean;
+  gloves: boolean;
+}
+
+export type PackingChecklistState = Record<string, { packed: boolean }>;
+
 export interface SavedPackingTrip {
   id: string;
   user_id: string;
@@ -491,7 +515,13 @@ export interface SavedPackingTrip {
   country_code: string | null;
   departure_date: string;
   return_date: string;
+  trip_name?: string | null;
+  trip_type?: TripType | null;
+  activities?: string[] | null;
+  laundry_access?: boolean;
   packing_list: PackingItem[] | null;
+  daily_outfits?: SerializedTripDayOutfit[] | null;
+  checklist_state?: PackingChecklistState | null;
   weather_snapshot: SerializedDailyForecast[] | null;
   last_generated_at: string | null;
   ai_insights: PackingAiInsights | null;
