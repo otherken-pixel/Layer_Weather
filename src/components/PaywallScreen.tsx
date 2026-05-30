@@ -294,11 +294,28 @@ export default function PaywallScreen() {
         </motion.div>
 
         {/* Legal footer */}
-        <p className="text-center text-xs px-6 pb-2" style={{ color: "rgba(255,255,255,0.25)" }}>
-          Payment will be charged to your Apple ID at confirmation of purchase. Subscription automatically
-          renews unless cancelled at least 24 hours before the end of the current period. You can manage
-          your subscription in App Store settings.
-        </p>
+        <div className="flex flex-col items-center gap-2 px-6 pb-2">
+          <p className="text-center text-xs" style={{ color: "rgba(255,255,255,0.25)" }}>
+            Payment will be charged to your Apple ID at confirmation of purchase. Subscription automatically
+            renews unless cancelled at least 24 hours before the end of the current period. You can manage
+            your subscription in App Store settings.
+          </p>
+          <div className="flex items-center gap-3 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+            <button
+              onClick={() => window.open("https://layerweather.com/privacy", "_system")}
+              className="underline underline-offset-2"
+            >
+              Privacy Policy
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => window.open("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "_system")}
+              className="underline underline-offset-2"
+            >
+              Terms of Use
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
