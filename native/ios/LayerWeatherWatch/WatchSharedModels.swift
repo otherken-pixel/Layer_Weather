@@ -482,6 +482,7 @@ enum AppGroupKeys {
     static let daily = "widget_daily"
     static let timeline = "widget_timeline"
     static let commuteAlert = "widget_commute_alert"
+    static let activeAlerts = "widget_active_alerts"
     static let accentColor = "widget_accent_color"
     static let thermalSensitivity = "widget_thermal_sensitivity"
     static let feedbackAction = "widget_feedback_action"
