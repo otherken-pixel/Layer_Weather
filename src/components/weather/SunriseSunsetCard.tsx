@@ -1,4 +1,5 @@
 import React from "react";
+import { Sunrise, Sunset } from "lucide-react";
 import type { DailyForecast } from "@/types";
 
 interface Props {
@@ -117,12 +118,12 @@ export function SunriseSunsetCard({ daily, isDark }: Props) {
               {/* Time labels */}
               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 13 }}>🌅</span>
+                  <Sunrise size={16} color="rgba(255,210,120,1)" strokeWidth={2.5} aria-hidden="true" />
                   <span style={{ fontSize: 12, fontWeight: 600, color: textPrimary }}>{timeLabel(sr)}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: textPrimary }}>{timeLabel(ss)}</span>
-                  <span style={{ fontSize: 13 }}>🌇</span>
+                  <Sunset size={16} color="rgba(255,160,80,1)" strokeWidth={2.5} aria-hidden="true" />
                 </div>
               </div>
 
