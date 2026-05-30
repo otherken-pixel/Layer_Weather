@@ -34,6 +34,10 @@ export interface Profile {
   subscription_expires_at: string | null;
   trial_started_at: string | null;
   original_transaction_id: string | null;
+  /** Server-granted complimentary Pro. Set by admins (never the client). */
+  comp_access?: boolean;
+  /** When complimentary access ends. null = lifetime (when comp_access is true). */
+  comp_access_until?: string | null;
   updated_at: string;
 }
 

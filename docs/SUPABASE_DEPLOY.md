@@ -82,3 +82,24 @@ Subscription product IDs in the app (`src/lib/storekit.ts`):
 
 - `com.layerweather.app.pro.monthly.v2`
 - `com.layerweather.app.pro.annual.v2`
+
+### Complimentary (free) Pro access
+
+To grant Pro to specific users without an Apple purchase (press, beta, VIPs,
+support make-goods), use the helpers from migration `024_complimentary_access.sql`.
+Run these in the **Supabase SQL editor** (they're blocked for app users):
+
+```sql
+-- Lifetime free Pro
+select grant_comp_access('user@example.com');
+
+-- Time-limited (auto-expires on the client when the date passes)
+select grant_comp_access('user@example.com', now() + interval '1 year', 'beta cohort');
+
+-- Revoke
+select revoke_comp_access('user@example.com');
+```
+
+Access reads `profiles.comp_access` / `comp_access_until` and unlocks Pro on the
+user's next launch. These columns are protected by a trigger so clients cannot
+set them — only the service role / SQL editor can.
