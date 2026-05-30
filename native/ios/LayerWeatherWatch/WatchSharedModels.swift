@@ -304,6 +304,7 @@ struct WidgetData {
     let daily: [DailyWidgetEntry]
     let timeline: [TimelineWidgetEntry]
     let commuteAlert: CommuteWidgetAlert?
+    let activeAlerts: [WidgetAlert]
     let accentColor: String
     let thermalSensitivity: Int
 
