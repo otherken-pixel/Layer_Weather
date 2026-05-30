@@ -15,7 +15,7 @@ import {
 import { useAppStore } from "@/store";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { groupHourlyByDay } from "@/lib/weather";
-import { SevenDayCard } from "@/components/weather/SevenDayCard";
+import { TenDayCard } from "@/components/weather/TenDayCard";
 import { Colors } from "@/constants/colors";
 import type { HourlyForecast } from "@/types";
 
@@ -311,10 +311,10 @@ export default function Forecast() {
         </div>
       )}
 
-      {/* 7-Day forecast */}
+      {/* 10-Day forecast */}
       {weather.daily.length > 0 && (
         <div style={{ margin: "0 14px" }}>
-          <SevenDayCard
+          <TenDayCard
             daily={weather.daily}
             tempUnit={tempUnit}
             hourlyByDay={hourlyByDay}

@@ -7,7 +7,7 @@ import { WeatherWidget } from "@/components/weather/WeatherWidget";
 import { SkyHeader } from "@/components/weather/SkyHeader";
 import { VectorLandscape } from "@/components/weather/VectorLandscape";
 import { WeatherAnimationLayer } from "@/components/weather/WeatherAnimationLayer";
-import { SevenDayCard } from "@/components/weather/SevenDayCard";
+import { TenDayCard } from "@/components/weather/TenDayCard";
 import { NowcastCard } from "@/components/weather/NowcastCard";
 import { AQICard } from "@/components/weather/AQICard";
 import { LocationTabs } from "@/components/weather/LocationTabs";
@@ -762,7 +762,7 @@ export default function Home() {
                     );
                   case "seven_day":
                     return weather.daily.length > 0 ? (
-                      <SevenDayCard
+                      <TenDayCard
                         daily={weather.daily}
                         tempUnit={tempUnit}
                         hourlyByDay={groupHourlyByDay(weather.hourly, weather.daily)}

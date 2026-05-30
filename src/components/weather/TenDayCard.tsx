@@ -24,7 +24,7 @@ interface Props {
   isDark?: boolean;
 }
 
-export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: Props) {
+export function TenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: Props) {
   const [selectedDay, setSelectedDay] = React.useState<number | null>(null);
 
   const allMin = Math.min(...daily.map((d) => toUnit(d.tempMin, tempUnit)));
@@ -71,10 +71,10 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
           marginBottom: 14,
         }}
       >
-        7-Day Forecast
+        10-Day Forecast
       </p>
 
-      {daily.slice(0, 7).map((day, i) => {
+      {daily.slice(0, 10).map((day, i) => {
         const lo = toUnit(day.tempMin, tempUnit);
         const hi = toUnit(day.tempMax, tempUnit);
         const barLeft = ((lo - allMin) / range) * 100;
@@ -89,7 +89,7 @@ export function SevenDayCard({ daily, tempUnit, hourlyByDay, isDark = false }: P
           <div
             key={i}
             style={{
-              borderBottom: i < daily.slice(0, 7).length - 1 ? `1px solid ${dividerColor}` : "none",
+              borderBottom: i < daily.slice(0, 10).length - 1 ? `1px solid ${dividerColor}` : "none",
             }}
           >
             {/* Day row — clickable */}
