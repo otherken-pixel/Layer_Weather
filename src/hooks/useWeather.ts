@@ -395,8 +395,8 @@ export function useWeather() {
           const locationChanged =
             alertsLastLat === undefined ||
             alertsLastLon === undefined ||
-            latitude !== alertsLastLat ||
-            longitude !== alertsLastLon;
+            latitude.toFixed(2) !== alertsLastLat.toFixed(2) ||
+            longitude.toFixed(2) !== alertsLastLon.toFixed(2);
           if (nowTs - alertsLastFetched > 15 * 60 * 1000 || locationChanged) {
             alertsLastFetched = nowTs;
             alertsLastLat = latitude;
