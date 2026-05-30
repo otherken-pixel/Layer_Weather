@@ -21,10 +21,6 @@ interface Props {
   isDark: boolean;
 }
 
-function toUnit(f: number, unit: "F" | "C") {
-  return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
-}
-
 export function FeelsLikeHumidityCard({ chartData, tempUnit, isDark }: Props) {
   const hasHumidity = chartData.some((d) => d.humidity != null);
 
@@ -41,7 +37,7 @@ export function FeelsLikeHumidityCard({ chartData, tempUnit, isDark }: Props) {
   const POINT_WIDTH = 28;
   const chartWidth = Math.max(chartData.length * POINT_WIDTH, 320);
 
-  const temps = chartData.map((d) => toUnit(d.feelsLike, tempUnit));
+  const temps = chartData.map((d) => d.feelsLike);
   const tMin = temps.length ? Math.min(...temps) - 4 : 0;
   const tMax = temps.length ? Math.max(...temps) + 4 : 100;
 
@@ -97,7 +93,7 @@ export function FeelsLikeHumidityCard({ chartData, tempUnit, isDark }: Props) {
                   return (
                     <div style={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, color: tooltipText }}>
                       <p style={{ fontWeight: 700, marginBottom: 4, color: labelColor }}>{time}</p>
-                      {fl && <p>Feels {toUnit(fl.value as number, tempUnit)}°{tempUnit}</p>}
+                      {fl && <p>Feels {fl.value}°{tempUnit}</p>}
                       {hum && <p style={{ color: "#3B82F6" }}>{hum.value}% humidity</p>}
                     </div>
                   );
