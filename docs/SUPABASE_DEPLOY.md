@@ -103,3 +103,29 @@ select revoke_comp_access('user@example.com');
 Access reads `profiles.comp_access` / `comp_access_until` and unlocks Pro on the
 user's next launch. These columns are protected by a trigger so clients cannot
 set them — only the service role / SQL editor can.
+
+
+## Web subscriptions (RevenueCat)
+
+Web checkout uses RevenueCat Web Billing (`@revenuecat/purchases-js`). iOS continues to use StoreKit only.
+
+### Environment variables
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `VITE_REVENUECAT_API_KEY` | Web build (GitHub secret / `.env`) | RevenueCat Web Billing public API key |
+| `REVENUECAT_WEBHOOK_AUTHORIZATION` | Supabase Edge secrets | Must match Authorization header configured in RevenueCat webhook settings |
+| `REVENUECAT_ENTITLEMENT_ID` | Supabase Edge secrets (optional) | Defaults to `pro` |
+
+### RevenueCat dashboard
+
+1. Web Billing app with Stripe connected.
+2. Offering packages named **`monthly`** and **`annual`** (package identifiers).
+3. Entitlement (default **`pro`**) linked to both products.
+4. Webhook URL: `https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`
+5. Set the same Authorization header value as `REVENUECAT_WEBHOOK_AUTHORIZATION` in Supabase.
+6. Use the Supabase user UUID as **App User ID** (the app calls `Purchases.configure` with `profiles.id`).
+
+### Database
+
+Migration `025_web_subscription.sql` adds `web_subscription_*` columns on `profiles`. Premium is granted when either Apple (`subscription_*`) or web (`web_subscription_*`) is active/trialing, or `comp_access` is set.

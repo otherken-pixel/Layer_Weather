@@ -142,3 +142,25 @@ jobs:
             --project-ref "$SUPABASE_PROJECT_REF" \
             --no-verify-jwt \
             --use-api
+
+      - name: Sync RevenueCat webhook secret to Supabase (if configured)
+        env:
+          REVENUECAT_WEBHOOK_AUTHORIZATION: ${{ secrets.REVENUECAT_WEBHOOK_AUTHORIZATION }}
+          REVENUECAT_ENTITLEMENT_ID: ${{ secrets.REVENUECAT_ENTITLEMENT_ID }}
+        run: |
+          if [ -n "$REVENUECAT_WEBHOOK_AUTHORIZATION" ]; then
+            supabase secrets set REVENUECAT_WEBHOOK_AUTHORIZATION="$REVENUECAT_WEBHOOK_AUTHORIZATION" --project-ref "$SUPABASE_PROJECT_REF"
+            echo "REVENUECAT_WEBHOOK_AUTHORIZATION synced"
+          else
+            echo "REVENUECAT_WEBHOOK_AUTHORIZATION not set — configure webhook auth in Supabase Dashboard"
+          fi
+          if [ -n "$REVENUECAT_ENTITLEMENT_ID" ]; then
+            supabase secrets set REVENUECAT_ENTITLEMENT_ID="$REVENUECAT_ENTITLEMENT_ID" --project-ref "$SUPABASE_PROJECT_REF"
+          fi
+
+      - name: Deploy revenuecat-webhook function
+        run: |
+          supabase functions deploy revenuecat-webhook \
+            --project-ref "$SUPABASE_PROJECT_REF" \
+            --no-verify-jwt \
+            --use-api
