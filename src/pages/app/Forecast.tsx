@@ -14,9 +14,13 @@ import {
 } from "recharts";
 import { useAppStore } from "@/store";
 import { useDarkMode } from "@/hooks/useDarkMode";
-import { groupHourlyByDay } from "@/lib/weather";
-import { TenDayCard } from "@/components/weather/TenDayCard";
 import { Colors } from "@/constants/colors";
+import { FeelsLikeHumidityCard } from "@/components/weather/FeelsLikeHumidityCard";
+import { UVIndexCard } from "@/components/weather/UVIndexCard";
+import { PrecipDetailCard } from "@/components/weather/PrecipDetailCard";
+import { PressureTrendCard } from "@/components/weather/PressureTrendCard";
+import { SunriseSunsetCard } from "@/components/weather/SunriseSunsetCard";
+import { HourlyAQICard } from "@/components/weather/HourlyAQICard";
 import type { HourlyForecast } from "@/types";
 
 function toUnit(f: number, unit: "F" | "C") {
@@ -38,6 +42,11 @@ interface ChartPoint {
   windSpeed: number;
   windDir?: number;
   isDay: boolean;
+  humidity?: number;
+  uvIndex?: number;
+  pressure?: number;
+  precipAmount?: number;
+  condition: import("@/types").WeatherCondition;
 }
 
 function buildChartData(hourly: HourlyForecast[], tempUnit: "F" | "C"): ChartPoint[] {
@@ -61,6 +70,11 @@ function buildChartData(hourly: HourlyForecast[], tempUnit: "F" | "C"): ChartPoi
       windSpeed: Math.round(h.windSpeed),
       windDir: h.windDirection,
       isDay: h.isDay,
+      condition: h.condition,
+      humidity: h.humidity,
+      uvIndex: h.uvIndex,
+      pressure: h.pressure,
+      precipAmount: h.precipAmount,
     };
   });
 }
@@ -98,7 +112,7 @@ function CustomTooltip({ active, payload, label, tempUnit, isDark }: {
 
 export default function Forecast() {
   const navigate = useNavigate();
-  const { weather, profile } = useAppStore();
+  const { weather, profile, hourlyAqi } = useAppStore();
   const isDark = useDarkMode(profile?.theme_preference ?? null);
   const tempUnit = profile?.temp_unit ?? "F";
 
@@ -113,11 +127,6 @@ export default function Forecast() {
   const chartData = useMemo(
     () => (weather ? buildChartData(weather.hourly, tempUnit) : []),
     [weather, tempUnit],
-  );
-
-  const hourlyByDay = useMemo(
-    () => (weather ? groupHourlyByDay(weather.hourly, weather.daily) : {}),
-    [weather],
   );
 
   const temps = chartData.map((d) => d.temp);
@@ -311,17 +320,17 @@ export default function Forecast() {
         </div>
       )}
 
-      {/* 10-Day forecast */}
-      {weather.daily.length > 0 && (
-        <div style={{ margin: "0 14px" }}>
-          <TenDayCard
-            daily={weather.daily}
-            tempUnit={tempUnit}
-            hourlyByDay={hourlyByDay}
-            isDark={isDark}
-          />
-        </div>
-      )}
+      {/* Deep-dive cards */}
+      <div style={{ margin: "0 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <FeelsLikeHumidityCard chartData={chartData} tempUnit={tempUnit} isDark={isDark} />
+        <UVIndexCard chartData={chartData} isDark={isDark} />
+        <PrecipDetailCard chartData={chartData} isDark={isDark} />
+        <PressureTrendCard chartData={chartData} pressureTrend={weather.current.pressureTrend} isDark={isDark} />
+        {weather.daily.length > 0 && (
+          <SunriseSunsetCard daily={weather.daily} isDark={isDark} />
+        )}
+        <HourlyAQICard hourlyAqi={hourlyAqi} currentAqi={weather.current.aqiIndex} isDark={isDark} />
+      </div>
 
       <p style={{ textAlign: "center", fontSize: 11, color: textMuted, padding: "12px 16px 4px" }}>
         {weather._source === "weatherkit"

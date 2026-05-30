@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity, EPAObservation, PollenData, SolarData } from "@/types";
+import type { Profile, UserCalibration, WeatherData, LocationData, OutfitRecommendation, DayOutfitTimeline, WardrobeItem, WeatherWardrobePreset, FormalityPreference, ForecastConfidence, NWSAlert, LightningActivity, EPAObservation, PollenData, SolarData, HourlyAqiPoint } from "@/types";
 import type { GoogleWeatherAlert } from "@/lib/googleWeatherAlertsService";
 import type { SvgCatalogEntry } from "@/lib/svgCatalog.types";
 import { loadCardLayout, saveCardLayout, type CardConfig, type CardId } from "@/lib/card-layout";
@@ -60,6 +60,8 @@ interface AppState {
   aqiForecast: { aqi: number; category: string } | null;
   /** Pollen levels for tree, grass, and weed. Null when outside coverage or using cached data. */
   pollenData: PollenData | null;
+  /** Hourly US AQI for the next 48 hours. Populated from the Open-Meteo air quality call when Google Pollen is unavailable. */
+  hourlyAqi: HourlyAqiPoint[] | null;
   /** Google Solar API data for the current location. Null when unavailable. */
   solarData: SolarData | null;
   /** Google Weather API governmental alerts. Empty array when none active or outside coverage. */
@@ -117,6 +119,7 @@ interface AppState {
   setAqiBreakdown: (breakdown: EPAObservation[] | null) => void;
   setAqiForecast: (forecast: { aqi: number; category: string } | null) => void;
   setPollenData: (data: PollenData | null) => void;
+  setHourlyAqi: (data: HourlyAqiPoint[] | null) => void;
   setSolarData: (data: SolarData | null) => void;
   setActiveAlerts: (alerts: GoogleWeatherAlert[]) => void;
   setIsLoadingWeather: (v: boolean) => void;
@@ -151,6 +154,7 @@ const initialState = {
   aqiBreakdown: null as EPAObservation[] | null,
   aqiForecast: null as { aqi: number; category: string } | null,
   pollenData: null as PollenData | null,
+  hourlyAqi: null as HourlyAqiPoint[] | null,
   solarData: null as SolarData | null,
   activeAlerts: [] as GoogleWeatherAlert[],
   isLoadingWeather: false,
@@ -194,6 +198,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAqiBreakdown: (aqiBreakdown) => set({ aqiBreakdown }),
   setAqiForecast: (aqiForecast) => set({ aqiForecast }),
   setPollenData: (pollenData) => set({ pollenData }),
+  setHourlyAqi: (hourlyAqi) => set({ hourlyAqi }),
   setSolarData: (solarData) => set({ solarData }),
   setActiveAlerts: (activeAlerts) => set({ activeAlerts }),
   setIsLoadingWeather: (isLoadingWeather) => set({ isLoadingWeather }),

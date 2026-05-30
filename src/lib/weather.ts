@@ -13,6 +13,7 @@ import type {
   WeatherCondition,
   ForecastConfidence,
   EPAObservation,
+  HourlyAqiPoint,
 } from "@/types";
 
 export { fetchNWSAlerts } from "./nwsService";
@@ -127,6 +128,10 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
   const hourly: HourlyForecast[] = filterHourlyFromNow(
     (hourlyRaw ?? []).map((h) => {
       const tProb = optionalNumber(h.thunderstormProb);
+      const hum = optionalNumber(h.humidity);
+      const uvi = optionalNumber(h.uvIndex);
+      const pres = optionalNumber(h.pressure);
+      const precAmt = optionalNumber(h.precipAmount);
       return {
         time: new Date(h.time as string),
         temp: requireFiniteNumber(h.temp, "hourly.temp"),
@@ -140,6 +145,10 @@ function parseEdgeResponse(raw: Record<string, unknown>): WeatherData {
           : undefined,
         isDay: Boolean(h.isDay),
         ...(tProb != null ? { thunderstormProb: tProb } : {}),
+        ...(hum != null ? { humidity: hum } : {}),
+        ...(uvi != null ? { uvIndex: uvi } : {}),
+        ...(pres != null ? { pressure: pres } : {}),
+        ...(precAmt != null ? { precipAmount: precAmt } : {}),
       };
     }).filter((h) => !Number.isNaN(h.time.getTime())),
   );
@@ -243,6 +252,7 @@ async function fetchFromOpenMeteo(
       "temperature_2m", "apparent_temperature", "precipitation_probability",
       "weather_code", "wind_speed_10m", "wind_direction_10m", "is_day",
       "thunderstorm_probability", "pressure_msl",
+      "relative_humidity_2m", "uv_index", "precipitation",
     ].join(","),
     daily: [
       "temperature_2m_max", "temperature_2m_min",
@@ -316,9 +326,17 @@ async function fetchFromOpenMeteo(
 
   const hourlyTimes = hourly.time as string[];
   const thunderstormProbArr = hourly.thunderstorm_probability as (number | null)[] | undefined;
+  const humidityArr = hourly.relative_humidity_2m as (number | null)[] | undefined;
+  const uvIndexArr = hourly.uv_index as (number | null)[] | undefined;
+  const pressureArr = hourly.pressure_msl as (number | null)[] | undefined;
+  const precipAmountArr = hourly.precipitation as (number | null)[] | undefined;
   const hourlyData: HourlyForecast[] = hourlyTimes
     .map((t, i) => {
       const tProb = thunderstormProbArr?.[i];
+      const hum = humidityArr?.[i];
+      const uvi = uvIndexArr?.[i];
+      const pres = pressureArr?.[i];
+      const precAmt = precipAmountArr?.[i];
       return {
         time: new Date(t),
         temp: Math.round((hourly.temperature_2m as number[])[i]),
@@ -330,6 +348,10 @@ async function fetchFromOpenMeteo(
         windDirection: Math.round((hourly.wind_direction_10m as number[])[i]),
         isDay: (hourly.is_day as number[])[i] === 1,
         ...(tProb != null ? { thunderstormProb: Math.round(tProb) } : {}),
+        ...(hum != null ? { humidity: Math.round(hum) } : {}),
+        ...(uvi != null ? { uvIndex: Math.round(uvi * 10) / 10 } : {}),
+        ...(pres != null ? { pressure: Math.round(pres) } : {}),
+        ...(precAmt != null ? { precipAmount: Math.round(precAmt * 100) / 100 } : {}),
       };
     })
     .filter((h) => !Number.isNaN(h.time.getTime()));
@@ -356,12 +378,12 @@ async function fetchFromOpenMeteo(
 export async function fetchPollenData(
   latitude: number,
   longitude: number,
-): Promise<import("@/types").PollenData | null> {
+): Promise<{ pollen: import("@/types").PollenData | null; hourlyAqi: HourlyAqiPoint[] | null }> {
   // Try Google Pollen API first (better US coverage, especially SE US)
   const googleResult = await fetchGooglePollen(latitude, longitude);
-  if (googleResult !== null) return googleResult;
+  if (googleResult !== null) return { pollen: googleResult, hourlyAqi: null };
 
-  // Fall back to Open-Meteo (free, global, better for non-US regions)
+  // Fall back to Open-Meteo — fetch pollen AND hourly us_aqi in one call
   try {
     const params = new URLSearchParams({
       latitude: latitude.toString(),
@@ -369,27 +391,37 @@ export async function fetchPollenData(
       hourly: [
         "alder_pollen", "birch_pollen", "grass_pollen",
         "mugwort_pollen", "ragweed_pollen", "olive_pollen",
+        "us_aqi",
       ].join(","),
       timezone: "auto",
-      forecast_days: "1",
+      forecast_days: "2",
     });
     const res = await fetchWithTimeout(
       `https://air-quality-api.open-meteo.com/v1/air-quality?${params}`,
       {},
       8_000,
     );
-    if (!res.ok) return null;
+    if (!res.ok) return { pollen: null, hourlyAqi: null };
     const json = await res.json();
     const h = json?.hourly as Record<string, (number | null)[]> | undefined;
-    if (!h) return null;
+    if (!h) return { pollen: null, hourlyAqi: null };
 
     const times = h.time as unknown as string[] | undefined;
-    if (!times || times.length === 0) return null;
+    if (!times || times.length === 0) return { pollen: null, hourlyAqi: null };
     const nowMs = Date.now();
     let curIdx = 0;
     for (let i = 0; i < times.length; i++) {
       if (new Date(times[i]).getTime() <= nowMs) curIdx = i;
     }
+
+    // Extract hourly AQI for the next 48 hours
+    const aqiArr = h.us_aqi;
+    const hourlyAqi: HourlyAqiPoint[] = aqiArr
+      ? times
+          .map((t, i) => ({ time: new Date(t), aqi: aqiArr[i] ?? -1 }))
+          .filter((pt) => pt.time.getTime() >= nowMs - 60 * 60 * 1000 && pt.aqi >= 0)
+          .slice(0, 48)
+      : [];
 
     const curVal = (key: string): number | null => {
       const arr = h![key];
@@ -415,26 +447,29 @@ export async function fetchPollenData(
     const hasGrass = grass !== null;
     const hasWeed = mugwort !== null || ragweed !== null;
 
-    if (!hasTree && !hasGrass && !hasWeed) return null;
+    let pollen: import("@/types").PollenData | null = null;
+    if (hasTree || hasGrass || hasWeed) {
+      const tree = hasTree ? Math.max(alder ?? 0, birch ?? 0, olive ?? 0) : null;
+      const weed = hasWeed ? Math.max(mugwort ?? 0, ragweed ?? 0) : null;
 
-    const tree = hasTree ? Math.max(alder ?? 0, birch ?? 0, olive ?? 0) : null;
-    const weed = hasWeed ? Math.max(mugwort ?? 0, ragweed ?? 0) : null;
+      const withReading: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
+      if (tree !== null) withReading.push({ type: "tree", val: tree });
+      if (grass !== null) withReading.push({ type: "grass", val: grass });
+      if (weed !== null) withReading.push({ type: "weed", val: weed });
 
-    const withReading: Array<{ type: "tree" | "grass" | "weed"; val: number }> = [];
-    if (tree !== null) withReading.push({ type: "tree", val: tree });
-    if (grass !== null) withReading.push({ type: "grass", val: grass });
-    if (weed !== null) withReading.push({ type: "weed", val: weed });
+      const nonZero = withReading.filter((c) => c.val > 0).sort((a, b) => b.val - a.val);
+      const dominant = nonZero.length > 0 ? nonZero[0].type : null;
 
-    const nonZero = withReading.filter((c) => c.val > 0).sort((a, b) => b.val - a.val);
-    const dominant = nonZero.length > 0 ? nonZero[0].type : null;
+      const levels = withReading.map((c) => pollenLevel(c.val));
+      const ORDER: Array<import("@/types").PollenLevel> = ["very_high", "high", "moderate", "low"];
+      const level = ORDER.find((l) => levels.includes(l)) ?? null;
 
-    const levels = withReading.map((c) => pollenLevel(c.val));
-    const ORDER: Array<import("@/types").PollenLevel> = ["very_high", "high", "moderate", "low"];
-    const level = ORDER.find((l) => levels.includes(l)) ?? null;
+      pollen = { tree, grass, weed, dominant, level, source: "open-meteo" };
+    }
 
-    return { tree, grass, weed, dominant, level, source: "open-meteo" };
+    return { pollen, hourlyAqi: hourlyAqi.length > 0 ? hourlyAqi : null };
   } catch {
-    return null;
+    return { pollen: null, hourlyAqi: null };
   }
 }
 
