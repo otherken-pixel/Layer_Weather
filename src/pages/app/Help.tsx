@@ -375,33 +375,55 @@ const SECTIONS: HelpSection[] = [
         question: "How do I create a packing list?",
         answer: (
           <>
-            <p>Go to the Packing tab and follow these steps:</p>
+            <p>Go to the <strong>Packing</strong> tab and follow these steps:</p>
             <ol style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li>Type your travel destination in the search bar and select from the results.</li>
-              <li>Set your departure and return dates using the date pickers.</li>
-              <li>Tap <strong>Pack for [Destination]</strong> — the app fetches the weather forecast for your exact travel dates and builds a packing list based on expected conditions.</li>
-              <li>Tap <strong>Save Trip</strong> to store the trip so you can come back and refresh it as your departure approaches.</li>
+              <li><strong>Optional:</strong> Enter a trip name (e.g. "Chicago conference") — otherwise the destination name is used.</li>
+              <li>Search for your destination and pick a result from the list.</li>
+              <li>Choose a <strong>trip type</strong> (Leisure, Business, Family, Adventure, Beach, or Other).</li>
+              <li>Tap any <strong>activity</strong> tags that apply (sightseeing, hiking, beach, meetings, and more) — these can add gear like hiking boots or a swimsuit.</li>
+              <li>Turn on <strong>Laundry access</strong> if you'll be able to wash clothes during the trip — the list will suggest fewer tops because you can re-wear them.</li>
+              <li>Set your <strong>departure</strong> and <strong>return</strong> dates.</li>
+              <li>Tap <strong>Pack for [Destination]</strong> — the app fetches the forecast for those dates and builds a daily outfit plan plus a consolidated packing list.</li>
+              <li>Review the list, check off items as you pack, then tap <strong>Save Trip</strong> to keep it under <em>My Trips</em>.</li>
             </ol>
+            <p style={{ marginTop: 8 }}>For trips more than 16 days out, tap <strong>Save for Later</strong> when the forecast isn't available yet — the card will show when the forecast unlocks.</p>
           </>
         ),
       },
       {
         question: "How is the packing list generated?",
         answer: (
-          <p>Layer Weather pulls the weather forecast for your destination covering your exact travel dates. It uses Apple WeatherKit (primary) for trips within 10 days, and an extended 16-day forecast for trips up to 16 days out. The same outfit logic from the Today tab — your warmth thresholds, rain tolerance, and personal wardrobe — is applied to recommend the right types and quantities of clothing. Items that match clothing in your saved Wardrobe are marked with a green checkmark so you know you already own them.</p>
+          <>
+            <p>Layer Weather pulls the weather forecast for your destination across your exact travel dates. It uses Apple WeatherKit (primary) for trips within 10 days, and an extended 16-day Open-Meteo forecast for trips up to 16 days out.</p>
+            <p style={{ marginTop: 8 }}>For <strong>each day</strong> of the trip, the app runs the <strong>same outfit engine as the Today tab</strong> — your warmth thresholds, rain tolerance, style preference, and outfit formality from Settings. That produces a "what to wear" recommendation per day.</p>
+            <p style={{ marginTop: 8 }}>Those daily outfits are then <strong>merged into one packing list</strong>: duplicate items are combined, rain gear is consolidated (one rain jacket instead of one per rainy day), and quantities are adjusted if you enabled laundry access. Items that match clothing in your saved Wardrobe show a green <strong>✓ You have</strong> line when your wardrobe has been loaded (the Packing tab loads it automatically when you're signed in).</p>
+          </>
         ),
       },
       {
-        question: "What is the Smart Packing Advice section?",
+        question: "What are the Packing list and Daily outfits tabs?",
         answer: (
           <>
-            <p>After your packing list is generated, a <strong>Smart packing advice</strong> card may appear above the item list. This section is powered by AI and provides:</p>
+            <p>After you generate a trip, two views are available at the top of the results:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong>Weather summary</strong> — A plain-language description of what conditions to expect across your trip (e.g. "mix of warm sunny days and a few rainy afternoons").</li>
-              <li><strong>Packing notes</strong> — Practical tips specific to your trip, like "pack light layers you can add or remove" or "bring waterproof shoes."</li>
-              <li><strong>Day-by-day highlights</strong> — Tap <em>Show day-by-day</em> to expand a breakdown of notable weather on individual days.</li>
+              <li><strong>Packing list</strong> — Your consolidated luggage list grouped by category (outerwear, tops, bottoms, footwear, accessories). Tap the checkbox beside each item to mark it packed. A <strong>Light packer score</strong> (0–100) appears at the top with a short tip — higher scores mean a leaner pack that's more likely to fit in a carry-on.</li>
+              <li><strong>Daily outfits</strong> — A day-by-day timeline showing the forecast range, outfit label, and garment summary for each date of the trip (e.g. "Light jacket weather" with top and bottom names).</li>
             </ul>
-            <p style={{ marginTop: 8 }}>This advice is generated automatically when a forecast is available and does not cost extra. It updates when you refresh the trip.</p>
+            <p style={{ marginTop: 8 }}>Saved trips remember your checklist progress. Expand a trip under <em>My Trips</em> to switch views and refresh when the forecast updates.</p>
+          </>
+        ),
+      },
+      {
+        question: "What is Smart packing advice?",
+        answer: (
+          <>
+            <p>Smart packing advice is <strong>optional</strong> AI commentary — tap <strong>✨ Get smart packing advice (insights only)</strong> after your list is generated. It does <strong>not</strong> replace your rule-based packing list; it adds a <strong>Smart packing advice</strong> card with:</p>
+            <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+              <li><strong>Weather summary</strong> — Plain-language overview of conditions across the trip.</li>
+              <li><strong>Packing notes</strong> — Practical tips (layers, footwear, etc.).</li>
+              <li><strong>Day-by-day highlights</strong> — Tap <em>Show day-by-day</em> for notable weather on individual dates.</li>
+            </ul>
+            <p style={{ marginTop: 8 }}>Your packing list and daily outfits stay driven by the same deterministic engine as Today. Regenerate advice anytime after a refresh; it requires a forecast and your account to be signed in.</p>
           </>
         ),
       },
@@ -409,8 +431,8 @@ const SECTIONS: HelpSection[] = [
         question: "Can I save multiple upcoming trips?",
         answer: (
           <>
-            <p>Yes — tap <strong>Save Trip</strong> after generating a packing list, and the trip is added to the <em>My Trips</em> section below the form. You can save as many future trips as you like. Each trip card shows the destination, date range, and how far away it is.</p>
-            <p style={{ marginTop: 8 }}>For trips more than 16 days away, you can still save the trip — the forecast won't be available yet, but the card will show when the forecast unlocks so you know when to come back.</p>
+            <p>Yes — tap <strong>Save Trip</strong> after generating a packing list, and the trip appears in <em>My Trips</em>. You can save as many future trips as you like. Each card shows the trip name (or destination), date range, day count, laundry badge if enabled, and a countdown (Today, Tomorrow, In N days).</p>
+            <p style={{ marginTop: 8 }}>For trips more than 16 days away, use <strong>Save for Later</strong> — the forecast won't generate yet, but the card shows when the forecast unlocks.</p>
           </>
         ),
       },
@@ -418,12 +440,12 @@ const SECTIONS: HelpSection[] = [
         question: "How do I refresh a saved trip's packing list?",
         answer: (
           <>
-            <p>Tap any saved trip card to expand it, then tap <strong>↻ Refresh Weather</strong>. The app fetches the latest forecast for your trip dates and regenerates the packing list. If anything changed since your last refresh, a banner highlights:</p>
+            <p>Tap any saved trip card to expand it, then tap <strong>↻ Refresh</strong>. The app fetches the latest forecast, rebuilds daily outfits, and updates the consolidated list. If anything changed since your last refresh, a banner highlights:</p>
             <ul style={{ marginTop: 8, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 6 }}>
-              <li><strong style={{ color: "#15803D" }}>+ Now needed</strong> — items added because of new weather (e.g. rain jacket added when rain arrives).</li>
-              <li><strong style={{ color: "#6B7280" }}>No longer needed</strong> — items removed because conditions improved (e.g. heavy coat removed if a cold snap passes).</li>
+              <li><strong style={{ color: "#15803D" }}>+ Now needed</strong> — items added because of new weather (e.g. a rain jacket when rain arrives).</li>
+              <li><strong style={{ color: "#6B7280" }}>No longer needed</strong> — items removed because conditions improved.</li>
             </ul>
-            <p style={{ marginTop: 8 }}>The updated list and new weather snapshot are saved automatically.</p>
+            <p style={{ marginTop: 8 }}>The updated list, daily outfits, weather snapshot, and last-updated time are saved automatically. Your checklist marks are preserved unless item names change.</p>
           </>
         ),
       },
