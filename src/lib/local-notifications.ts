@@ -15,6 +15,7 @@ const ID = {
   FEEDBACK_REQUEST:   1006,
   // Context-triggered (fired once, no persistent schedule)
   NOWCAST_RAIN:       2001,
+  NOWCAST_CLEAR:      2006,
   LIGHTNING:          2002,
   AQI:                2003,
   POLLEN:             2004,
@@ -437,7 +438,7 @@ export async function maybeFireNowcastClearAlert(
   markFired(clearKey);
 
   await fireNow(
-    ID.NOWCAST_RAIN + 1,
+    ID.NOWCAST_CLEAR,
     `Rain clearing in ${clearInMinutes} minutes`,
     "Conditions improving soon. Good time to head out.",
     "weather-nowcast",
