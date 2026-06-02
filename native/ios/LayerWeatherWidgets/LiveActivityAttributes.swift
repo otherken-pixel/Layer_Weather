@@ -52,13 +52,15 @@ struct LayerWeatherActivityAttributes: ActivityAttributes {
         }
 
         var nowcastSummary: String {
+            if precipProb > 50 {
+                if let stop = rainStopsInMinutes, stop <= 20 {
+                    return stop <= 2 ? "Clearing now" : "Clearing in \(stop) min"
+                }
+                return "Raining now"
+            }
             if let start = rainStartsInMinutes, start <= 20 {
                 return start <= 2 ? "Rain starting now" : "Rain in \(start) min"
             }
-            if let stop = rainStopsInMinutes, stop <= 20 {
-                return stop <= 2 ? "Clearing now" : "Clearing in \(stop) min"
-            }
-            if precipProb > 60 { return "Raining now" }
             return outfitLabel
         }
 

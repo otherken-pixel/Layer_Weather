@@ -5,6 +5,7 @@ import { syncWidgetFromAppState } from "@/lib/widget-location";
 import { Capacitor } from "@capacitor/core";
 import { loadWeatherCache, clearWeatherCache, type WeatherCachePayload } from "@/lib/cache";
 import { resetPushNotificationSession } from "@/lib/notifications";
+import { endLiveActivity } from "@/lib/live-activity";
 import { mergeFromCloud } from "@/lib/saved-locations";
 import { clearCardLayout, type CardConfig } from "@/lib/card-layout";
 import type { Profile, UserCalibration } from "@/types";
@@ -139,6 +140,7 @@ export function useAuth() {
         localStorage.removeItem("wt_today_event_date");
         clearCardLayout();
         await resetPushNotificationSession();
+        await endLiveActivity();
         reset();
         await clearWeatherCache();
       }

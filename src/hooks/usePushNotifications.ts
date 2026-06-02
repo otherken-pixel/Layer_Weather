@@ -78,22 +78,26 @@ export function usePushNotifications(): void {
     });
   }, [weather, outfit]);
 
-  // Context-triggered alerts + Live Activity update when weather/env data arrives
+  // Context-triggered weather alerts when data arrives
   useEffect(() => {
-    if (!weather || !profile || !outfit) return;
-    const city = profile.last_city ?? "your location";
-    const accent = profile.accent_color ?? "#4F46E5";
-
-    // Start or update Live Activity
-    startOrUpdateLiveActivity(
-      weather, outfit, city, accent, nwsAlerts, activeAlerts, lightningActivity,
-    ).catch(() => {});
+    if (!weather || !profile) return;
 
     loadNotifPrefs(profile.notif_prefs).then(async (prefs) => {
       await maybeFireNowcastAlert(weather, prefs);
       await maybeFireNowcastClearAlert(weather, prefs);
       await maybeFireUvAlert(weather, prefs);
     }).catch(() => {});
+  }, [weather, profile]);
+
+  // Live Activity update when weather + outfit are available
+  useEffect(() => {
+    if (!weather || !profile || !outfit) return;
+    const city = profile.last_city ?? "your location";
+    const accent = profile.accent_color ?? "#4F46E5";
+
+    startOrUpdateLiveActivity(
+      weather, outfit, city, accent, nwsAlerts, activeAlerts, lightningActivity,
+    ).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weather, outfit, profile]);
 
