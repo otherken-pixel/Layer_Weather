@@ -140,6 +140,21 @@ struct LayerWeatherInteractiveWidget: Widget {
 }
 #endif
 
+// MARK: - Live Activity Widget (iOS 16.2+)
+
+@available(iOS 16.2, *)
+struct LayerWeatherLiveActivityWidget: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: LayerWeatherActivityAttributes.self) { context in
+            WeatherLiveActivityView(context: context)
+                .activityBackgroundTint(Color.clear)
+                .activitySystemActionForegroundColor(Color.white)
+        } dynamicIsland: { context in
+            WeatherExpandedIslandView(context: context)
+        }
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -150,6 +165,7 @@ struct LayerWeatherWidgetBundle: WidgetBundle {
         LayerWeatherLargeWidget()
         LayerWeatherLockScreenWidget()
         interactiveWidget
+        liveActivityWidget
     }
 
     @WidgetBundleBuilder
@@ -158,6 +174,13 @@ struct LayerWeatherWidgetBundle: WidgetBundle {
             #if canImport(AppIntents)
             LayerWeatherInteractiveWidget()
             #endif
+        }
+    }
+
+    @WidgetBundleBuilder
+    var liveActivityWidget: some Widget {
+        if #available(iOS 16.2, *) {
+            LayerWeatherLiveActivityWidget()
         }
     }
 }

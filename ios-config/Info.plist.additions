@@ -33,5 +33,14 @@
   <key>ITSAppUsesNonExemptEncryption</key>
   <false/>
 
+  <!-- Live Activities — required in the main app target Info.plist (iOS 16.2+) -->
+  <key>NSSupportsLiveActivities</key>
+  <true/>
+
+  <!--
+    Also add to App.entitlements (same as widget target):
+      group.com.layerweather.shared  — already required for widgets
+  -->
+
 </dict>
 </plist>

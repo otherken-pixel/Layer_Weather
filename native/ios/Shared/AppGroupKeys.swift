@@ -16,4 +16,6 @@ enum AppGroupKeys {
     static let locationPreference = "widget_location_preference"
     static let supabaseURL = "widget_supabase_url"
     static let supabaseAnonKey = "widget_supabase_anon_key"
+    // Live Activity
+    static let liveActivityId = "live_activity_id"
 }
