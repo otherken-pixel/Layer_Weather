@@ -2,6 +2,27 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
 import { upsertProfile } from "./supabase";
 
+// ── Android push notification channels ───────────────────────────────────────
+// These mirror the local-notification channels so that server-sent FCM pushes
+// land in the correct Android channel (set via android.notification.channel_id).
+
+const PUSH_CHANNELS = [
+  { id: "weather-critical",  name: "Severe Weather Alerts",    importance: 5 as const, visibility: 1 as const },
+  { id: "weather-nowcast",   name: "Precipitation Nowcast",    importance: 4 as const, visibility: 1 as const },
+  { id: "weather-daily",     name: "Daily Outfit Briefing",    importance: 4 as const, visibility: 1 as const },
+  { id: "weather-commute",   name: "Commute Alerts",           importance: 4 as const, visibility: 1 as const },
+  { id: "weather-health",    name: "Air Quality & Pollen",     importance: 3 as const, visibility: 1 as const },
+  { id: "weather-trips",     name: "Trip & Packing",           importance: 3 as const, visibility: 1 as const },
+  { id: "weather-feedback",  name: "Outfit Feedback",          importance: 2 as const, visibility: 0 as const },
+  { id: "weather-weekly",    name: "Weekly Preview",           importance: 3 as const, visibility: 1 as const },
+];
+
+async function createPushChannels(): Promise<void> {
+  for (const ch of PUSH_CHANNELS) {
+    await PushNotifications.createChannel(ch).catch(() => {});
+  }
+}
+
 let listenersAttached = false;
 let tokenSavedForUser: string | null = null;
 /** User id for whom push registration callbacks should persist tokens (updated on every register call). */
@@ -14,9 +35,19 @@ async function saveToken(userId: string, token: string): Promise<void> {
   tokenSavedForUser = key;
 }
 
+/** Navigation callback set by the app layout when the router is ready. */
+let deepLinkNavigate: ((path: string) => void) | null = null;
+
+/** Register a navigation function so push notification taps can route to screens. */
+export function setPushDeepLinkNavigator(fn: (path: string) => void): void {
+  deepLinkNavigate = fn;
+}
+
 function attachListeners(): void {
   if (listenersAttached) return;
   listenersAttached = true;
+
+  void createPushChannels();
 
   PushNotifications.addListener("registration", async (token) => {
     const uid = activePushUserId;
@@ -35,11 +66,15 @@ function attachListeners(): void {
   });
 
   PushNotifications.addListener("pushNotificationReceived", (_notification) => {
-    // Foreground notification received — app UI already reflects current weather.
+    // Foreground push received; real-time weather data is already in UI.
   });
 
-  PushNotifications.addListener("pushNotificationActionPerformed", (_action) => {
-    // Deep-link handling can be wired here in a future release.
+  PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+    const data = action.notification.data as Record<string, string> | undefined;
+    const route = data?.route;
+    if (route && deepLinkNavigate) {
+      deepLinkNavigate(route);
+    }
   });
 }
 

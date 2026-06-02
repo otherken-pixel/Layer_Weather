@@ -42,6 +42,8 @@ export interface Profile {
   comp_access?: boolean;
   /** When complimentary access ends. null = lifetime (when comp_access is true). */
   comp_access_until?: string | null;
+  /** Push notification preferences (JSONB). Merged with DEFAULT_NOTIF_PREFS on read. */
+  notif_prefs?: import("@/types/notification-prefs").NotificationPrefs | null;
   updated_at: string;
 }
 
