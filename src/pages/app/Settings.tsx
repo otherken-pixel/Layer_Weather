@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signOut, deleteUserAccount, upsertProfile, getProfile } from "@/lib/supabase";
+import NotificationSettingsSection from "@/components/settings/NotificationSettingsSection";
 import { getProDisplayState } from "@/lib/subscription-display";
 import ProSubscriptionCard from "@/components/ProSubscriptionCard";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -994,6 +995,23 @@ export default function Settings() {
             </p>
           </Section>
         )}
+
+        {/* Notifications */}
+        <Section title="Notifications" labelColor={sectionLabelColor}>
+          <NotificationSettingsSection
+            isDark={isDark}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            cardShadow={cardShadow}
+            rowTextColor={rowTextColor}
+            hintColor={hintColor}
+            sectionLabelColor={sectionLabelColor}
+            dividerColor={dividerColor}
+            inputBg={inputBg}
+            inputBorder={inputBorder}
+            inputText={inputText}
+          />
+        </Section>
 
         {/* Nerd Mode */}
         <Section title="Nerd Mode" labelColor={sectionLabelColor}>
