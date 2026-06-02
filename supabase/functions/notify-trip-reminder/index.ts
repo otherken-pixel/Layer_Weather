@@ -105,7 +105,7 @@ serve(async (req: Request): Promise<Response> => {
     if (notifPrefs && notifPrefs.tripWeatherReminder === false) continue;
 
     try {
-      await fetch(pushFnUrl, {
+      const response = await fetch(pushFnUrl, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${cronSecret}`,
@@ -125,6 +125,9 @@ serve(async (req: Request): Promise<Response> => {
           interruptionLevel: "active",
         }),
       });
+      if (!response.ok) {
+        throw new Error(`Push notification returned ${response.status}`);
+      }
       await supabase
         .from("packing_trips")
         .update({ trip_reminder_sent_date: todayStr })
