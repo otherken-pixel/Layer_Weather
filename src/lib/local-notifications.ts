@@ -15,6 +15,7 @@ const ID = {
   FEEDBACK_REQUEST:   1006,
   // Context-triggered (fired once, no persistent schedule)
   NOWCAST_RAIN:       2001,
+  NOWCAST_CLEAR:      2006,
   LIGHTNING:          2002,
   AQI:                2003,
   POLLEN:             2004,

@@ -125,6 +125,10 @@ serve(async (req: Request): Promise<Response> => {
           interruptionLevel: "active",
         }),
       });
+      await supabase
+        .from("packing_trips")
+        .update({ trip_reminder_sent_date: todayStr })
+        .eq("id", trip.id);
       sent++;
     } catch (err) {
       console.error(`Failed to send trip reminder for user ${trip.user_id}:`, err);
