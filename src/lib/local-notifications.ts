@@ -437,7 +437,7 @@ export async function maybeFireNowcastClearAlert(
   markFired(clearKey);
 
   await fireNow(
-    ID.NOWCAST_RAIN + 1,
+    ID.NOWCAST_CLEAR,
     `Rain clearing in ${clearInMinutes} minutes`,
     "Conditions improving soon. Good time to head out.",
     "weather-nowcast",

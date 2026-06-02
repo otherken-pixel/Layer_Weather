@@ -41,6 +41,15 @@ export function usePushNotifications(): void {
     return cleanup;
   }, [navigate]);
 
+  // Reschedule when commute times change (must run before scheduling effect)
+  const commuteStart = profile?.commute_start;
+  const commuteEnd = profile?.commute_end;
+  useEffect(() => {
+    if (!userId || !profile) return;
+    scheduledForUser.current = null; // force reschedule
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commuteStart, commuteEnd]);
+
   // Schedule/reschedule all repeating local notifications when prefs or commute changes
   useEffect(() => {
     if (!userId || !profile) return;
@@ -56,15 +65,6 @@ export function usePushNotifications(): void {
       await rescheduleAllNotifications({ prefs, commuteStart, commuteEnd, city, trips });
     }).catch(() => {});
   }, [userId, profile]);
-
-  // Reschedule when commute times change
-  const commuteStart = profile?.commute_start;
-  const commuteEnd = profile?.commute_end;
-  useEffect(() => {
-    if (!userId || !profile) return;
-    scheduledForUser.current = null; // force reschedule
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commuteStart, commuteEnd]);
 
   // Legacy outfit alert (browser Notification API, fires when app is open)
   useEffect(() => {
