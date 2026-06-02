@@ -79,8 +79,10 @@ export function nextOccurrence(timeStr: string): Date {
 export function nextSundayAt(timeStr: string): Date {
   const [h, m] = timeStr.split(":").map(Number);
   const now = new Date();
-  const daysUntilSunday = (7 - now.getDay()) % 7 || 7;
   const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  if (now.getDay() === 0 && target > now) return target;
+  const daysUntilSunday = now.getDay() === 0 ? 7 : (7 - now.getDay()) % 7;
   target.setDate(now.getDate() + daysUntilSunday);
   target.setHours(h, m, 0, 0);
   return target;

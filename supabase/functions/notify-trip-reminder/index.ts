@@ -63,11 +63,13 @@ serve(async (req: Request): Promise<Response> => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split("T")[0];
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const { data: trips, error: tripsError } = await supabase
     .from("packing_trips")
     .select("id, user_id, destination, departure_date")
-    .eq("departure_date", tomorrowStr);
+    .eq("departure_date", tomorrowStr)
+    .is("trip_reminder_sent_date", null);
 
   if (tripsError) {
     console.error("DB error:", tripsError);
