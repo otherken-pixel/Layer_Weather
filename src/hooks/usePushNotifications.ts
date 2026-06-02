@@ -5,6 +5,7 @@ import { registerPushNotifications, maybeShowOutfitAlert, setPushDeepLinkNavigat
 import { setupNotificationChannels, attachLocalNotificationListener, rescheduleAllNotifications, maybeFireNowcastAlert, maybeFireNowcastClearAlert, maybeFireLightningAlert, maybeFireAqiAlert, maybeFirePollenAlert, maybeFireUvAlert } from "@/lib/local-notifications";
 import { loadNotifPrefs } from "@/lib/notification-prefs";
 import { getPackingTrips } from "@/lib/supabase";
+import { startOrUpdateLiveActivity } from "@/lib/live-activity";
 
 /**
  * Registers push notifications, sets up Android channels, wires all
@@ -13,7 +14,7 @@ import { getPackingTrips } from "@/lib/supabase";
  */
 export function usePushNotifications(): void {
   const navigate = useNavigate();
-  const { userId, profile, weather, outfit, lightningActivity, aqiBreakdown, pollenData } = useAppStore();
+  const { userId, profile, weather, outfit, lightningActivity, aqiBreakdown, pollenData, nwsAlerts, activeAlerts } = useAppStore();
   const channelsReady = useRef(false);
   const scheduledForUser = useRef<string | null>(null);
 
@@ -77,15 +78,24 @@ export function usePushNotifications(): void {
     });
   }, [weather, outfit]);
 
-  // Context-triggered alerts: fire when weather/env data arrives
+  // Context-triggered alerts + Live Activity update when weather/env data arrives
   useEffect(() => {
-    if (!weather || !profile) return;
+    if (!weather || !profile || !outfit) return;
+    const city = profile.last_city ?? "your location";
+    const accent = profile.accent_color ?? "#4F46E5";
+
+    // Start or update Live Activity
+    startOrUpdateLiveActivity(
+      weather, outfit, city, accent, nwsAlerts, activeAlerts, lightningActivity,
+    ).catch(() => {});
+
     loadNotifPrefs(profile.notif_prefs).then(async (prefs) => {
       await maybeFireNowcastAlert(weather, prefs);
       await maybeFireNowcastClearAlert(weather, prefs);
       await maybeFireUvAlert(weather, prefs);
     }).catch(() => {});
-  }, [weather, profile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weather, outfit, profile]);
 
   useEffect(() => {
     if (!profile) return;

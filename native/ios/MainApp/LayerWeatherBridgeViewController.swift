@@ -9,6 +9,7 @@ class LayerWeatherBridgeViewController: CAPBridgeViewController {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(WidgetBridgePlugin())
         bridge?.registerPluginInstance(StoreKitPlugin())
+        bridge?.registerPluginInstance(LiveActivityPlugin())
         WatchConnectivityHandler.shared.activate()
     }
 }
