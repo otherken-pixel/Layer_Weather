@@ -14,9 +14,11 @@ struct NowcastBar: View {
 
     private var buckets: [Double] {
         guard !values.isEmpty else { return Array(repeating: 0, count: barCount) }
-        let step = max(1, values.count / barCount)
         return (0..<barCount).map { i in
-            let slice = Array(values[(i * step)..<min((i + 1) * step, values.count)])
+            let start = i * values.count / barCount
+            let end = (i + 1) * values.count / barCount
+            guard start < end else { return 0 }
+            let slice = values[start..<end]
             return slice.reduce(0, +) / Double(slice.count)
         }
     }

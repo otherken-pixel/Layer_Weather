@@ -74,20 +74,22 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         let state = buildState(from: call)
 
         // End any existing activity first
-        endAllActivities()
+        Task {
+            await endAllActivities()
 
-        do {
-            let activity = try Activity<LayerWeatherActivityAttributes>.request(
-                attributes: attrs,
-                contentState: state,
-                pushType: nil
-            )
-            // Persist the activity ID to App Group so it survives restarts
-            UserDefaults(suiteName: AppGroupKeys.suiteName)?
-                .set(activity.id, forKey: AppGroupKeys.liveActivityId)
-            call.resolve(["started": true, "activityId": activity.id])
-        } catch {
-            call.resolve(["started": false, "reason": error.localizedDescription])
+            do {
+                let activity = try Activity<LayerWeatherActivityAttributes>.request(
+                    attributes: attrs,
+                    contentState: state,
+                    pushType: nil
+                )
+                // Persist the activity ID to App Group so it survives restarts
+                UserDefaults(suiteName: AppGroupKeys.suiteName)?
+                    .set(activity.id, forKey: AppGroupKeys.liveActivityId)
+                call.resolve(["started": true, "activityId": activity.id])
+            } catch {
+                call.resolve(["started": false, "reason": error.localizedDescription])
+            }
         }
     }
 
@@ -169,11 +171,9 @@ public class LiveActivityPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @available(iOS 16.2, *)
-    private func endAllActivities() {
-        Task {
-            for activity in Activity<LayerWeatherActivityAttributes>.activities {
-                await activity.end(dismissalPolicy: .immediate)
-            }
+    private func endAllActivities() async {
+        for activity in Activity<LayerWeatherActivityAttributes>.activities {
+            await activity.end(dismissalPolicy: .immediate)
         }
     }
 }
