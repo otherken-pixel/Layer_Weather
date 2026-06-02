@@ -30,6 +30,8 @@ import { removeCityWeatherCache } from "@/lib/cache";
 import { matchWardrobeToOutfit } from "@/lib/wardrobe-matching";
 import { DEVICE_LOCATION_KEY, loadDeviceLocationPref } from "@/store";
 import { LocationPickerSheet } from "@/components/location/LocationPickerSheet";
+import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 import { startGeofence, stopGeofence } from "@/lib/geofence";
 import { useNavigate } from "react-router-dom";
 import { WeatherIcon } from "@/components/weather/WeatherIcon";
@@ -40,6 +42,22 @@ import { MoonPhasesCard } from "@/components/weather/MoonPhasesCard";
 import { SeasonalProduceCard } from "@/components/weather/SeasonalProduceCard";
 import { PollenCard } from "@/components/weather/PollenCard";
 import { SolarCard, SolarUnavailableCard } from "@/components/weather/SolarCard";
+
+async function checkGPSPermissionGranted(): Promise<boolean> {
+  try {
+    if (Capacitor.isNativePlatform()) {
+      const { location } = await Geolocation.checkPermissions();
+      return location === "granted";
+    }
+    if (typeof navigator !== "undefined" && navigator.permissions) {
+      const result = await navigator.permissions.query({ name: "geolocation" as PermissionName });
+      return result.state === "granted";
+    }
+  } catch {
+    // ignore — permission API unavailable
+  }
+  return false;
+}
 
 function toUnit(f: number, unit: "F" | "C") {
   return unit === "C" ? Math.round(((f - 32) * 5) / 9) : Math.round(f);
@@ -179,7 +197,10 @@ export default function Home() {
     skipNextLocationRefreshRef.current = true;
     void (async () => {
       try {
-        const useDeviceLocation = await loadDeviceLocationPref();
+        // Default to My Location whenever GPS permission has already been granted,
+        // even if the user's last active tab was a saved city.
+        const storedPref = await loadDeviceLocationPref();
+        const useDeviceLocation = storedPref || await checkGPSPermissionGranted();
         if (useDeviceLocation) {
           setActiveLocationIsDevice(true);
           await refresh(true, { useDeviceLocation: true, cacheKey: DEVICE_LOCATION_KEY });
