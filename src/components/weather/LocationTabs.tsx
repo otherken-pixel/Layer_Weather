@@ -65,6 +65,9 @@ export function LocationTabs({
     WebkitBackdropFilter: "none",
   };
 
+  const activePillSnap: React.CSSProperties = { ...activePill, scrollSnapAlign: "start" };
+  const inactivePillSnap: React.CSSProperties = { ...inactivePill, scrollSnapAlign: "start" };
+
   return (
     <div style={{ position: "relative", zIndex: 5 }}>
       <div
@@ -77,14 +80,19 @@ export function LocationTabs({
           paddingRight: 48,
           paddingBottom: 14,
           paddingTop: 10,
+          scrollSnapType: "x proximity",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         <button
           type="button"
-          onClick={onSelectDevice}
+          onClick={(e) => {
+            onSelectDevice();
+            (e.currentTarget as HTMLElement).scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+          }}
           aria-pressed={activeIsDevice}
           aria-label="Use my current location"
-          style={activeIsDevice ? activePill : inactivePill}
+          style={activeIsDevice ? activePillSnap : inactivePillSnap}
         >
           <MapPin size={13} strokeWidth={2.5} />
           My Location
@@ -96,10 +104,15 @@ export function LocationTabs({
             activeLocationKey != null &&
             locationTabKey(loc) === activeLocationKey;
           return (
-            <div key={locationTabKey(loc)} style={{ position: "relative", flexShrink: 0 }}>
+            <div key={locationTabKey(loc)} style={{ position: "relative", flexShrink: 0, scrollSnapAlign: "start" }}>
               <button
                 type="button"
-                onClick={() => { if (!editMode) onSelect(loc); }}
+                onClick={(e) => {
+                  if (!editMode) {
+                    onSelect(loc);
+                    (e.currentTarget as HTMLElement).scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                  }
+                }}
                 aria-pressed={isActive}
                 aria-label={`Switch to ${loc.city}`}
                 style={{
